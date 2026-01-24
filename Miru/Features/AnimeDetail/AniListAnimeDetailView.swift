@@ -83,6 +83,7 @@ struct AniListAnimeDetailView: View {
         ZStack(alignment: .bottom) {
             // Banner/Wallpaper
             bannerImage
+                .frame(maxWidth: .infinity)
 
             // Gradient overlay
             LinearGradient(
@@ -90,6 +91,7 @@ struct AniListAnimeDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .frame(maxWidth: .infinity)
 
             // Content overlay
             HStack(alignment: .bottom, spacing: .spacingS) {
@@ -98,47 +100,48 @@ struct AniListAnimeDetailView: View {
 
                 // Title and info
                 VStack(alignment: .leading, spacing: .spacingXXS) {
-                    Spacer()
-
                     Text(viewModel.displayTitle)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let altTitles = viewModel.alternativeTitles {
                         Text(altTitles)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                            .lineLimit(1)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .bottomLeading)
                 .padding(.bottom, .spacingS)
             }
             .padding(.horizontal, .spacingS)
             .padding(.bottom, .spacingXS)
+            .frame(maxWidth: .infinity)
         }
         .frame(height: 280)
     }
 
     private var bannerImage: some View {
-        Group {
-            if let bannerURL = viewModel.anime?.bannerURL {
-                AsyncImage(url: bannerURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    coverAsBackground
+        Color.clear
+            .overlay {
+                Group {
+                    if let bannerURL = viewModel.anime?.bannerURL {
+                        AsyncImage(url: bannerURL) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            coverAsBackground
+                        }
+                    } else {
+                        coverAsBackground
+                    }
                 }
-            } else {
-                coverAsBackground
             }
-        }
-        .frame(height: 280)
-        .clipped()
-        .opacity(0.4)
+            .clipped()
+            .opacity(0.4)
     }
 
     private var coverAsBackground: some View {
@@ -154,33 +157,36 @@ struct AniListAnimeDetailView: View {
     }
 
     private var coverImage: some View {
-        AsyncImage(url: viewModel.displayCoverURL) { phase in
-            switch phase {
-            case .success(let image):
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            case .failure:
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
+        Color.clear
+            .frame(width: 120, height: 170)
+            .overlay {
+                AsyncImage(url: viewModel.displayCoverURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.secondary)
+                            }
+                    case .empty:
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .overlay {
+                                ProgressView()
+                            }
+                    @unknown default:
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
                     }
-            case .empty:
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        ProgressView()
-                    }
-            @unknown default:
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
+                }
             }
-        }
-        .frame(width: 120, height: 170)
-        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-        .shadow(radius: 8)
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            .shadow(radius: 8)
     }
 
 
