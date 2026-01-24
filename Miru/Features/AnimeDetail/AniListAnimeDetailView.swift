@@ -22,6 +22,7 @@ struct AniListAnimeDetailView: View {
 
     @State private var viewModel: AniListAnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var isSynopsisTruncated = false
 
 
     //#################################################################################
@@ -422,14 +423,37 @@ struct AniListAnimeDetailView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .lineLimit(viewModel.isSynopsisExpanded ? nil : 4)
-
-                Button(viewModel.isSynopsisExpanded ? "Show Less" : "Read More") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.isSynopsisExpanded.toggle()
+                    .background {
+                        GeometryReader { visibleGeometry in
+                            Color.clear
+                                .overlay {
+                                    Text(synopsis)
+                                        .font(.body)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .background {
+                                            GeometryReader { fullGeometry in
+                                                Color.clear.onAppear {
+                                                    isSynopsisTruncated = fullGeometry.size.height > visibleGeometry.size.height
+                                                }
+                                                .onChange(of: viewModel.isSynopsisExpanded) { _, _ in
+                                                    isSynopsisTruncated = fullGeometry.size.height > visibleGeometry.size.height
+                                                }
+                                            }
+                                        }
+                                        .hidden()
+                                }
+                        }
                     }
+
+                if isSynopsisTruncated || viewModel.isSynopsisExpanded {
+                    Button(viewModel.isSynopsisExpanded ? "Show Less" : "Read More") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.isSynopsisExpanded.toggle()
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.accent)
                 }
-                .font(.subheadline)
-                .foregroundStyle(.accent)
             }
             .padding(.horizontal, .spacingS)
         }
