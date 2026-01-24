@@ -149,11 +149,74 @@ enum MockError: Error {
 
 
 //#################################################################################
+// MARK: - MockAniListService
+//#################################################################################
+
+/// Mock implementation of AniListServicing for testing.
+final class MockAniListService: AniListServicing {
+
+    //#################################################################################
+    // MARK: - Stub Configuration
+    //#################################################################################
+
+    var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
+    var fetchTrendingResult: Result<[RecommendingItem], Error> = .success([])
+    var fetchSeasonalResult: Result<[RecommendingItem], Error> = .success([])
+
+
+    //#################################################################################
+    // MARK: - Call Tracking
+    //#################################################################################
+
+    var fetchThisWeekCallCount = 0
+    var fetchTrendingCallCount = 0
+    var fetchSeasonalCallCount = 0
+
+
+    //#################################################################################
+    // MARK: - AniListServicing Methods
+    //#################################################################################
+
+    func fetchThisWeek() async throws -> [RecommendingItem] {
+        fetchThisWeekCallCount += 1
+        return try fetchThisWeekResult.get()
+    }
+
+    func fetchTrending() async throws -> [RecommendingItem] {
+        fetchTrendingCallCount += 1
+        return try fetchTrendingResult.get()
+    }
+
+    func fetchSeasonal() async throws -> [RecommendingItem] {
+        fetchSeasonalCallCount += 1
+        return try fetchSeasonalResult.get()
+    }
+}
+
+
+//#################################################################################
 // MARK: - Test Fixtures
 //#################################################################################
 
 /// Factory for creating test data.
 enum TestFixtures {
+
+    /// Creates a sample RecommendingItem for testing.
+    static func makeRecommendingItem(id: String = "1",
+                                      title: String = "Test Anime",
+                                      anilistId: Int = 12345) -> RecommendingItem {
+        RecommendingItem(id: id,
+                         title: title,
+                         subtitle: "Studio Name",
+                         caption: "Ep. 1",
+                         isCaptionHighlighted: false,
+                         synopsis: "A test anime synopsis.",
+                         coverURL: URL(string: "https://example.com/cover.jpg"),
+                         anilistId: anilistId,
+                         airDate: nil,
+                         episodeNumber: 1,
+                         totalEpisodes: 12)
+    }
 
     /// Creates a sample AnimePreview for testing.
     static func makeAnimePreview(id: String = "1",
