@@ -31,6 +31,9 @@ struct RecommendationSection: Identifiable {
     /// The visual style for displaying this section.
     let style: SectionStyle
 
+    /// The type of anime list for pagination (nil for non-paginated sections).
+    let listType: AnimeListType?
+
     /// The items in this section.
     var items: [RecommendingItem]
 
@@ -48,18 +51,21 @@ struct RecommendationSection: Identifiable {
     ///   - title: Display title of the section.
     ///   - subtitle: Optional subtitle.
     ///   - style: The visual style for displaying this section.
+    ///   - listType: The type of anime list for pagination.
     ///   - items: The items in this section.
     ///   - loadingState: The current loading state.
     init(id: String,
          title: String,
          subtitle: String? = nil,
          style: SectionStyle,
+         listType: AnimeListType? = nil,
          items: [RecommendingItem] = [],
          loadingState: LoadingState = .idle) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self.style = style
+        self.listType = listType
         self.items = items
         self.loadingState = loadingState
     }

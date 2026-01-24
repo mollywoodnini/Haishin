@@ -100,15 +100,37 @@ private struct RecommendationSectionView: View {
     }
 
     private var sectionHeader: some View {
-        VStack(alignment: .leading, spacing: .spacingXXS) {
-            Text(section.title)
-                .font(.title2)
-                .fontWeight(.bold)
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(section.title)
+                    .font(.title2)
+                    .fontWeight(.bold)
 
-            if let subtitle = section.subtitle {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if let subtitle = section.subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Action button based on section style
+            switch section.style {
+            case .thisWeek:
+                NavigationLink(destination: ScheduleView()) {
+                    Text("Show Schedule")
+                        .font(.subheadline)
+                        .foregroundStyle(.accent)
+                }
+            case .standard, .wide:
+                if let listType = section.listType {
+                    NavigationLink(destination: AnimeListView(title: section.title, listType: listType)) {
+                        Text("View More")
+                            .font(.subheadline)
+                            .foregroundStyle(.accent)
+                    }
+                }
             }
         }
         .padding(.horizontal, .spacingS)
@@ -162,17 +184,6 @@ private struct RecommendationSectionView: View {
 
 /// Content view for "This Week" calendar-style section.
 private struct ThisWeekSectionContent: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let cardWidth: CGFloat = 280
-        static let cardHeight: CGFloat = 140
-        static let imageWidth: CGFloat = 100
-    }
-
 
     //#################################################################################
     // MARK: - Properties
@@ -266,7 +277,7 @@ private struct ThisWeekCard: View {
                 if let date = item.subtitle {
                     Text(date)
                         .font(.subheadline)
-                        .foregroundStyle(.categoryDownloads)
+                        .foregroundStyle(.highlight)
                 }
 
                 Text(item.title)

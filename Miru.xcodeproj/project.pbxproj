@@ -40,11 +40,6 @@
 			path = MiruTests;
 			sourceTree = "<group>";
 		};
-		185F71B52F25298500C60C1E /* MiruUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MiruUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,7 +72,6 @@
 			children = (
 				185F719D2F25298200C60C1E /* Miru */,
 				185F71AB2F25298500C60C1E /* MiruTests */,
-				185F71B52F25298500C60C1E /* MiruUITests */,
 				185F719C2F25298200C60C1E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -152,9 +146,6 @@
 			);
 			dependencies = (
 				185F71B42F25298500C60C1E /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				185F71B52F25298500C60C1E /* MiruUITests */,
 			);
 			name = MiruUITests;
 			packageProductDependencies = (

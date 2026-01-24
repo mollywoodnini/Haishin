@@ -8,6 +8,7 @@
 import XCTest
 @testable import Miru
 
+@MainActor
 final class BrowseViewModelTests: XCTestCase {
 
     //#################################################################################
@@ -108,8 +109,8 @@ final class BrowseViewModelTests: XCTestCase {
     func test_loadContent_callsAllAniListServiceMethods() async {
         // Given
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
-        mockAniListService.fetchTrendingResult = .success([TestFixtures.makeRecommendingItem(id: "2")])
-        mockAniListService.fetchSeasonalResult = .success([TestFixtures.makeRecommendingItem(id: "3")])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "2")], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "3")], hasNextPage: false, currentPage: 1))
 
         // When
         await sut.loadContent()
@@ -127,8 +128,8 @@ final class BrowseViewModelTests: XCTestCase {
         let seasonalItem = TestFixtures.makeRecommendingItem(id: "3", title: "Seasonal Anime")
 
         mockAniListService.fetchThisWeekResult = .success([thisWeekItem])
-        mockAniListService.fetchTrendingResult = .success([trendingItem])
-        mockAniListService.fetchSeasonalResult = .success([seasonalItem])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [trendingItem], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [seasonalItem], hasNextPage: false, currentPage: 1))
 
         // When
         await sut.loadContent()
@@ -151,8 +152,8 @@ final class BrowseViewModelTests: XCTestCase {
     func test_loadContent_setsLoadingStateToLoaded() async {
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
-        mockAniListService.fetchTrendingResult = .success([])
-        mockAniListService.fetchSeasonalResult = .success([])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
 
         // When
         await sut.loadContent()
@@ -166,8 +167,8 @@ final class BrowseViewModelTests: XCTestCase {
     func test_loadContent_setsLoadingStateToFailedOnError() async {
         // Given
         mockAniListService.fetchThisWeekResult = .failure(MockError.testError)
-        mockAniListService.fetchTrendingResult = .success([])
-        mockAniListService.fetchSeasonalResult = .success([])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
 
         // When
         await sut.loadContent()
@@ -180,8 +181,8 @@ final class BrowseViewModelTests: XCTestCase {
     func test_loadContent_whenAlreadyLoading_doesNotLoadAgain() async {
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
-        mockAniListService.fetchTrendingResult = .success([])
-        mockAniListService.fetchSeasonalResult = .success([])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
 
         // When - Start first load
         let task1 = Task {
@@ -211,8 +212,8 @@ final class BrowseViewModelTests: XCTestCase {
     func test_refresh_resetsAndReloadsSections() async {
         // Given - Load initial content
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
-        mockAniListService.fetchTrendingResult = .success([TestFixtures.makeRecommendingItem(id: "2")])
-        mockAniListService.fetchSeasonalResult = .success([TestFixtures.makeRecommendingItem(id: "3")])
+        mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "2")], hasNextPage: false, currentPage: 1))
+        mockAniListService.fetchSeasonalResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "3")], hasNextPage: false, currentPage: 1))
 
         await sut.loadContent()
 

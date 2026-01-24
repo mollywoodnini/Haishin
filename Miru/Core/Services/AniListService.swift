@@ -105,11 +105,16 @@ final class AniListService: AniListServicing {
     }
 
     /// Fetches trending anime.
-    /// - Returns: An array of recommending items for trending anime.
-    func fetchTrending() async throws -> [RecommendingItem] {
+    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Returns: A paginated response containing trending anime.
+    func fetchTrending(page: Int = 1) async throws -> PaginatedResponse {
         let query = """
         query($page: Int, $perPage: Int) {
             Page(page: $page, perPage: $perPage) {
+                pageInfo {
+                    hasNextPage
+                    currentPage
+                }
                 media(type: ANIME, sort: [TRENDING_DESC], isAdult: false) {
                     id
                     episodes
@@ -133,34 +138,47 @@ final class AniListService: AniListServicing {
         """
 
         let variables: [String: Any] = [
-            "page": 1,
+            "page": page,
             "perPage": Constants.pageSize
         ]
 
         let response: MediaPageResponse = try await executeQuery(query, variables: variables)
 
-        return response.data.page.media.map { media in
+        let items = response.data.page.media.map { media in
             let title = media.title.english ?? media.title.romaji
             let studio = media.studios?.nodes.first?.name
 
-            return RecommendingItem(id: "\(media.id)",
-                                    title: title,
-                                    subtitle: studio,
-                                    synopsis: media.description?.strippingHTML(),
-                                    coverURL: URL(string: media.coverImage.large),
-                                    anilistId: media.id,
-                                    totalEpisodes: media.episodes)
+            return RecommendingItem(
+                id: "\(media.id)",
+                title: title,
+                subtitle: studio,
+                synopsis: media.description?.strippingHTML(),
+                coverURL: URL(string: media.coverImage.large),
+                anilistId: media.id,
+                totalEpisodes: media.episodes
+            )
         }
+
+        return PaginatedResponse(
+            items: items,
+            hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
+            currentPage: response.data.page.pageInfo?.currentPage ?? page
+        )
     }
 
     /// Fetches seasonal anime for the current season.
-    /// - Returns: An array of recommending items for seasonal anime.
-    func fetchSeasonal() async throws -> [RecommendingItem] {
+    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Returns: A paginated response containing seasonal anime.
+    func fetchSeasonal(page: Int = 1) async throws -> PaginatedResponse {
         let (season, year) = currentSeason()
 
         let query = """
         query($page: Int, $perPage: Int, $season: MediaSeason, $seasonYear: Int) {
             Page(page: $page, perPage: $perPage) {
+                pageInfo {
+                    hasNextPage
+                    currentPage
+                }
                 media(type: ANIME, season: $season, seasonYear: $seasonYear, sort: [POPULARITY_DESC], isAdult: false) {
                     id
                     episodes
@@ -184,7 +202,7 @@ final class AniListService: AniListServicing {
         """
 
         let variables: [String: Any] = [
-            "page": 1,
+            "page": page,
             "perPage": Constants.pageSize,
             "season": season,
             "seasonYear": year
@@ -192,18 +210,26 @@ final class AniListService: AniListServicing {
 
         let response: MediaPageResponse = try await executeQuery(query, variables: variables)
 
-        return response.data.page.media.map { media in
+        let items = response.data.page.media.map { media in
             let title = media.title.english ?? media.title.romaji
             let studio = media.studios?.nodes.first?.name
 
-            return RecommendingItem(id: "\(media.id)",
-                                    title: title,
-                                    subtitle: studio,
-                                    synopsis: media.description?.strippingHTML(),
-                                    coverURL: URL(string: media.coverImage.large),
-                                    anilistId: media.id,
-                                    totalEpisodes: media.episodes)
+            return RecommendingItem(
+                id: "\(media.id)",
+                title: title,
+                subtitle: studio,
+                synopsis: media.description?.strippingHTML(),
+                coverURL: URL(string: media.coverImage.large),
+                anilistId: media.id,
+                totalEpisodes: media.episodes
+            )
         }
+
+        return PaginatedResponse(
+            items: items,
+            hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
+            currentPage: response.data.page.pageInfo?.currentPage ?? page
+        )
     }
 
 
@@ -358,7 +384,13 @@ private struct MediaPageResponse: Decodable {
     }
 
     struct Page: Decodable {
+        let pageInfo: PageInfo?
         let media: [Media]
+    }
+
+    struct PageInfo: Decodable {
+        let hasNextPage: Bool
+        let currentPage: Int
     }
 
     struct Media: Decodable {

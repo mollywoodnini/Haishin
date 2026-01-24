@@ -20,10 +20,41 @@ protocol AniListServicing: Sendable {
     func fetchThisWeek() async throws -> [RecommendingItem]
 
     /// Fetches trending anime.
-    /// - Returns: An array of recommending items for trending anime.
-    func fetchTrending() async throws -> [RecommendingItem]
+    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Returns: A paginated response containing trending anime.
+    func fetchTrending(page: Int) async throws -> PaginatedResponse
 
     /// Fetches seasonal anime for the current season.
-    /// - Returns: An array of recommending items for seasonal anime.
-    func fetchSeasonal() async throws -> [RecommendingItem]
+    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Returns: A paginated response containing seasonal anime.
+    func fetchSeasonal(page: Int) async throws -> PaginatedResponse
+}
+
+
+//#################################################################################
+// MARK: - PaginatedResponse
+//#################################################################################
+
+/// A paginated response containing anime items and pagination info.
+struct PaginatedResponse: Sendable {
+
+    /// The items in this page.
+    let items: [RecommendingItem]
+
+    /// Whether there are more pages available.
+    let hasNextPage: Bool
+
+    /// The current page number.
+    let currentPage: Int
+}
+
+
+//#################################################################################
+// MARK: - AnimeListType
+//#################################################################################
+
+/// The type of anime list to display.
+enum AnimeListType: Sendable {
+    case trending
+    case seasonal
 }

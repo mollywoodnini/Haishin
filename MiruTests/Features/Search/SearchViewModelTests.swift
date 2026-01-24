@@ -8,6 +8,7 @@
 import XCTest
 @testable import Miru
 
+@MainActor
 final class SearchViewModelTests: XCTestCase {
 
     //#################################################################################

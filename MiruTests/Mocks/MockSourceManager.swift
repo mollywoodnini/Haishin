@@ -160,8 +160,8 @@ final class MockAniListService: AniListServicing {
     //#################################################################################
 
     var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
-    var fetchTrendingResult: Result<[RecommendingItem], Error> = .success([])
-    var fetchSeasonalResult: Result<[RecommendingItem], Error> = .success([])
+    var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+    var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
 
 
     //#################################################################################
@@ -170,7 +170,9 @@ final class MockAniListService: AniListServicing {
 
     var fetchThisWeekCallCount = 0
     var fetchTrendingCallCount = 0
+    var fetchTrendingPages: [Int] = []
     var fetchSeasonalCallCount = 0
+    var fetchSeasonalPages: [Int] = []
 
 
     //#################################################################################
@@ -182,13 +184,15 @@ final class MockAniListService: AniListServicing {
         return try fetchThisWeekResult.get()
     }
 
-    func fetchTrending() async throws -> [RecommendingItem] {
+    func fetchTrending(page: Int) async throws -> PaginatedResponse {
         fetchTrendingCallCount += 1
+        fetchTrendingPages.append(page)
         return try fetchTrendingResult.get()
     }
 
-    func fetchSeasonal() async throws -> [RecommendingItem] {
+    func fetchSeasonal(page: Int) async throws -> PaginatedResponse {
         fetchSeasonalCallCount += 1
+        fetchSeasonalPages.append(page)
         return try fetchSeasonalResult.get()
     }
 }

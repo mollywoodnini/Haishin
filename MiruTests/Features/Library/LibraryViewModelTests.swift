@@ -8,6 +8,7 @@
 import XCTest
 @testable import Miru
 
+@MainActor
 final class LibraryViewModelTests: XCTestCase {
 
     //#################################################################################
@@ -275,11 +276,14 @@ final class LibraryViewModelTests: XCTestCase {
         let anime = TestFixtures.makeAnimePreview()
         sut.addToLibrary(anime: anime)
 
+        // Set sut to nil to ensure it's fully deallocated before creating new instance
+        sut = nil
+
         // When - Create new instance (simulates app restart)
-        let newSut = LibraryViewModel()
+        sut = LibraryViewModel()
 
         // Then
-        XCTAssertEqual(newSut.items.count, 1)
-        XCTAssertEqual(newSut.items.first?.anime.id, anime.id)
+        XCTAssertEqual(sut.items.count, 1)
+        XCTAssertEqual(sut.items.first?.anime.id, anime.id)
     }
 }

@@ -105,16 +105,19 @@ final class BrowseViewModel {
                                   title: "This Week",
                                   subtitle: nil,
                                   style: .thisWeek,
+                                  listType: nil,
                                   loadingState: .idle),
             RecommendationSection(id: SectionId.trending,
                                   title: "Trending",
                                   subtitle: nil,
                                   style: .standard,
+                                  listType: .trending,
                                   loadingState: .idle),
             RecommendationSection(id: SectionId.seasonal,
                                   title: "Seasonal Anime",
                                   subtitle: "\(season) \(year)",
                                   style: .standard,
+                                  listType: .seasonal,
                                   loadingState: .idle)
         ]
     }
@@ -147,10 +150,10 @@ final class BrowseViewModel {
         await updateSectionState(id: SectionId.trending, state: .loading)
 
         do {
-            let items = try await aniListService.fetchTrending()
+            let response = try await aniListService.fetchTrending(page: 1)
             await MainActor.run {
                 if let index = sections.firstIndex(where: { $0.id == SectionId.trending }) {
-                    sections[index].items = items
+                    sections[index].items = response.items
                     sections[index].loadingState = .loaded
                 }
             }
@@ -164,10 +167,10 @@ final class BrowseViewModel {
         await updateSectionState(id: SectionId.seasonal, state: .loading)
 
         do {
-            let items = try await aniListService.fetchSeasonal()
+            let response = try await aniListService.fetchSeasonal(page: 1)
             await MainActor.run {
                 if let index = sections.firstIndex(where: { $0.id == SectionId.seasonal }) {
-                    sections[index].items = items
+                    sections[index].items = response.items
                     sections[index].loadingState = .loaded
                 }
             }
