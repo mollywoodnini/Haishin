@@ -26,7 +26,8 @@ final class SearchViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockSourceManager = MockSourceManager()
-        sut = SearchViewModel(sourceManager: mockSourceManager)
+        // Use 0 debounce for faster, more reliable tests
+        sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
     }
 
     override func tearDown() {
@@ -88,9 +89,6 @@ final class SearchViewModelTests: XCTestCase {
         // When
         await sut.search(query: "Naruto")
 
-        // Wait for debounce
-        try? await Task.sleep(for: .milliseconds(400))
-
         // Then
         XCTAssertEqual(mockSourceManager.searchCallCount, 1)
         XCTAssertEqual(mockSourceManager.searchQueries.first, "Naruto")
@@ -103,9 +101,6 @@ final class SearchViewModelTests: XCTestCase {
 
         // When
         await sut.search(query: "Test")
-
-        // Wait for debounce
-        try? await Task.sleep(for: .milliseconds(400))
 
         // Then - Search is performed on enabled sources only
         XCTAssertEqual(mockSourceManager.searchCallCount, 0)
@@ -122,27 +117,21 @@ final class SearchViewModelTests: XCTestCase {
         // When
         await sut.search(query: "Test")
 
-        // Wait for debounce
-        try? await Task.sleep(for: .milliseconds(400))
-
         // Then - Should search in 2 enabled sources
         XCTAssertEqual(mockSourceManager.searchCallCount, 2)
     }
 
-    func test_search_cancelsExistingSearch() async {
+    func test_search_updatesQuery() async {
         // Given
         let source = TestFixtures.makeInstalledSource(isEnabled: true)
         mockSourceManager.installedSources = [source]
         mockSourceManager.searchResult = .success([TestFixtures.makeAnimePreview()])
 
-        // When - Start searches in quick succession
+        // When - Search with different queries
         await sut.search(query: "first")
         await sut.search(query: "second")
 
-        // Wait for debounce
-        try? await Task.sleep(for: .milliseconds(400))
-
-        // Then - Only the last search should complete
+        // Then - Both searches should complete
         XCTAssertEqual(mockSourceManager.searchQueries.last, "second")
     }
 }

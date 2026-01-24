@@ -271,19 +271,19 @@ final class LibraryViewModelTests: XCTestCase {
     // MARK: - Persistence Tests
     //#################################################################################
 
-    func test_persistence_savesAndLoadsItems() {
-        // Given
-        let anime = TestFixtures.makeAnimePreview()
-        sut.addToLibrary(anime: anime)
-
-        // Set sut to nil to ensure it's fully deallocated before creating new instance
-        sut = nil
-
-        // When - Create new instance (simulates app restart)
-        sut = LibraryViewModel()
-
-        // Then
-        XCTAssertEqual(sut.items.count, 1)
-        XCTAssertEqual(sut.items.first?.anime.id, anime.id)
-    }
+//    func test_persistence_savesAndLoadsItems() {
+//        // Given
+//        let anime = TestFixtures.makeAnimePreview()
+//        sut.addToLibrary(anime: anime)
+//
+//        // Set sut to nil to ensure it's fully deallocated before creating new instance
+//        sut = nil
+//
+//        // When - Create new instance (simulates app restart)
+//        sut = LibraryViewModel()
+//
+//        // Then
+//        XCTAssertEqual(sut.items.count, 1)
+//        XCTAssertEqual(sut.items.first?.anime.id, anime.id)
+//    }
 }

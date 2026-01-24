@@ -25,6 +25,7 @@ final class SearchViewModel {
     private(set) var error: Error?
 
     private let sourceManager: SourceManaging
+    private let debounceMilliseconds: Int
     private var searchTask: Task<Void, Never>?
 
 
@@ -33,9 +34,12 @@ final class SearchViewModel {
     //#################################################################################
 
     /// Creates a new search view model.
-    /// - Parameter sourceManager: The source manager to use.
-    init(sourceManager: SourceManaging) {
+    /// - Parameters:
+    ///   - sourceManager: The source manager to use.
+    ///   - debounceMilliseconds: The debounce delay in milliseconds (default 300).
+    init(sourceManager: SourceManaging, debounceMilliseconds: Int = 300) {
         self.sourceManager = sourceManager
+        self.debounceMilliseconds = debounceMilliseconds
     }
 
 
@@ -56,12 +60,17 @@ final class SearchViewModel {
 
         // Debounce search
         searchTask = Task {
-            try? await Task.sleep(for: .milliseconds(300))
+            if debounceMilliseconds > 0 {
+                try? await Task.sleep(for: .milliseconds(debounceMilliseconds))
+            }
 
             guard !Task.isCancelled else { return }
 
             await performSearch(query: query)
         }
+        
+        // Wait for the search task to complete
+        await searchTask?.value
     }
 
 
