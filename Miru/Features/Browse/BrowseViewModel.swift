@@ -58,11 +58,21 @@ final class BrowseViewModel {
     ///   - sourceManager: The source manager to use.
     ///   - aniListService: The AniList service for fetching recommendations.
     init(sourceManager: SourceManaging,
-         aniListService: AniListServicing = AniListService()) {
+         aniListService: AniListServicing) {
         self.sourceManager = sourceManager
         self.aniListService = aniListService
         initializeSections()
     }
+    
+    /// Creates a new browse view model.
+    /// - Parameters:
+    ///   - sourceManager: The source manager to use.
+    @MainActor
+    convenience init(sourceManager: SourceManaging) {
+        self.init(sourceManager: sourceManager,
+                  aniListService: AniListService())
+    }
+
 
 
     //#################################################################################

@@ -30,6 +30,7 @@ final class AniListService: AniListServicing {
     //#################################################################################
 
     /// Creates a new AniList service.
+    @MainActor
     init() {}
 
 

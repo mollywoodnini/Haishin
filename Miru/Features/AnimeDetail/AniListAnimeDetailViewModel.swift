@@ -58,7 +58,7 @@ final class AniListAnimeDetailViewModel {
     init(animeId: Int,
          previewTitle: String,
          previewCoverURL: URL?,
-         aniListService: AniListServicing = AniListService()) {
+         aniListService: AniListServicing) {
         self.animeId = animeId
         self.previewTitle = previewTitle
         self.previewCoverURL = previewCoverURL
@@ -70,11 +70,33 @@ final class AniListAnimeDetailViewModel {
     ///   - item: The recommending item to display details for.
     ///   - aniListService: The service to fetch anime details.
     convenience init(item: RecommendingItem,
-                     aniListService: AniListServicing = AniListService()) {
+                     aniListService: AniListServicing) {
         self.init(animeId: item.anilistId,
                   previewTitle: item.title,
                   previewCoverURL: item.coverURL,
                   aniListService: aniListService)
+    }
+    
+    /// Creates a new view model from a recommending item with default service.
+    /// - Parameter item: The recommending item to display details for.
+    @MainActor
+    convenience init(item: RecommendingItem) {
+        self.init(item: item, aniListService: AniListService())
+    }
+    
+    /// Creates a new view model with default service.
+    /// - Parameters:
+    ///   - animeId: The AniList ID of the anime.
+    ///   - previewTitle: The title to display while loading.
+    ///   - previewCoverURL: The cover URL to display while loading.
+    @MainActor
+    convenience init(animeId: Int,
+                     previewTitle: String,
+                     previewCoverURL: URL?) {
+        self.init(animeId: animeId,
+                  previewTitle: previewTitle,
+                  previewCoverURL: previewCoverURL,
+                  aniListService: AniListService())
     }
 
 

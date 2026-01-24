@@ -57,10 +57,22 @@ final class AnimeListViewModel {
     ///   - aniListService: The AniList service for fetching anime.
     init(title: String,
          listType: AnimeListType,
-         aniListService: AniListServicing = AniListService()) {
+         aniListService: AniListServicing) {
         self.title = title
         self.listType = listType
         self.aniListService = aniListService
+    }
+    
+    /// Creates a new anime list view model with default service.
+    /// - Parameters:
+    ///   - title: The title of the list.
+    ///   - listType: The type of anime list to display.
+    @MainActor
+    convenience init(title: String,
+                     listType: AnimeListType) {
+        self.init(title: title,
+                  listType: listType,
+                  aniListService: AniListService())
     }
 
 

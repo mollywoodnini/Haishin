@@ -38,8 +38,14 @@ final class ScheduleViewModel {
 
     /// Creates a new schedule view model.
     /// - Parameter aniListService: The AniList service for fetching schedule data.
-    init(aniListService: AniListServicing = AniListService()) {
+    init(aniListService: AniListServicing) {
         self.aniListService = aniListService
+    }
+    
+    /// Creates a new schedule view model.
+    @MainActor
+    convenience init() {
+        self.init(aniListService: AniListService())
     }
 
 
