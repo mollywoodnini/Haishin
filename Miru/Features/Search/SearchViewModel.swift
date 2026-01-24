@@ -87,13 +87,14 @@ final class SearchViewModel {
 
         await withTaskGroup(of: [AnimePreview].self) { group in
             for source in enabledSources {
+                let sourceId = source.id
                 group.addTask {
                     do {
-                        return try await self.sourceManager.search(sourceId: source.id,
+                        return try await self.sourceManager.search(sourceId: sourceId,
                                                                    query: query,
                                                                    page: 1)
                     } catch {
-                        print("[SearchViewModel] Search failed for \(source.id): \(error)")
+                        print("[SearchViewModel] Search failed for \(sourceId): \(error)")
                         return []
                     }
                 }

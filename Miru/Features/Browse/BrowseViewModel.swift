@@ -130,7 +130,7 @@ final class BrowseViewModel {
     }
 
     private func loadThisWeek() async {
-        await updateSectionState(id: SectionId.thisWeek, state: .loading)
+        updateSectionState(id: SectionId.thisWeek, state: .loading)
 
         do {
             let items = try await aniListService.fetchThisWeek()
@@ -141,13 +141,13 @@ final class BrowseViewModel {
                 }
             }
         } catch {
-            await updateSectionState(id: SectionId.thisWeek,
-                                     state: .failed(error.localizedDescription))
+            updateSectionState(id: SectionId.thisWeek,
+                               state: .failed(error.localizedDescription))
         }
     }
 
     private func loadTrending() async {
-        await updateSectionState(id: SectionId.trending, state: .loading)
+        updateSectionState(id: SectionId.trending, state: .loading)
 
         do {
             let response = try await aniListService.fetchTrending(page: 1)
@@ -158,13 +158,13 @@ final class BrowseViewModel {
                 }
             }
         } catch {
-            await updateSectionState(id: SectionId.trending,
-                                     state: .failed(error.localizedDescription))
+            updateSectionState(id: SectionId.trending,
+                               state: .failed(error.localizedDescription))
         }
     }
 
     private func loadSeasonal() async {
-        await updateSectionState(id: SectionId.seasonal, state: .loading)
+        updateSectionState(id: SectionId.seasonal, state: .loading)
 
         do {
             let response = try await aniListService.fetchSeasonal(page: 1)
@@ -175,8 +175,8 @@ final class BrowseViewModel {
                 }
             }
         } catch {
-            await updateSectionState(id: SectionId.seasonal,
-                                     state: .failed(error.localizedDescription))
+            updateSectionState(id: SectionId.seasonal,
+                               state: .failed(error.localizedDescription))
         }
     }
 
