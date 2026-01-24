@@ -1,0 +1,158 @@
+//
+//  NetworkClient.swift
+//  Miru
+//
+//  Created by Miru on 24.01.26.
+//
+
+import Foundation
+
+/// A simple async/await network client for making HTTP requests.
+actor NetworkClient {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let defaultTimeout: TimeInterval = 30
+    }
+
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    private let session: URLSession
+    private let decoder: JSONDecoder
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new network client.
+    /// - Parameter configuration: URL session configuration. Defaults to `.default`.
+    init(configuration: URLSessionConfiguration = .default) {
+        configuration.timeoutIntervalForRequest = Constants.defaultTimeout
+        self.session = URLSession(configuration: configuration)
+        self.decoder = JSONDecoder()
+        self.decoder.keyDecodingStrategy = .convertFromSnakeCase
+    }
+
+
+    //#################################################################################
+    // MARK: - Public Methods
+    //#################################################################################
+
+    /// Fetches data from a URL.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The raw data from the response.
+    func fetch(url: URL, headers: [String: String]? = nil) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        headers?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        return data
+    }
+
+    /// Fetches and decodes JSON from a URL.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - type: The type to decode.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The decoded object.
+    func fetchJSON<T: Decodable>(url: URL,
+                                 type: T.Type,
+                                 headers: [String: String]? = nil) async throws -> T {
+        let data = try await fetch(url: url, headers: headers)
+        return try decoder.decode(T.self, from: data)
+    }
+
+    /// Fetches HTML content from a URL as a string.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The HTML content as a string.
+    func fetchHTML(url: URL, headers: [String: String]? = nil) async throws -> String {
+        let data = try await fetch(url: url, headers: headers)
+
+        guard let html = String(data: data, encoding: .utf8) else {
+            throw NetworkError.decodingFailed
+        }
+
+        return html
+    }
+
+    /// Posts data to a URL.
+    /// - Parameters:
+    ///   - url: The URL to post to.
+    ///   - body: The request body data.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The raw data from the response.
+    func post(url: URL, body: Data?, headers: [String: String]? = nil) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = body
+
+        headers?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        return data
+    }
+}
+
+
+//#################################################################################
+// MARK: - NetworkError
+//#################################################################################
+
+/// Errors that can occur during network operations.
+enum NetworkError: LocalizedError {
+    case invalidURL
+    case invalidResponse
+    case httpError(statusCode: Int)
+    case decodingFailed
+    case noData
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "The URL is invalid."
+        case .invalidResponse:
+            return "Received an invalid response from the server."
+        case .httpError(let statusCode):
+            return "HTTP error with status code: \(statusCode)"
+        case .decodingFailed:
+            return "Failed to decode the response."
+        case .noData:
+            return "No data was received."
+        }
+    }
+}

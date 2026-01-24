@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct MiruApp: App {
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }
