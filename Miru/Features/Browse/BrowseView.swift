@@ -200,7 +200,12 @@ private struct ThisWeekSectionContent: View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: .spacingS) {
                 ForEach(items) { item in
-                    ThisWeekCard(item: item)
+                    NavigationLink {
+                        AniListAnimeDetailView(item: item)
+                    } label: {
+                        ThisWeekCard(item: item)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, .spacingS)
@@ -256,7 +261,14 @@ private struct ThisWeekCard: View {
                 }
                 .frame(width: Constants.imageWidth, height: Constants.cardHeight)
                 .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: .cornerRadiusM,
+                        bottomLeadingRadius: .cornerRadiusM,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0
+                    )
+                )
 
                 // Episode badge
                 if let caption = item.caption {
@@ -326,7 +338,12 @@ private struct StandardSectionContent: View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: .spacingS) {
                 ForEach(items) { item in
-                    StandardAnimeCard(item: item)
+                    NavigationLink {
+                        AniListAnimeDetailView(item: item)
+                    } label: {
+                        StandardAnimeCard(item: item)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, .spacingS)

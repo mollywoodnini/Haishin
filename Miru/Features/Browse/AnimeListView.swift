@@ -90,12 +90,17 @@ struct AnimeListView: View {
         ScrollView {
             LazyVStack(spacing: .spacingS) {
                 ForEach(viewModel.items) { item in
-                    AnimeListRow(item: item)
-                        .onAppear {
-                            Task {
-                                await viewModel.loadMoreIfNeeded(currentItem: item)
-                            }
+                    NavigationLink {
+                        AniListAnimeDetailView(item: item)
+                    } label: {
+                        AnimeListRow(item: item)
+                    }
+                    .buttonStyle(.plain)
+                    .onAppear {
+                        Task {
+                            await viewModel.loadMoreIfNeeded(currentItem: item)
                         }
+                    }
                 }
 
                 // Loading indicator at the bottom
@@ -126,8 +131,8 @@ private struct AnimeListRow: View {
     //#################################################################################
 
     private struct Constants {
-        static let imageWidth: CGFloat = 80
-        static let imageHeight: CGFloat = 110
+        static let imageWidth: CGFloat = 85
+        static let rowHeight: CGFloat = 120
     }
 
 
@@ -144,7 +149,7 @@ private struct AnimeListRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            // Cover image with badge
+            // Cover image with badge - flush to edges
             ZStack(alignment: .bottomLeading) {
                 AsyncImage(url: item.coverURL) { image in
                     image
@@ -158,9 +163,16 @@ private struct AnimeListRow: View {
                                 .foregroundStyle(.secondary)
                         }
                 }
-                .frame(width: Constants.imageWidth, height: Constants.imageHeight)
+                .frame(width: Constants.imageWidth, height: Constants.rowHeight)
                 .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: .cornerRadiusM,
+                        bottomLeadingRadius: .cornerRadiusM,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0
+                    )
+                )
 
                 // Episode badge
                 if let caption = item.caption {
@@ -210,9 +222,10 @@ private struct AnimeListRow: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, .spacingXXS)
+            .padding(.vertical, .spacingS)
+            .padding(.trailing, .spacingS)
         }
-        .padding(.spacingS)
+        .frame(height: Constants.rowHeight)
         .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
     }

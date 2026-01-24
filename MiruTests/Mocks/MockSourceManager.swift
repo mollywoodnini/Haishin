@@ -162,6 +162,7 @@ final class MockAniListService: AniListServicing {
     var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
     var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
     var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+    var fetchAnimeDetailsResult: Result<AniListAnimeDetail, Error> = .failure(MockError.notConfigured)
 
 
     //#################################################################################
@@ -173,6 +174,8 @@ final class MockAniListService: AniListServicing {
     var fetchTrendingPages: [Int] = []
     var fetchSeasonalCallCount = 0
     var fetchSeasonalPages: [Int] = []
+    var fetchAnimeDetailsCallCount = 0
+    var fetchAnimeDetailsIds: [Int] = []
 
 
     //#################################################################################
@@ -194,6 +197,12 @@ final class MockAniListService: AniListServicing {
         fetchSeasonalCallCount += 1
         fetchSeasonalPages.append(page)
         return try fetchSeasonalResult.get()
+    }
+
+    func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail {
+        fetchAnimeDetailsCallCount += 1
+        fetchAnimeDetailsIds.append(id)
+        return try fetchAnimeDetailsResult.get()
     }
 }
 
@@ -318,5 +327,44 @@ enum TestFixtures {
                                  category: LibraryCategory = .watching) -> LibraryItem {
         LibraryItem(anime: anime ?? makeAnimePreview(),
                     category: category)
+    }
+
+    /// Creates a sample AniListAnimeDetail for testing.
+    static func makeAniListAnimeDetail(id: Int = 12345,
+                                        title: String = "Test Anime") -> AniListAnimeDetail {
+        AniListAnimeDetail(
+            id: id,
+            title: title,
+            romajiTitle: "Tesuto Anime",
+            nativeTitle: "テストアニメ",
+            englishTitle: title,
+            coverURL: URL(string: "https://example.com/cover.jpg"),
+            bannerURL: URL(string: "https://example.com/banner.jpg"),
+            synopsis: "A test anime synopsis for testing.",
+            genres: ["Action", "Comedy"],
+            averageScore: 85,
+            meanScore: 84,
+            popularity: 10000,
+            favourites: 500,
+            status: .releasing,
+            format: .tv,
+            episodes: 12,
+            duration: 24,
+            season: .winter,
+            seasonYear: 2026,
+            startDate: AniListDate(year: 2026, month: 1, day: 1),
+            endDate: nil,
+            source: "MANGA",
+            countryOfOrigin: "JP",
+            studios: [AniListStudio(id: 1, name: "Test Studio", isAnimationStudio: true)],
+            characters: [],
+            relations: [],
+            recommendations: [],
+            externalLinks: [],
+            trailer: nil,
+            tags: [],
+            nextAiringEpisode: nil,
+            siteUrl: URL(string: "https://anilist.co/anime/12345")
+        )
     }
 }

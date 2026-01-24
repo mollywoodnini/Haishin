@@ -28,6 +28,11 @@ protocol AniListServicing: Sendable {
     /// - Parameter page: The page number to fetch (1-indexed).
     /// - Returns: A paginated response containing seasonal anime.
     func fetchSeasonal(page: Int) async throws -> PaginatedResponse
+
+    /// Fetches detailed information for a specific anime.
+    /// - Parameter id: The AniList ID of the anime.
+    /// - Returns: Detailed anime information.
+    func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail
 }
 
 
