@@ -45,7 +45,7 @@ actor JSRuntime {
     // MARK: - Properties
     //#################################################################################
 
-    private let context: JSContext
+    private nonisolated(unsafe) let context: JSContext
     private let networkClient: NetworkClient
     private var loadedSources: [String: JSValue] = [:]
 
@@ -128,6 +128,48 @@ actor JSRuntime {
 
         return result.toObject() ?? [:]
     }
+    
+    /// Calls an async function and returns JSON string result.
+    /// - Parameters:
+    ///   - sourceId: The source identifier.
+    ///   - functionName: The function name (e.g., "search" or "source.search").
+    ///   - arguments: Arguments to pass to the function.
+    /// - Returns: JSON string of the result.
+    func callAsyncFunction(sourceId: String,
+                           functionName: String,
+                           arguments: [Any] = []) async throws -> String {
+        // Build the function call expression
+        let argsJson = try JSONSerialization.data(withJSONObject: arguments)
+        let argsString = String(data: argsJson, encoding: .utf8) ?? "[]"
+        
+        // Create a wrapper that calls the function and JSON.stringify the result
+        let script = """
+        (async function() {
+            const args = \(argsString);
+            const result = await \(functionName)(...args);
+            return JSON.stringify(result);
+        })();
+        """
+        
+        // Evaluate the script
+        guard let promiseValue = context.evaluateScript(script) else {
+            throw JSError.executionFailed("Failed to evaluate async function")
+        }
+        
+        if let exception = context.exception {
+            context.exception = nil
+            throw JSError.executionFailed(exception.toString() ?? "Unknown error")
+        }
+        
+        // Resolve the promise
+        let result = try await resolvePromise(promiseValue)
+        
+        guard let jsonString = result as? String else {
+            throw JSError.invalidResult("Expected JSON string result")
+        }
+        
+        return jsonString
+    }
 
     /// Gets source info from a loaded source.
     /// - Parameter sourceId: The source identifier.
@@ -155,7 +197,7 @@ actor JSRuntime {
     // MARK: - Private Methods
     //#################################################################################
 
-    private func setupContext() {
+    private nonisolated func setupContext() {
         // Set up exception handler
         context.exceptionHandler = { _, exception in
             print("[JSRuntime] Exception: \(exception?.toString() ?? "unknown")")
@@ -173,7 +215,7 @@ actor JSRuntime {
         setupFetchFunction()
     }
 
-    private func setupFetchFunction() {
+    private nonisolated func setupFetchFunction() {
         // Create a simplified fetch that stores requests for async handling
         // In a real implementation, this would bridge to the NetworkClient
         let fetchScript = """
@@ -228,7 +270,7 @@ actor JSRuntime {
         // This needs to run on the main thread to interact with JSContext
         DispatchQueue.main.async { [weak self] in
             Task { @MainActor in
-                guard let context = await self?.context else { return }
+                guard let context = self?.context else { return }
 
                 if let error = error {
                     context.evaluateScript("""

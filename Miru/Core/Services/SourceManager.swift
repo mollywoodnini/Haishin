@@ -31,6 +31,7 @@ final class SourceManager: SourceManaging {
     private let fileManager: FileManager
     private let sourcesDirectory: URL
     private var jsRuntime: JSRuntime?
+    private var jsSources: [String: JavaScriptSource] = [:]
 
 
     //#################################################################################
@@ -128,6 +129,39 @@ final class SourceManager: SourceManaging {
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
     }
+    
+    /// Installs a source from a URL string.
+    /// - Parameter urlString: The URL to the source JavaScript file.
+    func installSource(fromURL urlString: String) async throws {
+        guard let url = URL(string: urlString) else {
+            throw SourceError.invalidScript
+        }
+        
+        let scriptData = try await networkClient.fetch(url: url)
+        
+        guard let script = String(data: scriptData, encoding: .utf8) else {
+            throw SourceError.invalidScript
+        }
+        
+        // Extract source ID from the script by creating a temporary runtime
+        let tempRuntime = try JSRuntime(networkClient: networkClient)
+        let tempId = UUID().uuidString
+        try await tempRuntime.loadSource(script: script, sourceId: tempId)
+        let info = try await tempRuntime.getSourceInfo(sourceId: tempId)
+        
+        // Check if already installed
+        if installedSources.contains(where: { $0.id == info.id }) {
+            throw SourceError.alreadyInstalled
+        }
+        
+        // Save the script
+        let localPath = sourcesDirectory.appendingPathComponent("\(info.id).js")
+        try script.write(to: localPath, atomically: true, encoding: .utf8)
+        
+        // Load the source
+        let installedSource = try await loadSource(from: localPath)
+        installedSources.append(installedSource)
+    }
 
     /// Uninstalls a source.
     /// - Parameter sourceId: The source ID to uninstall.
@@ -139,9 +173,11 @@ final class SourceManager: SourceManaging {
         }
 
         installedSources.removeAll { $0.id == sourceId }
-
+        
+        // Clean up the JS source
         Task {
-            await jsRuntime?.unloadSource(sourceId: sourceId)
+            await jsSources[sourceId]?.unload()
+            jsSources.removeValue(forKey: sourceId)
         }
     }
 
@@ -222,18 +258,24 @@ final class SourceManager: SourceManaging {
         let script = try String(contentsOf: path, encoding: .utf8)
         let sourceId = path.deletingPathExtension().lastPathComponent
 
-        try await jsRuntime?.loadSource(script: script, sourceId: sourceId)
-
-        guard let info = try await jsRuntime?.getSourceInfo(sourceId: sourceId) else {
+        guard let runtime = jsRuntime else {
             throw SourceError.invalidScript
         }
-
+        
+        // Create JavaScriptSource actor
+        let jsSource = try await JavaScriptSource(script: script,
+                                                   sourceId: sourceId,
+                                                   runtime: runtime)
+        
+        // Store the JS source
+        jsSources[sourceId] = jsSource
+        
         let attributes = try fileManager.attributesOfItem(atPath: path.path)
         let installedAt = attributes[.creationDate] as? Date ?? Date()
 
-        return InstalledSource(info: info,
+        return InstalledSource(info: jsSource.info,
                                scriptPath: path,
-                               isEnabled: true,
+                               isEnabled: await jsSource.isEnabled,
                                installedAt: installedAt)
     }
 
