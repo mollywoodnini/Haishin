@@ -190,4 +190,75 @@ extension AniListAnimeDetailViewModel {
     var displayTags: [AniListTag] {
         anime?.tags.filter { !$0.isMediaSpoiler }.prefix(10).map { $0 } ?? []
     }
+
+    /// Information items for the Information section (key-value pairs).
+    var informationItems: [(key: String, value: String)] {
+        guard let anime = anime else { return [] }
+
+        var items: [(key: String, value: String)] = []
+
+        if let format = anime.format {
+            items.append((key: "Format", value: format.displayString))
+        }
+
+        items.append((key: "Airing Status", value: anime.status.displayString))
+
+        if let startDate = anime.startDate?.formattedString {
+            items.append((key: "Start Date", value: startDate))
+        }
+
+        if let endDate = anime.endDate?.formattedString {
+            items.append((key: "End Date", value: endDate))
+        }
+
+        if let season = anime.season, let year = anime.seasonYear {
+            items.append((key: "Season", value: "\(season.displayString) \(year)"))
+        }
+
+        if let episodes = anime.episodes {
+            items.append((key: "Total Episodes", value: "\(episodes)"))
+        }
+
+        if let duration = anime.duration {
+            items.append((key: "Episode Duration", value: "\(duration) min"))
+        }
+
+        if let country = anime.countryOfOrigin {
+            items.append((key: "Origin Country", value: country))
+        }
+
+        if let source = anime.source {
+            items.append((key: "Source", value: source))
+        }
+
+        if let studios = anime.studios.filter({ $0.isAnimationStudio }).map({ $0.name }).first {
+            items.append((key: "Studio", value: studios))
+        }
+
+        return items
+    }
+
+    /// Formatted score for display in ratings section (0-100 scale as decimal).
+    var formattedScore: String? {
+        guard let score = anime?.averageScore else { return nil }
+        // Convert from 0-100 to 0.0-10.0 scale for display
+        let decimalScore = Double(score) / 10.0
+        return String(format: "%.1f", decimalScore)
+    }
+
+    /// The popularity count formatted for display.
+    var popularityString: String? {
+        guard let popularity = anime?.popularity else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: popularity))
+    }
+
+    /// The favorites count formatted for display.
+    var favoritesString: String? {
+        guard let favourites = anime?.favourites else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: favourites))
+    }
 }

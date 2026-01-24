@@ -5,85 +5,104 @@
 //  Created by Miru on 24.01.26.
 //
 
-import XCTest
+import Testing
 @testable import Miru
 
+
+//#################################################################################
+// MARK: - BrowseViewModel Tests
+//#################################################################################
+
+@Suite("BrowseViewModel Tests")
 @MainActor
-final class BrowseViewModelTests: XCTestCase {
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    var sut: BrowseViewModel!
-    var mockSourceManager: MockSourceManager!
-    var mockAniListService: MockAniListService!
-
-
-    //#################################################################################
-    // MARK: - Setup & Teardown
-    //#################################################################################
-
-    override func setUp() {
-        super.setUp()
-        mockSourceManager = MockSourceManager()
-        mockAniListService = MockAniListService()
-        sut = BrowseViewModel(sourceManager: mockSourceManager,
-                              aniListService: mockAniListService)
-    }
-
-    override func tearDown() {
-        sut = nil
-        mockAniListService = nil
-        mockSourceManager = nil
-        super.tearDown()
-    }
-
+struct BrowseViewModelTests {
 
     //#################################################################################
     // MARK: - Initialization Tests
     //#################################################################################
 
-    func test_onInitialization_sectionsAreInitialized() {
-        XCTAssertEqual(sut.sections.count, 3)
+    @Test("On initialization, sections are initialized")
+    func initialization_sectionsAreInitialized() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
+        #expect(sut.sections.count == 3)
     }
 
-    func test_onInitialization_sectionsHaveCorrectIds() {
+    @Test("On initialization, sections have correct IDs")
+    func initialization_sectionsHaveCorrectIds() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         let sectionIds = sut.sections.map { $0.id }
-        XCTAssertTrue(sectionIds.contains("this-week"))
-        XCTAssertTrue(sectionIds.contains("trending"))
-        XCTAssertTrue(sectionIds.contains("seasonal"))
+        #expect(sectionIds.contains("this-week") == true)
+        #expect(sectionIds.contains("trending") == true)
+        #expect(sectionIds.contains("seasonal") == true)
     }
 
-    func test_onInitialization_sectionsHaveCorrectTitles() {
+    @Test("On initialization, sections have correct titles")
+    func initialization_sectionsHaveCorrectTitles() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         let titles = sut.sections.map { $0.title }
-        XCTAssertTrue(titles.contains("This Week"))
-        XCTAssertTrue(titles.contains("Trending"))
-        XCTAssertTrue(titles.contains("Seasonal Anime"))
+        #expect(titles.contains("This Week") == true)
+        #expect(titles.contains("Trending") == true)
+        #expect(titles.contains("Seasonal Anime") == true)
     }
 
-    func test_onInitialization_sectionsHaveCorrectStyles() {
+    @Test("On initialization, sections have correct styles")
+    func initialization_sectionsHaveCorrectStyles() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         let thisWeekSection = sut.sections.first { $0.id == "this-week" }
         let trendingSection = sut.sections.first { $0.id == "trending" }
         let seasonalSection = sut.sections.first { $0.id == "seasonal" }
 
-        XCTAssertEqual(thisWeekSection?.style, .thisWeek)
-        XCTAssertEqual(trendingSection?.style, .standard)
-        XCTAssertEqual(seasonalSection?.style, .standard)
+        #expect(thisWeekSection?.style == .thisWeek)
+        #expect(trendingSection?.style == .standard)
+        #expect(seasonalSection?.style == .standard)
     }
 
-    func test_onInitialization_sectionsAreEmpty() {
+    @Test("On initialization, sections are empty")
+    func initialization_sectionsAreEmpty() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         for section in sut.sections {
-            XCTAssertTrue(section.items.isEmpty)
+            #expect(section.items.isEmpty == true)
         }
     }
 
-    func test_onInitialization_isLoadingIsFalse() {
-        XCTAssertFalse(sut.isLoading)
+    @Test("On initialization, isLoading is false")
+    func initialization_isLoadingIsFalse() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
+        #expect(sut.isLoading == false)
     }
 
-    func test_onInitialization_errorIsNil() {
-        XCTAssertNil(sut.error)
+    @Test("On initialization, error is nil")
+    func initialization_errorIsNil() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
+        #expect(sut.error == nil)
     }
 
 
@@ -91,14 +110,20 @@ final class BrowseViewModelTests: XCTestCase {
     // MARK: - installedSources Tests
     //#################################################################################
 
-    func test_installedSources_returnsSourceManagerSources() {
+    @Test("installedSources returns source manager sources")
+    func installedSources_returnsSourceManagerSources() {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
 
         // Then
-        XCTAssertEqual(sut.installedSources.count, 1)
-        XCTAssertEqual(sut.installedSources.first?.id, source.id)
+        #expect(sut.installedSources.count == 1)
+        #expect(sut.installedSources.first?.id == source.id)
     }
 
 
@@ -106,7 +131,13 @@ final class BrowseViewModelTests: XCTestCase {
     // MARK: - loadContent Tests
     //#################################################################################
 
-    func test_loadContent_callsAllAniListServiceMethods() async {
+    @Test("loadContent calls all AniList service methods")
+    func loadContent_callsAllAniListServiceMethods() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
         mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "2")], hasNextPage: false, currentPage: 1))
@@ -116,12 +147,18 @@ final class BrowseViewModelTests: XCTestCase {
         await sut.loadContent()
 
         // Then
-        XCTAssertEqual(mockAniListService.fetchThisWeekCallCount, 1)
-        XCTAssertEqual(mockAniListService.fetchTrendingCallCount, 1)
-        XCTAssertEqual(mockAniListService.fetchSeasonalCallCount, 1)
+        #expect(mockAniListService.fetchThisWeekCallCount == 1)
+        #expect(mockAniListService.fetchTrendingCallCount == 1)
+        #expect(mockAniListService.fetchSeasonalCallCount == 1)
     }
 
-    func test_loadContent_populatesSections() async {
+    @Test("loadContent populates sections")
+    func loadContent_populatesSections() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         let thisWeekItem = TestFixtures.makeRecommendingItem(id: "1", title: "This Week Anime")
         let trendingItem = TestFixtures.makeRecommendingItem(id: "2", title: "Trending Anime")
@@ -139,17 +176,23 @@ final class BrowseViewModelTests: XCTestCase {
         let trendingSection = sut.sections.first { $0.id == "trending" }
         let seasonalSection = sut.sections.first { $0.id == "seasonal" }
 
-        XCTAssertEqual(thisWeekSection?.items.count, 1)
-        XCTAssertEqual(thisWeekSection?.items.first?.title, "This Week Anime")
+        #expect(thisWeekSection?.items.count == 1)
+        #expect(thisWeekSection?.items.first?.title == "This Week Anime")
 
-        XCTAssertEqual(trendingSection?.items.count, 1)
-        XCTAssertEqual(trendingSection?.items.first?.title, "Trending Anime")
+        #expect(trendingSection?.items.count == 1)
+        #expect(trendingSection?.items.first?.title == "Trending Anime")
 
-        XCTAssertEqual(seasonalSection?.items.count, 1)
-        XCTAssertEqual(seasonalSection?.items.first?.title, "Seasonal Anime")
+        #expect(seasonalSection?.items.count == 1)
+        #expect(seasonalSection?.items.first?.title == "Seasonal Anime")
     }
 
-    func test_loadContent_setsLoadingStateToLoaded() async {
+    @Test("loadContent sets loading state to loaded")
+    func loadContent_setsLoadingStateToLoaded() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
         mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
@@ -160,11 +203,17 @@ final class BrowseViewModelTests: XCTestCase {
 
         // Then
         for section in sut.sections {
-            XCTAssertEqual(section.loadingState, .loaded)
+            #expect(section.loadingState == .loaded)
         }
     }
 
-    func test_loadContent_setsLoadingStateToFailedOnError() async {
+    @Test("loadContent sets loading state to failed on error")
+    func loadContent_setsLoadingStateToFailedOnError() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         mockAniListService.fetchThisWeekResult = .failure(MockError.testError)
         mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
@@ -175,10 +224,16 @@ final class BrowseViewModelTests: XCTestCase {
 
         // Then
         let thisWeekSection = sut.sections.first { $0.id == "this-week" }
-        XCTAssertNotEqual(thisWeekSection?.loadingState, .loaded)
+        #expect(thisWeekSection?.loadingState != .loaded)
     }
 
-    func test_loadContent_whenAlreadyLoading_doesNotLoadAgain() async {
+    @Test("loadContent when already loading does not load again")
+    func loadContent_whenAlreadyLoading_doesNotLoadAgain() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
         mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
@@ -191,7 +246,7 @@ final class BrowseViewModelTests: XCTestCase {
         // Then - Second call should be ignored since content is already loaded
         // (isLoading guard only prevents concurrent loads, not sequential ones after completion)
         // This test verifies the guard works during active loading
-        XCTAssertEqual(mockAniListService.fetchThisWeekCallCount, 2)
+        #expect(mockAniListService.fetchThisWeekCallCount == 2)
     }
 
 
@@ -199,7 +254,13 @@ final class BrowseViewModelTests: XCTestCase {
     // MARK: - refresh Tests
     //#################################################################################
 
-    func test_refresh_resetsAndReloadsSections() async {
+    @Test("refresh resets and reloads sections")
+    func refresh_resetsAndReloadsSections() async {
+        let mockSourceManager = MockSourceManager()
+        let mockAniListService = MockAniListService()
+        let sut = BrowseViewModel(sourceManager: mockSourceManager,
+                                  aniListService: mockAniListService)
+
         // Given - Load initial content
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
         mockAniListService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "2")], hasNextPage: false, currentPage: 1))
@@ -207,14 +268,14 @@ final class BrowseViewModelTests: XCTestCase {
 
         await sut.loadContent()
 
-        XCTAssertEqual(mockAniListService.fetchThisWeekCallCount, 1)
+        #expect(mockAniListService.fetchThisWeekCallCount == 1)
 
         // When
         await sut.refresh()
 
         // Then - Should have reloaded
-        XCTAssertEqual(mockAniListService.fetchThisWeekCallCount, 2)
-        XCTAssertEqual(mockAniListService.fetchTrendingCallCount, 2)
-        XCTAssertEqual(mockAniListService.fetchSeasonalCallCount, 2)
+        #expect(mockAniListService.fetchThisWeekCallCount == 2)
+        #expect(mockAniListService.fetchTrendingCallCount == 2)
+        #expect(mockAniListService.fetchSeasonalCallCount == 2)
     }
 }

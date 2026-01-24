@@ -104,6 +104,7 @@ struct AniListAnimeDetailView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if let altTitles = viewModel.alternativeTitles {
                         Text(altTitles)
@@ -230,9 +231,6 @@ struct AniListAnimeDetailView: View {
 
     @ViewBuilder
     private var contentSections: some View {
-        // Quick info bar
-        quickInfoSection
-
         // Synopsis
         if let synopsis = viewModel.anime?.synopsis, !synopsis.isEmpty {
             synopsisSection(synopsis: synopsis)
@@ -243,9 +241,19 @@ struct AniListAnimeDetailView: View {
             genresSection(genres: genres)
         }
 
-        // Next airing episode
+        // Ratings & Statistics
+        if viewModel.formattedScore != nil {
+            ratingsStatisticsSection
+        }
+
+        // Information
+        if !viewModel.informationItems.isEmpty {
+            informationSection
+        }
+
+        // Upcoming episodes
         if let nextEpisode = viewModel.anime?.nextAiringEpisode {
-            nextEpisodeSection(episode: nextEpisode)
+            upcomingSection(episode: nextEpisode)
         }
 
         // Characters
@@ -280,43 +288,118 @@ struct AniListAnimeDetailView: View {
 
 
     //#################################################################################
-    // MARK: - Quick Info Section
+    // MARK: - Ratings & Statistics Section
     //#################################################################################
 
-    private var quickInfoSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: .spacingS) {
-                if let score = viewModel.scoreString {
-                    QuickInfoChip(icon: "star.fill", text: score, tint: .yellow)
+    private var ratingsStatisticsSection: some View {
+        VStack(alignment: .leading, spacing: .spacingXS) {
+            SectionHeader(title: "Ratings & Statistics")
+
+            HStack(spacing: .spacingL) {
+                // Large score display
+                if let score = viewModel.formattedScore {
+                    VStack(spacing: .spacingXXS) {
+                        Text(score)
+                            .font(.system(size: 36, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+
+                        Text("Average Score")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(minWidth: 80)
                 }
 
-                if let status = viewModel.anime?.status {
-                    QuickInfoChip(
-                        icon: status == .releasing ? "play.circle.fill" : "checkmark.circle.fill",
-                        text: status.displayString,
-                        tint: status == .releasing ? .green : .blue
-                    )
+                // Stats
+                VStack(alignment: .leading, spacing: .spacingXS) {
+                    if let popularity = viewModel.popularityString {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(popularity) users")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let favorites = viewModel.favoritesString {
+                        HStack {
+                            Image(systemName: "heart.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(favorites) favorites")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
-                if let format = viewModel.anime?.format {
-                    QuickInfoChip(icon: "tv", text: format.displayString, tint: .purple)
-                }
+                Spacer()
+            }
+            .padding(.spacingS)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            .padding(.horizontal, .spacingS)
+        }
+        .padding(.top, .spacingS)
+    }
 
-                if let episodes = viewModel.episodeCountString {
-                    QuickInfoChip(icon: "film.stack", text: episodes, tint: .orange)
-                }
 
-                if let season = viewModel.seasonYearString {
-                    QuickInfoChip(icon: "calendar", text: season, tint: .cyan)
-                }
+    //#################################################################################
+    // MARK: - Information Section
+    //#################################################################################
 
-                if let studio = viewModel.studioString {
-                    QuickInfoChip(icon: "building.2", text: studio, tint: .pink)
+    private var informationSection: some View {
+        VStack(alignment: .leading, spacing: .spacingXS) {
+            SectionHeader(title: "Information")
+
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.informationItems.enumerated()), id: \.offset) { index, item in
+                    HStack {
+                        Text(item.key)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text(item.value)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.vertical, .spacingXS)
+                    .padding(.horizontal, .spacingS)
+
+                    if index < viewModel.informationItems.count - 1 {
+                        Divider()
+                            .padding(.leading, .spacingS)
+                    }
                 }
             }
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
             .padding(.horizontal, .spacingS)
-            .padding(.vertical, .spacingXS)
         }
+        .padding(.top, .spacingS)
+    }
+
+
+    //#################################################################################
+    // MARK: - Upcoming Section
+    //#################################################################################
+
+    private func upcomingSection(episode: AniListAiringEpisode) -> some View {
+        VStack(alignment: .leading, spacing: .spacingXS) {
+            SectionHeader(title: "Upcoming")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: .spacingS) {
+                    UpcomingEpisodeCard(episode: episode)
+                }
+                .padding(.horizontal, .spacingS)
+            }
+        }
+        .padding(.top, .spacingS)
     }
 
 
@@ -370,39 +453,6 @@ struct AniListAnimeDetailView: View {
                 }
                 .padding(.horizontal, .spacingS)
             }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Next Episode Section
-    //#################################################################################
-
-    private func nextEpisodeSection(episode: AniListAiringEpisode) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Next Episode")
-
-            HStack(spacing: .spacingS) {
-                Image(systemName: "clock.badge.exclamationmark")
-                    .font(.title2)
-                    .foregroundStyle(.highlight)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Episode \(episode.episode)")
-                        .font(.headline)
-
-                    Text("Airing in \(episode.countdownString)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-            .padding(.spacingS)
-            .background(Color.highlight.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-            .padding(.horizontal, .spacingS)
         }
         .padding(.top, .spacingS)
     }
@@ -553,207 +603,6 @@ struct AniListAnimeDetailView: View {
             .padding(.horizontal, .spacingS)
         }
         .padding(.top, .spacingS)
-    }
-}
-
-
-//#################################################################################
-// MARK: - Supporting Views
-//#################################################################################
-
-/// Section header with title.
-private struct SectionHeader: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.title3)
-            .fontWeight(.semibold)
-            .padding(.horizontal, .spacingS)
-    }
-}
-
-/// Quick info chip for the info bar.
-private struct QuickInfoChip: View {
-    let icon: String
-    let text: String
-    let tint: Color
-
-    var body: some View {
-        HStack(spacing: .spacingXXS) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
-            Text(text)
-                .font(.caption)
-                .fontWeight(.medium)
-        }
-        .padding(.horizontal, .spacingS)
-        .padding(.vertical, .spacingXS)
-        .background(tint.opacity(0.15))
-        .clipShape(Capsule())
-    }
-}
-
-/// Character card for the characters section.
-private struct CharacterCard: View {
-    let character: AniListCharacter
-
-    var body: some View {
-        VStack(spacing: .spacingXXS) {
-            AsyncImage(url: character.imageURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(width: 80, height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-            VStack(spacing: 2) {
-                Text(character.name)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-
-                if let voiceActor = character.voiceActorName {
-                    Text(voiceActor)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .frame(width: 80)
-        }
-    }
-}
-
-/// Relation card for related anime.
-private struct RelationCard: View {
-    let relation: AniListRelation
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: .spacingXXS) {
-            ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: relation.coverURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .frame(width: 100, height: 140)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-                // Relation type badge
-                Text(relation.relationType.displayString)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, .spacingXXS)
-                    .padding(.vertical, 2)
-                    .background(.black.opacity(0.7))
-                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-                    .padding(4)
-            }
-
-            Text(relation.title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .lineLimit(2)
-                .frame(width: 100, alignment: .leading)
-        }
-    }
-}
-
-/// Recommendation card for similar anime.
-private struct RecommendationCard: View {
-    let recommendation: AniListRecommendation
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: .spacingXXS) {
-            AsyncImage(url: recommendation.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(width: 100, height: 140)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-            Text(recommendation.title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .lineLimit(2)
-                .frame(width: 100, alignment: .leading)
-        }
-    }
-}
-
-/// A simple flow layout for tags.
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = FlowResult(in: proposal.width ?? 0, subviews: subviews, spacing: spacing)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
-
-        for (index, subview) in subviews.enumerated() {
-            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x,
-                                      y: bounds.minY + result.positions[index].y),
-                          proposal: .unspecified)
-        }
-    }
-
-    private struct FlowResult {
-        var size: CGSize = .zero
-        var positions: [CGPoint] = []
-
-        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
-            var x: CGFloat = 0
-            var y: CGFloat = 0
-            var rowHeight: CGFloat = 0
-
-            for subview in subviews {
-                let size = subview.sizeThatFits(.unspecified)
-
-                if x + size.width > maxWidth, x > 0 {
-                    x = 0
-                    y += rowHeight + spacing
-                    rowHeight = 0
-                }
-
-                positions.append(CGPoint(x: x, y: y))
-                rowHeight = max(rowHeight, size.height)
-                x += size.width + spacing
-                self.size.width = max(self.size.width, x)
-            }
-
-            self.size.height = y + rowHeight
-        }
     }
 }
 

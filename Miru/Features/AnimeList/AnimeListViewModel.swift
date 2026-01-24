@@ -14,6 +14,7 @@ import Foundation
 
 /// ViewModel for the anime list screen with infinite scroll pagination.
 @Observable
+@MainActor
 final class AnimeListViewModel {
 
     //#################################################################################
@@ -54,11 +55,9 @@ final class AnimeListViewModel {
     ///   - title: The title of the list.
     ///   - listType: The type of anime list to display.
     ///   - aniListService: The AniList service for fetching anime.
-    init(
-        title: String,
-        listType: AnimeListType,
-        aniListService: AniListServicing = AniListService()
-    ) {
+    init(title: String,
+         listType: AnimeListType,
+         aniListService: AniListServicing = AniListService()) {
         self.title = title
         self.listType = listType
         self.aniListService = aniListService
@@ -79,20 +78,17 @@ final class AnimeListViewModel {
 
         do {
             let response = try await fetchPage(currentPage)
-            await MainActor.run {
-                items = response.items
-                hasMorePages = response.hasNextPage
-                isLoading = false
-            }
+            items = response.items
+            hasMorePages = response.hasNextPage
         } catch {
-            await MainActor.run {
-                self.error = error
-                isLoading = false
-            }
+            self.error = error
         }
+
+        isLoading = false
     }
 
     /// Loads more content when reaching the end of the list.
+    /// - Parameter currentItem: The item currently being displayed.
     func loadMoreIfNeeded(currentItem: RecommendingItem) async {
         // Check if we're near the end of the list (last 5 items)
         guard let index = items.firstIndex(of: currentItem),
@@ -112,18 +108,14 @@ final class AnimeListViewModel {
         do {
             let nextPage = currentPage + 1
             let response = try await fetchPage(nextPage)
-            await MainActor.run {
-                items.append(contentsOf: response.items)
-                currentPage = nextPage
-                hasMorePages = response.hasNextPage
-                isLoadingMore = false
-            }
+            items.append(contentsOf: response.items)
+            currentPage = nextPage
+            hasMorePages = response.hasNextPage
         } catch {
-            await MainActor.run {
-                self.error = error
-                isLoadingMore = false
-            }
+            self.error = error
         }
+
+        isLoadingMore = false
     }
 
     /// Refreshes all content.

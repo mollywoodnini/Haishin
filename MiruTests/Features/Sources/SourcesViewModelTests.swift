@@ -5,47 +5,37 @@
 //  Created by Miru on 24.01.26.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import Miru
 
+
+//#################################################################################
+// MARK: - SourcesViewModel Tests
+//#################################################################################
+
+@Suite("SourcesViewModel Tests")
 @MainActor
-final class SourcesViewModelTests: XCTestCase {
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    var sut: SourcesViewModel!
-    var mockSourceManager: MockSourceManager!
-
-
-    //#################################################################################
-    // MARK: - Setup & Teardown
-    //#################################################################################
-
-    override func setUp() {
-        super.setUp()
-        mockSourceManager = MockSourceManager()
-        sut = SourcesViewModel(sourceManager: mockSourceManager)
-    }
-
-    override func tearDown() {
-        sut = nil
-        mockSourceManager = nil
-        super.tearDown()
-    }
-
+struct SourcesViewModelTests {
 
     //#################################################################################
     // MARK: - Initialization Tests
     //#################################################################################
 
-    func test_onInitialization_isLoadingIsFalse() {
-        XCTAssertFalse(sut.isLoading)
+    @Test("On initialization, isLoading is false")
+    func initialization_isLoadingIsFalse() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
+        #expect(sut.isLoading == false)
     }
 
-    func test_onInitialization_errorIsNil() {
-        XCTAssertNil(sut.error)
+    @Test("On initialization, error is nil")
+    func initialization_errorIsNil() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
+        #expect(sut.error == nil)
     }
 
 
@@ -53,14 +43,18 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - installedSources Tests
     //#################################################################################
 
-    func test_installedSources_returnsSourceManagerSources() {
+    @Test("installedSources returns source manager sources")
+    func installedSources_returnsSourceManagerSources() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
 
         // Then
-        XCTAssertEqual(sut.installedSources.count, 1)
-        XCTAssertEqual(sut.installedSources.first?.id, source.id)
+        #expect(sut.installedSources.count == 1)
+        #expect(sut.installedSources.first?.id == source.id)
     }
 
 
@@ -68,14 +62,18 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - repositories Tests
     //#################################################################################
 
-    func test_repositories_returnsSourceManagerRepositories() {
+    @Test("repositories returns source manager repositories")
+    func repositories_returnsSourceManagerRepositories() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let repo = TestFixtures.makeSourceRepository()
         mockSourceManager.repositories = [repo]
 
         // Then
-        XCTAssertEqual(sut.repositories.count, 1)
-        XCTAssertEqual(sut.repositories.first?.name, repo.name)
+        #expect(sut.repositories.count == 1)
+        #expect(sut.repositories.first?.name == repo.name)
     }
 
 
@@ -83,7 +81,11 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - addRepository Tests
     //#################################################################################
 
-    func test_addRepository_withValidURL_callsSourceManager() async {
+    @Test("addRepository with valid URL calls source manager")
+    func addRepository_withValidURL_callsSourceManager() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let urlString = "https://example.com/repo.json"
 
@@ -91,11 +93,15 @@ final class SourcesViewModelTests: XCTestCase {
         await sut.addRepository(urlString: urlString)
 
         // Then
-        XCTAssertEqual(mockSourceManager.addRepositoryCallCount, 1)
-        XCTAssertEqual(mockSourceManager.addRepositoryURLs.first?.absoluteString, urlString)
+        #expect(mockSourceManager.addRepositoryCallCount == 1)
+        #expect(mockSourceManager.addRepositoryURLs.first?.absoluteString == urlString)
     }
 
-    func test_addRepository_withInvalidURL_setsError() async {
+    @Test("addRepository with invalid URL sets error")
+    func addRepository_withInvalidURL_setsError() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let invalidURLString = ""
 
@@ -103,8 +109,8 @@ final class SourcesViewModelTests: XCTestCase {
         await sut.addRepository(urlString: invalidURLString)
 
         // Then
-        XCTAssertNotNil(sut.error)
-        XCTAssertEqual(mockSourceManager.addRepositoryCallCount, 0)
+        #expect(sut.error != nil)
+        #expect(mockSourceManager.addRepositoryCallCount == 0)
     }
 
 
@@ -112,7 +118,11 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - installSource Tests
     //#################################################################################
 
-    func test_installSource_callsSourceManager() async {
+    @Test("installSource calls source manager")
+    func installSource_callsSourceManager() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let sourceInfo = TestFixtures.makeSourceInfo()
         let repository = TestFixtures.makeSourceRepository()
@@ -121,8 +131,8 @@ final class SourcesViewModelTests: XCTestCase {
         await sut.installSource(sourceInfo, from: repository)
 
         // Then
-        XCTAssertEqual(mockSourceManager.installSourceCallCount, 1)
-        XCTAssertEqual(mockSourceManager.installedSourceInfos.first?.id, sourceInfo.id)
+        #expect(mockSourceManager.installSourceCallCount == 1)
+        #expect(mockSourceManager.installedSourceInfos.first?.id == sourceInfo.id)
     }
 
 
@@ -130,7 +140,11 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - uninstallSource Tests
     //#################################################################################
 
-    func test_uninstallSource_callsSourceManager() {
+    @Test("uninstallSource calls source manager")
+    func uninstallSource_callsSourceManager() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
@@ -139,8 +153,8 @@ final class SourcesViewModelTests: XCTestCase {
         sut.uninstallSource(source)
 
         // Then
-        XCTAssertEqual(mockSourceManager.uninstallSourceCallCount, 1)
-        XCTAssertEqual(mockSourceManager.uninstalledSourceIds.first, source.id)
+        #expect(mockSourceManager.uninstallSourceCallCount == 1)
+        #expect(mockSourceManager.uninstalledSourceIds.first == source.id)
     }
 
 
@@ -148,23 +162,31 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - isInstalled Tests
     //#################################################################################
 
-    func test_isInstalled_whenSourceExists_returnsTrue() {
+    @Test("isInstalled when source exists returns true")
+    func isInstalled_whenSourceExists_returnsTrue() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let sourceInfo = TestFixtures.makeSourceInfo(id: "test-source")
         let installedSource = TestFixtures.makeInstalledSource(id: "test-source")
         mockSourceManager.installedSources = [installedSource]
 
         // Then
-        XCTAssertTrue(sut.isInstalled(sourceInfo))
+        #expect(sut.isInstalled(sourceInfo) == true)
     }
 
-    func test_isInstalled_whenSourceNotExists_returnsFalse() {
+    @Test("isInstalled when source not exists returns false")
+    func isInstalled_whenSourceNotExists_returnsFalse() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let sourceInfo = TestFixtures.makeSourceInfo(id: "not-installed")
         mockSourceManager.installedSources = []
 
         // Then
-        XCTAssertFalse(sut.isInstalled(sourceInfo))
+        #expect(sut.isInstalled(sourceInfo) == false)
     }
 
 
@@ -172,7 +194,11 @@ final class SourcesViewModelTests: XCTestCase {
     // MARK: - toggleSource Tests
     //#################################################################################
 
-    func test_toggleSource_withInstalledSource_togglesEnabled() {
+    @Test("toggleSource with installed source toggles enabled")
+    func toggleSource_withInstalledSource_togglesEnabled() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SourcesViewModel(sourceManager: mockSourceManager)
+
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
@@ -181,6 +207,6 @@ final class SourcesViewModelTests: XCTestCase {
         sut.toggleSource(source)
 
         // Then - Currently just prints, verify no crash
-        XCTAssertEqual(mockSourceManager.installedSources.count, 1)
+        #expect(mockSourceManager.installedSources.count == 1)
     }
 }

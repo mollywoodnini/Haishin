@@ -31,37 +31,19 @@ Test File Target: Miru/Explore/ExploreViewModelTests.swift
 ### Example Test Structure
 
 ```swift
-import XCTest
+import Testing
 @testable import Miru
 
-final class ExploreViewModelTests: XCTestCase {
+@Suite("ExploreViewModel Tests")
+final class ExploreViewModelTests {
 
     //#################################################################################
-    // MARK: - Properties
+    // MARK: - Initialization Tests
     //#################################################################################
 
-    var sut: ExploreViewModel! // System Under Test
-
-    //#################################################################################
-    // MARK: - Setup & Teardown
-    //#################################################################################
-
-    override func setUp() {
-        super.setUp()
-        sut = ExploreViewModel()
-    }
-
-    override func tearDown() {
-        sut = nil
-        super.tearDown()
-    }
-
-    //#################################################################################
-    // MARK: - Tests
-    //#################################################################################
-
-    func test_onInitialization_titleIsCorrect() {
-        XCTAssertEqual(sut.title, "Expected Title")
+    @Test("On initialization, title is set")
+    func onInitialization_titleIsSet() {
+        
     }
 }
 ```

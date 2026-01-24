@@ -5,52 +5,44 @@
 //  Created by Miru on 24.01.26.
 //
 
-import XCTest
+import Testing
 @testable import Miru
 
+
+//#################################################################################
+// MARK: - SearchViewModel Tests
+//#################################################################################
+
+@Suite("SearchViewModel Tests")
 @MainActor
-final class SearchViewModelTests: XCTestCase {
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    var sut: SearchViewModel!
-    var mockSourceManager: MockSourceManager!
-
-
-    //#################################################################################
-    // MARK: - Setup & Teardown
-    //#################################################################################
-
-    override func setUp() {
-        super.setUp()
-        mockSourceManager = MockSourceManager()
-        // Use 0 debounce for faster, more reliable tests
-        sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
-    }
-
-    override func tearDown() {
-        sut = nil
-        mockSourceManager = nil
-        super.tearDown()
-    }
-
+struct SearchViewModelTests {
 
     //#################################################################################
     // MARK: - Initialization Tests
     //#################################################################################
 
-    func test_onInitialization_resultsIsEmpty() {
-        XCTAssertTrue(sut.results.isEmpty)
+    @Test("On initialization, results is empty")
+    func initialization_resultsIsEmpty() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
+        #expect(sut.results.isEmpty == true)
     }
 
-    func test_onInitialization_isSearchingIsFalse() {
-        XCTAssertFalse(sut.isSearching)
+    @Test("On initialization, isSearching is false")
+    func initialization_isSearchingIsFalse() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
+        #expect(sut.isSearching == false)
     }
 
-    func test_onInitialization_errorIsNil() {
-        XCTAssertNil(sut.error)
+    @Test("On initialization, error is nil")
+    func initialization_errorIsNil() {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
+        #expect(sut.error == nil)
     }
 
 
@@ -58,7 +50,11 @@ final class SearchViewModelTests: XCTestCase {
     // MARK: - search Tests
     //#################################################################################
 
-    func test_search_withEmptyQuery_clearsResults() async {
+    @Test("search with empty query clears results")
+    func search_withEmptyQuery_clearsResults() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // Given - Set some initial results
         mockSourceManager.searchResult = .success([TestFixtures.makeAnimePreview()])
 
@@ -66,20 +62,28 @@ final class SearchViewModelTests: XCTestCase {
         await sut.search(query: "")
 
         // Then
-        XCTAssertTrue(sut.results.isEmpty)
-        XCTAssertEqual(mockSourceManager.searchCallCount, 0)
+        #expect(sut.results.isEmpty == true)
+        #expect(mockSourceManager.searchCallCount == 0)
     }
 
-    func test_search_withWhitespaceOnlyQuery_clearsResults() async {
+    @Test("search with whitespace only query clears results")
+    func search_withWhitespaceOnlyQuery_clearsResults() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // When
         await sut.search(query: "   ")
 
         // Then
-        XCTAssertTrue(sut.results.isEmpty)
-        XCTAssertEqual(mockSourceManager.searchCallCount, 0)
+        #expect(sut.results.isEmpty == true)
+        #expect(mockSourceManager.searchCallCount == 0)
     }
 
-    func test_search_withValidQuery_returnsResults() async {
+    @Test("search with valid query returns results")
+    func search_withValidQuery_returnsResults() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // Given
         let source = TestFixtures.makeInstalledSource(isEnabled: true)
         mockSourceManager.installedSources = [source]
@@ -90,11 +94,15 @@ final class SearchViewModelTests: XCTestCase {
         await sut.search(query: "Naruto")
 
         // Then
-        XCTAssertEqual(mockSourceManager.searchCallCount, 1)
-        XCTAssertEqual(mockSourceManager.searchQueries.first, "Naruto")
+        #expect(mockSourceManager.searchCallCount == 1)
+        #expect(mockSourceManager.searchQueries.first == "Naruto")
     }
 
-    func test_search_withDisabledSources_doesNotSearch() async {
+    @Test("search with disabled sources does not search")
+    func search_withDisabledSources_doesNotSearch() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // Given
         let source = TestFixtures.makeInstalledSource(isEnabled: false)
         mockSourceManager.installedSources = [source]
@@ -103,10 +111,14 @@ final class SearchViewModelTests: XCTestCase {
         await sut.search(query: "Test")
 
         // Then - Search is performed on enabled sources only
-        XCTAssertEqual(mockSourceManager.searchCallCount, 0)
+        #expect(mockSourceManager.searchCallCount == 0)
     }
 
-    func test_search_withMultipleSources_searchesAllEnabled() async {
+    @Test("search with multiple sources searches all enabled")
+    func search_withMultipleSources_searchesAllEnabled() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // Given
         let source1 = TestFixtures.makeInstalledSource(id: "source1", isEnabled: true)
         let source2 = TestFixtures.makeInstalledSource(id: "source2", isEnabled: true)
@@ -118,10 +130,14 @@ final class SearchViewModelTests: XCTestCase {
         await sut.search(query: "Test")
 
         // Then - Should search in 2 enabled sources
-        XCTAssertEqual(mockSourceManager.searchCallCount, 2)
+        #expect(mockSourceManager.searchCallCount == 2)
     }
 
-    func test_search_updatesQuery() async {
+    @Test("search updates query")
+    func search_updatesQuery() async {
+        let mockSourceManager = MockSourceManager()
+        let sut = SearchViewModel(sourceManager: mockSourceManager, debounceMilliseconds: 0)
+
         // Given
         let source = TestFixtures.makeInstalledSource(isEnabled: true)
         mockSourceManager.installedSources = [source]
@@ -132,6 +148,6 @@ final class SearchViewModelTests: XCTestCase {
         await sut.search(query: "second")
 
         // Then - Both searches should complete
-        XCTAssertEqual(mockSourceManager.searchQueries.last, "second")
+        #expect(mockSourceManager.searchQueries.last == "second")
     }
 }

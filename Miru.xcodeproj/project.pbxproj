@@ -131,10 +131,10 @@
 					185F719A2F25298200C60C1E = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
-					185F71A72F25298500C60C1E = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = 185F719A2F25298200C60C1E;
-					};
+				185F71A72F25298500C60C1E = {
+					CreatedOnToolsVersion = 26.1.1;
+					TestTargetID = 185F719A2F25298200C60C1E;
+				};
 				};
 			};
 			buildConfigurationList = 185F71962F25298200C60C1E /* Build configuration list for PBXProject "Miru" */;
