@@ -240,7 +240,9 @@ final class AniListService: AniListServicing {
 
     private func formatAirDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "E, MMM d 'at' h:mm a"
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true
         return formatter.string(from: date)
     }
 

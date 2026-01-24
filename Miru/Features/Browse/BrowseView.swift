@@ -210,9 +210,9 @@ private struct ThisWeekCard: View {
     //#################################################################################
 
     private struct Constants {
-        static let cardWidth: CGFloat = 280
-        static let cardHeight: CGFloat = 140
-        static let imageWidth: CGFloat = 100
+        static let cardWidth: CGFloat = 300
+        static let cardHeight: CGFloat = 200
+        static let imageWidth: CGFloat = 120
     }
 
 
@@ -229,58 +229,62 @@ private struct ThisWeekCard: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            // Cover image
-            AsyncImage(url: item.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(width: Constants.imageWidth, height: Constants.cardHeight)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            // Cover image with episode badge overlay
+            ZStack(alignment: .bottomLeading) {
+                AsyncImage(url: item.coverURL) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .frame(width: Constants.imageWidth, height: Constants.cardHeight)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
-            // Info
-            VStack(alignment: .leading, spacing: .spacingXXS) {
                 // Episode badge
                 if let caption = item.caption {
                     Text(caption)
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(item.isCaptionHighlighted ? .white : .primary)
+                        .foregroundStyle(.white)
                         .padding(.horizontal, .spacingXS)
-                        .padding(.vertical, 2)
-                        .background(item.isCaptionHighlighted ? Color.highlight : Color.secondaryBackground)
+                        .padding(.vertical, 3)
+                        .background(.black.opacity(0.7))
                         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+                        .padding(.spacingXXS)
+                }
+            }
+
+            // Info
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                if let date = item.subtitle {
+                    Text(date)
+                        .font(.subheadline)
+                        .foregroundStyle(.categoryDownloads)
                 }
 
                 Text(item.title)
-                    .font(.subheadline)
+                    .font(.body)
                     .fontWeight(.medium)
                     .lineLimit(2)
 
-                if let subtitle = item.subtitle {
-                    Text(subtitle)
+                if let synopsis = item.synopsis {
+                    Text(synopsis)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
+                
                 Spacer()
-
-                if let synopsis = item.synopsis {
-                    Text(synopsis)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, .spacingXS)
+            .padding(.trailing, .spacingXS)
         }
         .frame(width: Constants.cardWidth, height: Constants.cardHeight)
         .background(Color.secondaryBackground)
@@ -334,7 +338,7 @@ private struct StandardAnimeCard: View {
     private struct Constants {
         static let cardWidth: CGFloat = 140
         static let imageHeight: CGFloat = 200
-        static let textHeight: CGFloat = 50
+        static let textHeight: CGFloat = 60
     }
 
 
@@ -372,11 +376,11 @@ private struct StandardAnimeCard: View {
                 // Episode count badge if available
                 if let totalEpisodes = item.totalEpisodes {
                     Text("\(totalEpisodes) ep")
-                        .font(.caption2)
-                        .fontWeight(.medium)
+                        .font(.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, .spacingXS)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 3)
                         .background(.black.opacity(0.7))
                         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
                         .padding(.spacingXXS)
@@ -386,13 +390,14 @@ private struct StandardAnimeCard: View {
             // Text content with spacer to push to bottom
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.caption)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
                     .lineLimit(2)
                     .frame(width: Constants.cardWidth, alignment: .leading)
 
                 if let subtitle = item.subtitle {
                     Text(subtitle)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .frame(width: Constants.cardWidth, alignment: .leading)
