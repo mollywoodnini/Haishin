@@ -14,19 +14,11 @@
 			remoteGlobalIDString = 185F719A2F25298200C60C1E;
 			remoteInfo = Miru;
 		};
-		185F71B32F25298500C60C1E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 185F71932F25298200C60C1E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 185F719A2F25298200C60C1E;
-			remoteInfo = Miru;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		185F719B2F25298200C60C1E /* Miru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Miru.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		185F71A82F25298500C60C1E /* MiruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MiruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		185F71B22F25298500C60C1E /* MiruUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MiruUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -57,13 +49,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		185F71AF2F25298500C60C1E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -81,7 +66,6 @@
 			children = (
 				185F719B2F25298200C60C1E /* Miru.app */,
 				185F71A82F25298500C60C1E /* MiruTests.xctest */,
-				185F71B22F25298500C60C1E /* MiruUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,26 +118,6 @@
 			productReference = 185F71A82F25298500C60C1E /* MiruTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		185F71B12F25298500C60C1E /* MiruUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 185F71C22F25298500C60C1E /* Build configuration list for PBXNativeTarget "MiruUITests" */;
-			buildPhases = (
-				185F71AE2F25298500C60C1E /* Sources */,
-				185F71AF2F25298500C60C1E /* Frameworks */,
-				185F71B02F25298500C60C1E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				185F71B42F25298500C60C1E /* PBXTargetDependency */,
-			);
-			name = MiruUITests;
-			packageProductDependencies = (
-			);
-			productName = MiruUITests;
-			productReference = 185F71B22F25298500C60C1E /* MiruUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -168,10 +132,6 @@
 						CreatedOnToolsVersion = 26.1.1;
 					};
 					185F71A72F25298500C60C1E = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = 185F719A2F25298200C60C1E;
-					};
-					185F71B12F25298500C60C1E = {
 						CreatedOnToolsVersion = 26.1.1;
 						TestTargetID = 185F719A2F25298200C60C1E;
 					};
@@ -193,7 +153,6 @@
 			targets = (
 				185F719A2F25298200C60C1E /* Miru */,
 				185F71A72F25298500C60C1E /* MiruTests */,
-				185F71B12F25298500C60C1E /* MiruUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -207,13 +166,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		185F71A62F25298500C60C1E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		185F71B02F25298500C60C1E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -237,13 +189,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		185F71AE2F25298500C60C1E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -251,11 +196,6 @@
 			isa = PBXTargetDependency;
 			target = 185F719A2F25298200C60C1E /* Miru */;
 			targetProxy = 185F71A92F25298500C60C1E /* PBXContainerItemProxy */;
-		};
-		185F71B42F25298500C60C1E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 185F719A2F25298200C60C1E /* Miru */;
-			targetProxy = 185F71B32F25298500C60C1E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -489,46 +429,6 @@
 			};
 			name = Release;
 		};
-		185F71C32F25298500C60C1E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TRHEK2ZLND;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninila.MiruUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Miru;
-			};
-			name = Debug;
-		};
-		185F71C42F25298500C60C1E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TRHEK2ZLND;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninila.MiruUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Miru;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -555,15 +455,6 @@
 			buildConfigurations = (
 				185F71C02F25298500C60C1E /* Debug */,
 				185F71C12F25298500C60C1E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		185F71C22F25298500C60C1E /* Build configuration list for PBXNativeTarget "MiruUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				185F71C32F25298500C60C1E /* Debug */,
-				185F71C42F25298500C60C1E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
