@@ -103,14 +103,14 @@ struct AniListAnimeDetailView: View {
                     Text(viewModel.displayTitle)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let altTitles = viewModel.alternativeTitles {
                         Text(altTitles)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .lineLimit(2)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .bottomLeading)
