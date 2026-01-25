@@ -64,6 +64,7 @@ struct StandardAnimeCard: View {
                                 .foregroundStyle(.secondary)
                         }
                 }
+                .id(item.coverURL)
                 .frame(width: Constants.cardWidth, height: Constants.imageHeight)
                 .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))

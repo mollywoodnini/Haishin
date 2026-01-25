@@ -64,6 +64,7 @@ struct ThisWeekCard: View {
                                 .foregroundStyle(.secondary)
                         }
                 }
+                .id(item.coverURL)
                 .frame(width: Constants.imageWidth, height: Constants.cardHeight)
                 .clipped()
                 .clipShape(

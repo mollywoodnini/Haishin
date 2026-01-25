@@ -34,6 +34,9 @@ final class BrowseViewModel {
     /// All recommendation sections to display.
     private(set) var sections: [RecommendationSection] = []
 
+    /// A unique identifier that changes on each refresh to force view updates.
+    private(set) var refreshId = UUID()
+
     /// Whether the initial load is in progress.
     private(set) var isLoading = false
 
@@ -47,7 +50,7 @@ final class BrowseViewModel {
 
     private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
-    private let userPreferences: UserPreferences
+    private var userPreferences: UserPreferences
 
 
     //#################################################################################
@@ -103,7 +106,13 @@ final class BrowseViewModel {
 
     /// Refreshes all content.
     func refresh() async {
+        // Re-read user preferences to get latest NSFW setting
+        reloadUserPreferences()
         resetSections()
+        // Reset loading state to allow fresh load
+        isLoading = false
+        // Generate new ID to force view hierarchy rebuild
+        refreshId = UUID()
         await loadContent()
     }
 
@@ -142,6 +151,10 @@ final class BrowseViewModel {
             sections[index].items = []
             sections[index].loadingState = .idle
         }
+    }
+
+    private func reloadUserPreferences() {
+        userPreferences = UserPreferences()
     }
 
     private func loadThisWeek() async {

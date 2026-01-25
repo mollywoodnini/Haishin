@@ -152,12 +152,13 @@ final class AniListService: AniListServicing {
         let items = response.data.page.media.map { media in
             let title = media.title.english ?? media.title.romaji
             let studio = media.studios?.nodes.first?.name
+            let coverURL = URL(string: media.coverImage.large)
 
             return RecommendingItem(id: "\(media.id)",
                                     title: title,
                                     subtitle: studio,
                                     synopsis: media.description?.strippingHTML(),
-                                    coverURL: URL(string: media.coverImage.large),
+                                    coverURL: coverURL,
                                     anilistId: media.id,
                                     totalEpisodes: media.episodes)
         }

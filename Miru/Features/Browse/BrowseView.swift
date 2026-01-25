@@ -20,6 +20,7 @@ struct BrowseView: View {
     //#################################################################################
 
     @State private var viewModel: BrowseViewModel
+    @AppStorage("showNSFW") private var showNSFW = false
     private let sourceManager: SourceManaging
 
 
@@ -49,9 +50,10 @@ struct BrowseView: View {
                 }
                 .padding(.vertical, .spacingS)
             }
+            .id(viewModel.refreshId)
             .navigationTitle("Browse")
-            .task {
-                await viewModel.loadContent()
+            .task(id: showNSFW) {
+                await viewModel.refresh()
             }
             .refreshable {
                 await viewModel.refresh()
