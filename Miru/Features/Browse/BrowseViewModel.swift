@@ -34,9 +34,6 @@ final class BrowseViewModel {
     /// All recommendation sections to display.
     private(set) var sections: [RecommendationSection] = []
 
-    /// A unique identifier that changes on each refresh to force view updates.
-    private(set) var refreshId = UUID()
-
     /// Whether the initial load is in progress.
     private(set) var isLoading = false
 
@@ -111,8 +108,6 @@ final class BrowseViewModel {
         resetSections()
         // Reset loading state to allow fresh load
         isLoading = false
-        // Generate new ID to force view hierarchy rebuild
-        refreshId = UUID()
         await loadContent()
     }
 

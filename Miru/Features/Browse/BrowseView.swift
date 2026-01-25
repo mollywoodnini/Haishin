@@ -50,10 +50,17 @@ struct BrowseView: View {
                 }
                 .padding(.vertical, .spacingS)
             }
-            .id(viewModel.refreshId)
             .navigationTitle("Browse")
-            .task(id: showNSFW) {
-                await viewModel.refresh()
+            .task {
+                // Only load if sections are empty (initial load)
+                if viewModel.sections.allSatisfy({ $0.items.isEmpty }) {
+                    await viewModel.loadContent()
+                }
+            }
+            .onChange(of: showNSFW) { _, _ in
+                Task {
+                    await viewModel.refresh()
+                }
             }
             .refreshable {
                 await viewModel.refresh()

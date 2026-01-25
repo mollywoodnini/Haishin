@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Kingfisher
 
 
 //#################################################################################
@@ -52,22 +53,20 @@ struct StandardAnimeCard: View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             // Image with fixed height at top
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: item.coverURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .id(item.coverURL)
-                .frame(width: Constants.cardWidth, height: Constants.imageHeight)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+                KFImage(item.coverURL)
+                    .resizable()
+                    .placeholder {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Constants.cardWidth, height: Constants.imageHeight)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
                 // Episode count badge if available
                 if let totalEpisodes = item.totalEpisodes {
