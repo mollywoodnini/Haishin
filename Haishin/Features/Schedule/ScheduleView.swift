@@ -118,7 +118,7 @@ private struct ScheduleDaySection: View {
                                     watchProgressService: WatchProgressService.shared,
                                     sourceManager: SourceManager.shared)
                 } label: {
-                    AnimeListRow(item: item, mode: .schedule)
+                    AnimeListRow(mode: .schedule(item))
                 }
                 .buttonStyle(.plain)
             }

@@ -5,7 +5,6 @@
 //  Created by Miru on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 
@@ -47,16 +46,19 @@ struct RecentsListView: View {
                     Text("Anime you've started watching will appear here.")
                 }
             } else {
-                List {
-                    ForEach(viewModel.recentAnime) { anime in
-                        NavigationLink {
-                            AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
-                        } label: {
-                            RecentAnimeRow(anime: anime)
+                ScrollView {
+                    LazyVStack(spacing: .spacingS) {
+                        ForEach(viewModel.recentAnime) { anime in
+                            NavigationLink {
+                                AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
+                            } label: {
+                                AnimeListRow(mode: .recent(anime))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+                    .padding(.spacingS)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle("Recents")
@@ -64,72 +66,5 @@ struct RecentsListView: View {
         .onAppear {
             viewModel.refresh()
         }
-    }
-}
-
-
-//#################################################################################
-// MARK: - RecentAnimeRow
-//#################################################################################
-
-/// A row displaying a recently watched anime.
-private struct RecentAnimeRow: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let thumbnailSize: CGFloat = 60
-    }
-
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    private let anime: RecentAnime
-
-
-    //#################################################################################
-    // MARK: - Initialization
-    //#################################################################################
-
-    init(anime: RecentAnime) {
-        self.anime = anime
-    }
-
-
-    //#################################################################################
-    // MARK: - Body
-    //#################################################################################
-
-    var body: some View {
-        HStack(spacing: .spacingS) {
-            KFImage(anime.coverURL)
-                .resizable()
-                .placeholder {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                }
-                .aspectRatio(contentMode: .fill)
-                .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(anime.title)
-                    .font(.body)
-                    .lineLimit(2)
-
-                if let episodeNumber = anime.lastEpisodeNumber {
-                    Text("Episode \(episodeNumber)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-        }
-        .contentShape(Rectangle())
     }
 }

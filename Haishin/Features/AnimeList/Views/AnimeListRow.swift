@@ -20,12 +20,16 @@ struct AnimeListRow: View {
     // MARK: - Types
     //#################################################################################
 
-    /// The display mode for the row.
+    /// The display mode for the row with associated model data.
     enum Mode {
         /// General list display with subtitle and synopsis.
-        case general
+        case general(RecommendingItem)
         /// Schedule display with air time label on top.
-        case schedule
+        case schedule(RecommendingItem)
+        /// Recent anime display with last watched episode.
+        case recent(RecentAnime)
+        /// Subscribed anime display.
+        case subscribed(SubscribedAnime)
     }
 
 
@@ -43,7 +47,6 @@ struct AnimeListRow: View {
     // MARK: - Properties
     //#################################################################################
 
-    private let item: RecommendingItem
     private let mode: Mode
 
 
@@ -52,11 +55,8 @@ struct AnimeListRow: View {
     //#################################################################################
 
     /// Creates a new `AnimeListRow`.
-    /// - Parameters:
-    ///   - item: The item to show.
-    ///   - mode: The display mode. Defaults to `.general`.
-    init(item: RecommendingItem, mode: Mode = .general) {
-        self.item = item
+    /// - Parameter mode: The display mode containing the model data.
+    init(mode: Mode) {
         self.mode = mode
     }
 
@@ -77,12 +77,39 @@ struct AnimeListRow: View {
 
 
     //#################################################################################
+    // MARK: - Private Computed Properties
+    //#################################################################################
+
+    private var coverURL: URL? {
+        switch mode {
+        case .general(let item), .schedule(let item):
+            return item.coverURL
+        case .recent(let anime):
+            return anime.coverURL
+        case .subscribed(let anime):
+            return anime.coverURL
+        }
+    }
+
+    private var title: String {
+        switch mode {
+        case .general(let item), .schedule(let item):
+            return item.title
+        case .recent(let anime):
+            return anime.title
+        case .subscribed(let anime):
+            return anime.title
+        }
+    }
+
+
+    //#################################################################################
     // MARK: - Private Views
     //#################################################################################
 
     private var coverImageWithBadge: some View {
         ZStack(alignment: .bottomLeading) {
-            KFImage(item.coverURL)
+            KFImage(coverURL)
                 .resizable()
                 .placeholder {
                     Rectangle()
@@ -108,10 +135,15 @@ struct AnimeListRow: View {
 
     @ViewBuilder
     private var episodeBadge: some View {
-        if let caption = item.caption {
-            badgeText(caption)
-        } else if let totalEpisodes = item.totalEpisodes {
-            badgeText("\(totalEpisodes) ep")
+        switch mode {
+        case .general(let item), .schedule(let item):
+            if let caption = item.caption {
+                badgeText(caption)
+            } else if let totalEpisodes = item.totalEpisodes {
+                badgeText("\(totalEpisodes) ep")
+            }
+        case .recent, .subscribed:
+            EmptyView()
         }
     }
 
@@ -130,21 +162,22 @@ struct AnimeListRow: View {
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             switch mode {
-            case .general:
-                generalInfoContent
-            case .schedule:
-                scheduleInfoContent
+            case .general(let item):
+                generalInfoContent(item: item)
+            case .schedule(let item):
+                scheduleInfoContent(item: item)
+            case .recent(let anime):
+                recentInfoContent(anime: anime)
+            case .subscribed:
+                subscribedInfoContent
             }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, .spacingS)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(.trailing, .spacingS)
     }
 
     @ViewBuilder
-    private var generalInfoContent: some View {
+    private func generalInfoContent(item: RecommendingItem) -> some View {
         Text(item.title)
             .font(.body)
             .fontWeight(.medium)
@@ -166,7 +199,7 @@ struct AnimeListRow: View {
     }
 
     @ViewBuilder
-    private var scheduleInfoContent: some View {
+    private func scheduleInfoContent(item: RecommendingItem) -> some View {
         if let airDate = item.airDate {
             Text(formatTime(airDate))
                 .font(.subheadline)
@@ -185,6 +218,28 @@ struct AnimeListRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
+    }
+
+    @ViewBuilder
+    private func recentInfoContent(anime: RecentAnime) -> some View {
+        Text(anime.title)
+            .font(.body)
+            .fontWeight(.medium)
+            .lineLimit(2)
+
+        if let episodeNumber = anime.lastEpisodeNumber {
+            Text("Episode \(episodeNumber)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var subscribedInfoContent: some View {
+        Text(title)
+            .font(.body)
+            .fontWeight(.medium)
+            .lineLimit(2)
     }
 
 

@@ -5,7 +5,6 @@
 //  Created by Miru on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 
@@ -47,16 +46,19 @@ struct SubscribedListView: View {
                     Text("Anime you subscribe to will appear here.")
                 }
             } else {
-                List {
-                    ForEach(viewModel.subscribedAnime) { anime in
-                        NavigationLink {
-                            AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
-                        } label: {
-                            SubscribedAnimeRow(anime: anime)
+                ScrollView {
+                    LazyVStack(spacing: .spacingS) {
+                        ForEach(viewModel.subscribedAnime) { anime in
+                            NavigationLink {
+                                AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
+                            } label: {
+                                AnimeListRow(mode: .subscribed(anime))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+                    .padding(.spacingS)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle("Subscribed")
@@ -64,66 +66,5 @@ struct SubscribedListView: View {
         .onAppear {
             viewModel.refresh()
         }
-    }
-}
-
-
-//#################################################################################
-// MARK: - SubscribedAnimeRow
-//#################################################################################
-
-/// A row displaying a subscribed anime.
-private struct SubscribedAnimeRow: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let thumbnailSize: CGFloat = 60
-    }
-
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    private let anime: SubscribedAnime
-
-
-    //#################################################################################
-    // MARK: - Initialization
-    //#################################################################################
-
-    init(anime: SubscribedAnime) {
-        self.anime = anime
-    }
-
-
-    //#################################################################################
-    // MARK: - Body
-    //#################################################################################
-
-    var body: some View {
-        HStack(spacing: .spacingS) {
-            KFImage(anime.coverURL)
-                .resizable()
-                .placeholder {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                }
-                .aspectRatio(contentMode: .fill)
-                .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(anime.title)
-                    .font(.body)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-        }
-        .contentShape(Rectangle())
     }
 }

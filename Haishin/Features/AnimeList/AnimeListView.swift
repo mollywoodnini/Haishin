@@ -97,7 +97,7 @@ struct AnimeListView: View {
                                         watchProgressService: WatchProgressService.shared,
                                         sourceManager: SourceManager.shared)
                     } label: {
-                        AnimeListRow(item: item)
+                        AnimeListRow(mode: .general(item))
                     }
                     .buttonStyle(.plain)
                     .onAppear {
