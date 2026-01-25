@@ -72,16 +72,48 @@ final class SourceManager: SourceManaging {
             let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
                                                                    includingPropertiesForKeys: nil)
                 .filter { $0.pathExtension == "js" }
+                // Sort so that files with proper names (e.g., "animeworld.js") come before
+                // UUID-named files, ensuring we keep the correctly named one
+                .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
             var sources: [InstalledSource] = []
+            var seenIds: [String: URL] = [:]
+            var duplicateFiles: [URL] = []
 
             for file in sourceFiles {
                 do {
                     let source = try await loadSource(from: file)
+                    let expectedFilename = "\(source.id).js"
+                    
+                    // Check for duplicate source IDs
+                    if let existingFile = seenIds[source.id] {
+                        // Prefer the file with the correct name
+                        if file.lastPathComponent == expectedFilename {
+                            // Current file has correct name, mark existing as duplicate
+                            print("[SourceManager] Found correctly named file for '\(source.id)', replacing previous")
+                            duplicateFiles.append(existingFile)
+                            sources.removeAll { $0.id == source.id }
+                            seenIds[source.id] = file
+                            sources.append(source)
+                        } else {
+                            // Current file has wrong name, mark it as duplicate
+                            print("[SourceManager] Duplicate source ID '\(source.id)' at \(file.lastPathComponent), skipping")
+                            duplicateFiles.append(file)
+                        }
+                        continue
+                    }
+                    
+                    seenIds[source.id] = file
                     sources.append(source)
                 } catch {
                     print("[SourceManager] Failed to load source at \(file): \(error)")
                 }
+            }
+            
+            // Clean up duplicate files
+            for duplicateFile in duplicateFiles {
+                print("[SourceManager] Removing duplicate source file: \(duplicateFile.lastPathComponent)")
+                try? fileManager.removeItem(at: duplicateFile)
             }
 
             installedSources = sources
@@ -200,10 +232,19 @@ final class SourceManager: SourceManaging {
     /// Uninstalls a source.
     /// - Parameter sourceId: The source ID to uninstall.
     func uninstallSource(sourceId: String) throws {
-        let path = sourcesDirectory.appendingPathComponent("\(sourceId).js")
-
-        if fileManager.fileExists(atPath: path.path) {
-            try fileManager.removeItem(at: path)
+        // Find the installed source to get the actual file path
+        guard let installedSource = installedSources.first(where: { $0.id == sourceId }) else {
+            print("[SourceManager] Source '\(sourceId)' not found in installed sources")
+            return
+        }
+        
+        // Delete the actual script file (handles both correctly-named and UUID-named files)
+        let actualPath = installedSource.scriptPath
+        print("[SourceManager] Uninstalling source '\(sourceId)' at: \(actualPath.lastPathComponent)")
+        
+        if fileManager.fileExists(atPath: actualPath.path) {
+            try fileManager.removeItem(at: actualPath)
+            print("[SourceManager] Deleted file: \(actualPath.lastPathComponent)")
         }
 
         installedSources.removeAll { $0.id == sourceId }
