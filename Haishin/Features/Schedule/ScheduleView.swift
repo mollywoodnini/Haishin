@@ -112,7 +112,15 @@ private struct ScheduleDaySection: View {
             dayHeader
             
             ForEach(day.items) { item in
-                AnimeListRow(item: item, mode: .schedule)
+                NavigationLink {
+                    AnimeDetailView(item: item,
+                                    subscriptionService: SubscriptionService.shared,
+                                    watchProgressService: WatchProgressService.shared,
+                                    sourceManager: SourceManager.shared)
+                } label: {
+                    AnimeListRow(item: item, mode: .schedule)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
