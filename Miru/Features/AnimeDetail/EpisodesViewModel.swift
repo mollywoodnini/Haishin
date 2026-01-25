@@ -75,25 +75,51 @@ final class EpisodesViewModel {
         
         print("[EpisodesViewModel] Loading episodes for '\(aniListAnime.title)' from source '\(sourceId)'")
         print("[EpisodesViewModel] SourceManager installed sources: \(sourceManager.installedSources.count)")
+        
+        // Log all installed source IDs for debugging
+        let installedIds = sourceManager.installedSources.map { $0.id }.joined(separator: ", ")
+        print("[EpisodesViewModel] Installed source IDs: [\(installedIds)]")
+        
+        // Validate that the selected source exists
+        guard sourceManager.installedSources.contains(where: { $0.id == sourceId }) else {
+            print("[EpisodesViewModel] ERROR: Selected source '\(sourceId)' not found in installed sources")
+            error = EpisodesError.sourceNotFoundHint
+            isLoading = false
+            return
+        }
 
         do {
-            // Search for the anime on the selected source
-            print("[EpisodesViewModel] Searching for anime...")
-            let searchResults = try await sourceManager.search(sourceId: sourceId,
-                                                               query: aniListAnime.title,
-                                                               page: 1)
+            // Generate search queries with fallbacks
+            let searchQueries = generateSearchQueries()
+            print("[EpisodesViewModel] Generated \(searchQueries.count) search queries: \(searchQueries)")
             
-            print("[EpisodesViewModel] Search returned \(searchResults.count) results")
+            // Try each query until we find results
+            var searchResults: [AnimePreview] = []
+            var successfulQuery: String?
+            
+            for query in searchQueries {
+                print("[EpisodesViewModel] Trying search query: '\(query)'")
+                let results = try await sourceManager.search(sourceId: sourceId,
+                                                             query: query,
+                                                             page: 1)
+                print("[EpisodesViewModel] Search for '\(query)' returned \(results.count) results")
+                
+                if !results.isEmpty {
+                    searchResults = results
+                    successfulQuery = query
+                    break
+                }
+            }
 
-            // Find the best match (for now, take the first result)
-            // TODO: Implement fuzzy matching or let user select
+            // Check if we found any results
             guard let firstResult = searchResults.first else {
-                print("[EpisodesViewModel] No search results found")
+                print("[EpisodesViewModel] No search results found after trying all queries")
                 error = EpisodesError.animeNotFound
                 isLoading = false
                 return
             }
             
+            print("[EpisodesViewModel] Found match with query '\(successfulQuery ?? "unknown")'")
             print("[EpisodesViewModel] Using first result: '\(firstResult.title)'")
 
             // Fetch full anime details with episodes
@@ -114,6 +140,100 @@ final class EpisodesViewModel {
     func retry() async {
         await loadEpisodes()
     }
+
+
+    //#################################################################################
+    // MARK: - Private Methods
+    //#################################################################################
+
+    /// Generates a list of search queries to try, with fallback strategies.
+    /// - Returns: Array of search query strings ordered by priority.
+    private func generateSearchQueries() -> [String] {
+        var queries: [String] = []
+        
+        // 1. Primary title (English or Romaji)
+        queries.append(aniListAnime.title)
+        
+        // 2. Alternative titles (Romaji, Native, English)
+        if let romaji = aniListAnime.romajiTitle, romaji != aniListAnime.title {
+            queries.append(romaji)
+        }
+        
+        if let english = aniListAnime.englishTitle, english != aniListAnime.title {
+            queries.append(english)
+        }
+        
+        if let native = aniListAnime.nativeTitle, native != aniListAnime.title {
+            queries.append(native)
+        }
+        
+        // 3. Remove "Season X" and replace with just the number
+        // Example: "To Your Eternity Season 3" -> "To Your Eternity 3"
+        let seasonVariation = removeSeasonKeyword(from: aniListAnime.title)
+        if seasonVariation != aniListAnime.title {
+            queries.append(seasonVariation)
+        }
+        
+        // Try season variation on alternative titles too
+        if let romaji = aniListAnime.romajiTitle {
+            let romajiSeasonVariation = removeSeasonKeyword(from: romaji)
+            if romajiSeasonVariation != romaji && !queries.contains(romajiSeasonVariation) {
+                queries.append(romajiSeasonVariation)
+            }
+        }
+        
+        if let english = aniListAnime.englishTitle {
+            let englishSeasonVariation = removeSeasonKeyword(from: english)
+            if englishSeasonVariation != english && !queries.contains(englishSeasonVariation) {
+                queries.append(englishSeasonVariation)
+            }
+        }
+        
+        // 4. Remove "Part X" variations
+        // Example: "Attack on Titan Final Season Part 2" -> "Attack on Titan Final Season 2"
+        let partVariation = removePartKeyword(from: aniListAnime.title)
+        if partVariation != aniListAnime.title && !queries.contains(partVariation) {
+            queries.append(partVariation)
+        }
+        
+        return queries
+    }
+    
+    /// Removes "Season X" and replaces with just "X".
+    /// Example: "To Your Eternity Season 3" -> "To Your Eternity 3"
+    private func removeSeasonKeyword(from title: String) -> String {
+        // Pattern matches: "Season 3", "Season 2", etc.
+        let pattern = #"\s+Season\s+(\d+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern,
+                                                   options: .caseInsensitive) else {
+            return title
+        }
+        
+        let range = NSRange(title.startIndex..<title.endIndex, in: title)
+        let modifiedTitle = regex.stringByReplacingMatches(in: title,
+                                                           options: [],
+                                                           range: range,
+                                                           withTemplate: " $1")
+        return modifiedTitle
+    }
+    
+    /// Removes "Part X" and replaces with just "X".
+    /// Example: "Attack on Titan Part 2" -> "Attack on Titan 2"
+    private func removePartKeyword(from title: String) -> String {
+        // Pattern matches: "Part 2", "Part 3", etc.
+        let pattern = #"\s+Part\s+(\d+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern,
+                                                   options: .caseInsensitive) else {
+            return title
+        }
+        
+        let range = NSRange(title.startIndex..<title.endIndex, in: title)
+        let modifiedTitle = regex.stringByReplacingMatches(in: title,
+                                                           options: [],
+                                                           range: range,
+                                                           withTemplate: " $1")
+        return modifiedTitle
+    }
 }
 
 
@@ -123,11 +243,14 @@ final class EpisodesViewModel {
 
 enum EpisodesError: LocalizedError {
     case animeNotFound
+    case sourceNotFoundHint
 
     var errorDescription: String? {
         switch self {
         case .animeNotFound:
             return "Could not find this anime on the selected source."
+        case .sourceNotFoundHint:
+            return "The selected source is no longer installed. Please select a different source or reinstall it."
         }
     }
 }

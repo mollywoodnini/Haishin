@@ -78,7 +78,29 @@ struct Anime: Identifiable, Hashable, Codable {
     /// URL path used to fetch this anime's details.
     let detailsURL: String
 
-    /// Available episodes grouped by season/arc if applicable.
+    /// Available episodes (flat list for backward compatibility).
+    let episodes: [Episode]
+
+    /// Episode ranges for better organization (e.g., "1-50", "51-100").
+    /// If not provided, defaults to a single range containing all episodes.
+    let episodeRanges: [EpisodeRange]
+}
+
+
+//#################################################################################
+// MARK: - EpisodeRange
+//#################################################################################
+
+/// A range of episodes for better organization of long-running anime.
+struct EpisodeRange: Identifiable, Hashable, Codable {
+
+    /// Unique identifier for this range.
+    let id: String
+
+    /// Display title for the range (e.g., "1 - 50", "51 - 100").
+    let title: String
+
+    /// Episodes within this range.
     let episodes: [Episode]
 }
 

@@ -23,7 +23,8 @@ struct EpisodesView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSourcePicker = false
     @State private var userPreferences = UserPreferences()
-    
+    @State private var expandedRanges: Set<String> = []
+
     private let sourceManager: SourceManager
 
 
@@ -111,7 +112,12 @@ struct EpisodesView: View {
     //#################################################################################
 
     private func errorView(error: Error) -> some View {
-        VStack(spacing: .spacingM) {
+        let _ = print("[EpisodesView] Showing error: \(error)")
+        let _ = print("[EpisodesView] Error type: \(type(of: error))")
+        let isSourceNotFound = (error as? EpisodesError) == .sourceNotFoundHint
+        let _ = print("[EpisodesView] Is source not found error: \(isSourceNotFound)")
+        
+        return VStack(spacing: .spacingM) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
@@ -124,13 +130,25 @@ struct EpisodesView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, .spacingL)
-
-            Button("Retry") {
-                Task {
-                    await viewModel.retry()
+            
+            // Special handling for source not found error
+            if let episodesError = error as? EpisodesError, episodesError == .sourceNotFoundHint {
+                Button("Select Different Source") {
+                    print("[EpisodesView] 'Select Different Source' button tapped")
+                    // Clear the invalid source selection
+                    userPreferences.selectedSourceId = nil
+                    print("[EpisodesView] Cleared selectedSourceId, showing picker")
+                    showingSourcePicker = true
                 }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button("Retry") {
+                    Task {
+                        await viewModel.retry()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -141,16 +159,49 @@ struct EpisodesView: View {
     //#################################################################################
 
     private func episodesListView(anime: Anime) -> some View {
-        ScrollView {
+        let hasMultipleRanges = anime.episodeRanges.count > 1
+
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 // Header with anime info
                 animeHeaderView(anime: anime)
 
-                // Episodes grid
-                episodesGridView(episodes: anime.episodes)
+                // Show flat list for single range, collapsible sections for multiple ranges
+                if hasMultipleRanges {
+                    episodeRangesView(ranges: anime.episodeRanges)
+                } else {
+                    // Flat episode list without section header
+                    flatEpisodesListView(episodes: anime.episodes)
+                }
             }
             .padding(.spacingM)
         }
+        .onAppear {
+            // Expand first range by default (only relevant for multiple ranges)
+            if let firstRange = anime.episodeRanges.first {
+                expandedRanges.insert(firstRange.id)
+            }
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Flat Episodes List View
+    //#################################################################################
+
+    private func flatEpisodesListView(episodes: [Episode]) -> some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(episodes) { episode in
+                episodeRowView(episode: episode)
+
+                if episode.id != episodes.last?.id {
+                    Divider()
+                        .padding(.leading, .spacingS)
+                }
+            }
+        }
+        .background(Color(.tertiarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
     }
 
 
@@ -196,57 +247,110 @@ struct EpisodesView: View {
 
 
     //#################################################################################
-    // MARK: - Episodes Grid View
+    // MARK: - Episode Ranges View
     //#################################################################################
 
-    private func episodesGridView(episodes: [Episode]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: .spacingS)],
-                  spacing: .spacingS) {
-            ForEach(episodes) { episode in
-                episodeCardView(episode: episode)
+    private func episodeRangesView(ranges: [EpisodeRange]) -> some View {
+        LazyVStack(alignment: .leading, spacing: .spacingS) {
+            ForEach(ranges) { range in
+                episodeRangeSectionView(range: range)
             }
         }
     }
 
 
     //#################################################################################
-    // MARK: - Episode Card View
+    // MARK: - Episode Range Section View
     //#################################################################################
 
-    private func episodeCardView(episode: Episode) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            // Thumbnail or placeholder
-            ZStack {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .aspectRatio(16/9, contentMode: .fit)
+    private func episodeRangeSectionView(range: EpisodeRange) -> some View {
+        let isExpanded = expandedRanges.contains(range.id)
 
-                // Episode number overlay
-                VStack {
-                    Spacer()
-                    HStack {
-                        Text("EP \(episode.number)")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, .spacingXS)
-                            .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                        Spacer()
+        return VStack(alignment: .leading, spacing: 0) {
+            // Collapsible header
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isExpanded {
+                        expandedRanges.remove(range.id)
+                    } else {
+                        expandedRanges.insert(range.id)
                     }
-                    .padding(.spacingXS)
                 }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            } label: {
+                HStack {
+                    Text(range.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
 
-            // Episode title
-            if let title = episode.title {
-                Text(title)
-                    .font(.caption)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer()
+
+                    Text("\(range.episodes.count) ep")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .padding(.vertical, .spacingXS)
+                .padding(.horizontal, .spacingS)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            }
+            .buttonStyle(.plain)
+
+            // Episodes list (shown when expanded)
+            if isExpanded {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(range.episodes) { episode in
+                        episodeRowView(episode: episode)
+                        
+                        if episode.id != range.episodes.last?.id {
+                            Divider()
+                                .padding(.leading, .spacingS)
+                        }
+                    }
+                }
+                .background(Color(.tertiarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+                .padding(.top, .spacingXS)
             }
         }
+    }
+
+
+    //#################################################################################
+    // MARK: - Episode Row View
+    //#################################################################################
+
+    private func episodeRowView(episode: Episode) -> some View {
+        HStack(spacing: .spacingS) {
+            // Episode number badge
+            Text("\(episode.number)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 32)
+                .background(Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+
+            // Episode title or default text
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(episode.title ?? "Episode \(episode.number)")
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, .spacingS)
+        .padding(.vertical, .spacingXS)
+        .contentShape(Rectangle())
         .onTapGesture {
             // TODO: Navigate to video player
             print("Tapped episode: \(episode.number)")

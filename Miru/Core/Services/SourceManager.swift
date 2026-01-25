@@ -370,6 +370,22 @@ final class SourceManager: SourceManaging {
             episodes = []
         }
         
+        // Convert episode ranges from server-grouped to flat list
+        // For now, use the first available server's ranges
+        let episodeRanges: [EpisodeRange]
+        if let firstServerRanges = jsDetails.episodeRanges?.values.first, !firstServerRanges.isEmpty {
+            episodeRanges = firstServerRanges.map { convertToEpisodeRange($0) }
+        } else {
+            // Fallback: create a single range containing all episodes
+            if !episodes.isEmpty {
+                episodeRanges = [EpisodeRange(id: "0",
+                                              title: "All Episodes",
+                                              episodes: episodes)]
+            } else {
+                episodeRanges = []
+            }
+        }
+        
         // Convert status
         let status: AiringStatus
         switch jsDetails.status {
@@ -395,7 +411,15 @@ final class SourceManager: SourceManaging {
                      rating: jsDetails.rating.map { String(format: "%.1f", $0) },
                      sourceId: sourceId,
                      detailsURL: detailsURL,
-                     episodes: episodes)
+                     episodes: episodes,
+                     episodeRanges: episodeRanges)
+    }
+    
+    /// Converts SourceEpisodeRange to EpisodeRange
+    private func convertToEpisodeRange(_ jsRange: SourceEpisodeRange) -> EpisodeRange {
+        return EpisodeRange(id: jsRange.id,
+                            title: jsRange.title,
+                            episodes: jsRange.episodes.map { convertToEpisode($0) })
     }
     
     /// Converts SourceEpisode to Episode

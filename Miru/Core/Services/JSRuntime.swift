@@ -361,7 +361,10 @@ actor JSRuntime {
             iconURL = nil
         }
 
-        return SourceInfo(id: sourceId,
+        // Use the 'id' from the JavaScript source, fallback to sourceId parameter if not present
+        let actualId = dict["id"] as? String ?? sourceId
+
+        return SourceInfo(id: actualId,
                           name: name,
                           version: version,
                           language: dict["language"] as? String ?? "en",

@@ -771,26 +771,22 @@ private extension AniListService {
             let format = AniListFormat(rawValue: edge.node.format ?? "") ?? .unknown
             let status = AniListStatus(rawValue: edge.node.status ?? "") ?? .unknown
 
-            return AniListRelation(
-                id: edge.node.id,
-                title: title,
-                coverURL: edge.node.coverImage.flatMap { URL(string: $0.large) },
-                relationType: relationType,
-                format: format,
-                status: status
-            )
+            return AniListRelation(id: edge.node.id,
+                                   title: title,
+                                   coverURL: edge.node.coverImage.flatMap { URL(string: $0.large) },
+                                   relationType: relationType,
+                                   format: format,
+                                   status: status)
         } ?? []
 
         let recommendations = media.recommendations?.nodes.compactMap { node -> AniListRecommendation? in
             guard let rec = node.mediaRecommendation else { return nil }
             let title = rec.title.english ?? rec.title.romaji
 
-            return AniListRecommendation(
-                id: rec.id,
-                title: title,
-                coverURL: rec.coverImage.flatMap { URL(string: $0.large) },
-                rating: node.rating ?? 0
-            )
+            return AniListRecommendation(id: rec.id,
+                                         title: title,
+                                         coverURL: rec.coverImage.flatMap { URL(string: $0.large) },
+                                         rating: node.rating ?? 0)
         } ?? []
 
         let externalLinks = media.externalLinks?.compactMap { link -> AniListExternalLink? in
@@ -803,14 +799,12 @@ private extension AniListService {
             default: linkType = nil
             }
 
-            return AniListExternalLink(
-                id: link.id,
-                url: url,
-                site: link.site,
-                type: linkType,
-                icon: link.icon.flatMap { URL(string: $0) },
-                color: link.color
-            )
+            return AniListExternalLink(id: link.id,
+                                       url: url,
+                                       site: link.site,
+                                       type: linkType,
+                                       icon: link.icon.flatMap { URL(string: $0) },
+                                       color: link.color)
         } ?? []
 
         let tags = media.tags?.map { tag in
@@ -822,22 +816,18 @@ private extension AniListService {
 
         let trailer: AniListTrailer?
         if let t = media.trailer, let id = t.id, let site = t.site {
-            trailer = AniListTrailer(
-                id: id,
-                site: site,
-                thumbnail: t.thumbnail.flatMap { URL(string: $0) }
-            )
+            trailer = AniListTrailer(id: id,
+                                     site: site,
+                                     thumbnail: t.thumbnail.flatMap { URL(string: $0) })
         } else {
             trailer = nil
         }
 
         let nextAiring: AniListAiringEpisode?
         if let na = media.nextAiringEpisode {
-            nextAiring = AniListAiringEpisode(
-                episode: na.episode,
-                airingAt: Date(timeIntervalSince1970: TimeInterval(na.airingAt)),
-                timeUntilAiring: TimeInterval(na.timeUntilAiring)
-            )
+            nextAiring = AniListAiringEpisode(episode: na.episode,
+                                              airingAt: Date(timeIntervalSince1970: TimeInterval(na.airingAt)),
+                                              timeUntilAiring: TimeInterval(na.timeUntilAiring))
         } else {
             nextAiring = nil
         }
@@ -856,40 +846,38 @@ private extension AniListService {
             endDate = nil
         }
 
-        return AniListAnimeDetail(
-            id: media.id,
-            title: title,
-            romajiTitle: media.title.romaji,
-            nativeTitle: media.title.native,
-            englishTitle: media.title.english,
-            coverURL: coverURL,
-            bannerURL: bannerURL,
-            synopsis: media.description?.strippingHTML(),
-            genres: media.genres ?? [],
-            averageScore: media.averageScore,
-            meanScore: media.meanScore,
-            popularity: media.popularity,
-            favourites: media.favourites,
-            status: AniListStatus(rawValue: media.status ?? "") ?? .unknown,
-            format: AniListFormat(rawValue: media.format ?? ""),
-            episodes: media.episodes,
-            duration: media.duration,
-            season: AniListSeason(rawValue: media.season ?? ""),
-            seasonYear: media.seasonYear,
-            startDate: startDate,
-            endDate: endDate,
-            source: media.source,
-            countryOfOrigin: media.countryOfOrigin,
-            studios: studios,
-            characters: characters,
-            relations: relations,
-            recommendations: recommendations,
-            externalLinks: externalLinks,
-            trailer: trailer,
-            tags: tags,
-            nextAiringEpisode: nextAiring,
-            siteUrl: media.siteUrl.flatMap { URL(string: $0) }
-        )
+        return AniListAnimeDetail(id: media.id,
+                                  title: title,
+                                  romajiTitle: media.title.romaji,
+                                  nativeTitle: media.title.native,
+                                  englishTitle: media.title.english,
+                                  coverURL: coverURL,
+                                  bannerURL: bannerURL,
+                                  synopsis: media.description?.strippingHTML(),
+                                  genres: media.genres ?? [],
+                                  averageScore: media.averageScore,
+                                  meanScore: media.meanScore,
+                                  popularity: media.popularity,
+                                  favourites: media.favourites,
+                                  status: AniListStatus(rawValue: media.status ?? "") ?? .unknown,
+                                  format: AniListFormat(rawValue: media.format ?? ""),
+                                  episodes: media.episodes,
+                                  duration: media.duration,
+                                  season: AniListSeason(rawValue: media.season ?? ""),
+                                  seasonYear: media.seasonYear,
+                                  startDate: startDate,
+                                  endDate: endDate,
+                                  source: media.source,
+                                  countryOfOrigin: media.countryOfOrigin,
+                                  studios: studios,
+                                  characters: characters,
+                                  relations: relations,
+                                  recommendations: recommendations,
+                                  externalLinks: externalLinks,
+                                  trailer: trailer,
+                                  tags: tags,
+                                  nextAiringEpisode: nextAiring,
+                                  siteUrl: media.siteUrl.flatMap { URL(string: $0) })
     }
 }
 

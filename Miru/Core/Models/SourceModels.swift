@@ -56,41 +56,46 @@ struct JSSearchResult: Codable, Sendable {
 
 /// Detailed information about an anime from a JavaScript source
 struct JSAnimeDetails: Codable, Sendable {
-    
+
     /// Unique identifier for this anime
     let id: String
-    
+
     /// The anime title (original or preferred language)
     let title: String
-    
+
     /// English title (if available)
     let englishTitle: String?
-    
+
     /// Synopsis/description
     let synopsis: String
-    
+
     /// Cover/poster image URL
     let coverUrl: String
-    
+
     /// Rating (e.g., 8.5 out of 10)
     let rating: Double?
-    
+
     /// Release date (ISO 8601 format)
     let releaseDate: String?
-    
+
     /// Current status
     let status: AnimeStatus
-    
+
     /// Genres
     let genres: [String]
-    
+
     /// Available servers/sources for streaming
     /// Key: server ID, Value: server display name
     let servers: [String: String]
-    
+
     /// Episodes organized by server
     /// Key: server ID, Value: array of episodes
     let episodes: [String: [SourceEpisode]]
+
+    /// Episode ranges organized by server (for anime with many episodes)
+    /// Key: server ID, Value: array of episode ranges
+    /// Optional - only present when source provides range information
+    let episodeRanges: [String: [SourceEpisodeRange]]?
 }
 
 
@@ -108,21 +113,39 @@ enum AnimeStatus: String, Codable, Sendable {
 
 
 //#################################################################################
+// MARK: - SourceEpisodeRange
+//#################################################################################
+
+/// A range of episodes (e.g., "1 - 50") from a JavaScript source
+struct SourceEpisodeRange: Codable, Identifiable, Sendable, Hashable {
+
+    /// Unique identifier for this range (typically the range-id from HTML)
+    let id: String
+
+    /// Display title for the range (e.g., "1 - 50", "51 - 100")
+    let title: String
+
+    /// Episodes within this range
+    let episodes: [SourceEpisode]
+}
+
+
+//#################################################################################
 // MARK: - SourceEpisode
 //#################################################################################
 
 /// An anime episode from a JavaScript source
 struct SourceEpisode: Codable, Identifiable, Sendable, Hashable {
-    
+
     /// Unique identifier for this episode
     let id: String
-    
+
     /// Episode number
     let number: Int
-    
+
     /// Episode title
     let title: String
-    
+
     /// Full URL to the episode page
     let url: String
 }

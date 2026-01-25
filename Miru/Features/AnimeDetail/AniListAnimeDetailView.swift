@@ -668,10 +668,22 @@ struct AniListAnimeDetailView: View {
             print("  selectedSourceId: \(userPreferences.selectedSourceId ?? "nil")")
             print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
             
-            if userPreferences.selectedSourceId != nil {
-                // Source already selected, navigate directly
-                print("[AniListAnimeDetailView] Source already selected, setting navigateToEpisodes = true")
-                navigateToEpisodes = true
+            // Validate that the selected source actually exists
+            if let selectedId = userPreferences.selectedSourceId,
+               let sourceManager = sourceManager {
+                let sourceExists = sourceManager.installedSources.contains(where: { $0.id == selectedId })
+                print("[AniListAnimeDetailView] Source '\(selectedId)' exists: \(sourceExists)")
+                
+                if sourceExists {
+                    // Source exists, navigate directly
+                    print("[AniListAnimeDetailView] Source valid, setting navigateToEpisodes = true")
+                    navigateToEpisodes = true
+                } else {
+                    // Source doesn't exist, clear it and show picker
+                    print("[AniListAnimeDetailView] Source invalid, clearing and showing picker")
+                    userPreferences.selectedSourceId = nil
+                    showingSourcePicker = true
+                }
             } else {
                 // No source selected, show picker
                 print("[AniListAnimeDetailView] No source selected, showing picker")
