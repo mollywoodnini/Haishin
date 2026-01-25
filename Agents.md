@@ -4,8 +4,29 @@ This file provides guidance to OpenCode when working with code in this repositor
 
 ## Architecture
 
-### MVVM Pattern (Current)
-The app uses MVVM architecture for SwiftUI compatibility.
+### 📂 Project Structure & Architectural Rules
+1. Directory Organization
+Views Folder: All subviews (e.g., *Row.swift, *Header.swift, *Cell.swift) must be placed inside a Views/ subdirectory within the feature folder.
+
+View Minimization: Keep the main *View.swift file small and manageable. If a view body exceeds ~100 lines, extract components into separate files within the Views/ folder.
+
+2. MVVM & Logic Separation
+Strict ViewModel Responsibility: The ViewModel must act as the sole coordinator for business logic.
+
+Business Logic: All calls to Services, Managers, API fetching, data filtering, and state transformation must reside in the ViewModel.
+
+View Constraints: Views should be purely declarative and "dumb." They should only observe the ViewModel and trigger actions (e.g., viewModel.didTapSave()).
+
+No Direct Access: Views must not instantiate Services or Managers directly.
+
+#### Example Template for New Features
+When creating a new feature (e.g., "UserProfiles"), follow this blueprint:
+
+UserProfiles/
+├── Views/
+│   └── UserProfileRow.swift      // Subview
+├── UserProfileView.swift         // Main View (Clean & Small)
+└── UserProfileViewModel.swift    // ALL Business Logic, Services, Managers
 
 ## Dependency Management
 
