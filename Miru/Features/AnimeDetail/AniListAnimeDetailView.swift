@@ -23,6 +23,9 @@ struct AniListAnimeDetailView: View {
     @State private var viewModel: AniListAnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var isSynopsisTruncated = false
+    @State private var showingSourcePicker = false
+    @State private var selectedSourceId: String?
+    @State private var navigateToEpisodes = false
 
 
     //#################################################################################
@@ -70,6 +73,11 @@ struct AniListAnimeDetailView: View {
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $navigateToEpisodes) {
+            if let anime = viewModel.anime, let sourceId = selectedSourceId {
+                EpisodesView(aniListAnime: anime, sourceId: sourceId)
+            }
+        }
         .task {
             await viewModel.loadDetails()
         }
@@ -104,7 +112,7 @@ struct AniListAnimeDetailView: View {
                     Text(viewModel.displayTitle)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let altTitles = viewModel.alternativeTitles {
@@ -113,6 +121,10 @@ struct AniListAnimeDetailView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
+                    
+                    // View Episodes Button
+                    viewEpisodesButton
+                        .padding(.top, .spacingXS)
                 }
                 .frame(maxWidth: .infinity, alignment: .bottomLeading)
                 .padding(.bottom, .spacingS)
@@ -633,6 +645,40 @@ struct AniListAnimeDetailView: View {
             .padding(.horizontal, .spacingS)
         }
         .padding(.top, .spacingS)
+    }
+
+
+    //#################################################################################
+    // MARK: - View Episodes Button
+    //#################################################################################
+
+    private var viewEpisodesButton: some View {
+        Button {
+            if selectedSourceId != nil {
+                // Source already selected, navigate directly
+                navigateToEpisodes = true
+            } else {
+                // No source selected, show picker
+                showingSourcePicker = true
+            }
+        } label: {
+            Text("VIEW EPISODES")
+                .font(.system(size: 15, weight: .bold))
+        }
+        .buttonStyle(.borderedProminent)
+        .sheet(isPresented: $showingSourcePicker) {
+            SourcePickerView(
+                animeTitle: viewModel.displayTitle,
+                selectedSourceId: $selectedSourceId,
+                onSourceSelected: {
+                    showingSourcePicker = false
+                    // Navigate to episodes view after sheet dismisses
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        navigateToEpisodes = true
+                    }
+                }
+            )
+        }
     }
 }
 
