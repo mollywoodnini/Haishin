@@ -220,7 +220,7 @@ struct EpisodeListView: View {
                     onlineFlatEpisodesListView(episodes: anime.episodes)
                 }
             }
-            .padding(.spacingM)
+            .padding(.spacingS)
         }
         .onAppear {
             if let firstRange = anime.episodeRanges.first {
@@ -289,129 +289,40 @@ struct EpisodeListView: View {
     }
 
     private var offlineEpisodesListView: some View {
-        List {
-            // Header section
-            Section {
-                offlineHeaderView
-            }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: .spacingM) {
+                EpisodeListHeaderView(title: viewModel.animeTitle,
+                                      coverURL: viewModel.animeCoverURL,
+                                      subtitle: viewModel.sourceName,
+                                      episodeCount: viewModel.offlineEpisodes.count)
 
-            // Continue watching
-            if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {
-                Section {
+                if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
                         selectedEpisode = continueEpisode
                     }
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
 
-            // Episodes section
-            Section {
-                ForEach(viewModel.offlineEpisodes) { episode in
-                    offlineEpisodeRow(episode: episode)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedEpisode = episode
-                        }
-                }
-                .onDelete(perform: deleteEpisodes)
-            } header: {
-                Text("Episodes")
+                offlineFlatEpisodesListView
             }
+            .padding(.spacingS)
         }
-        .listStyle(.insetGrouped)
     }
 
-    private var offlineHeaderView: some View {
-        HStack(alignment: .top, spacing: .spacingM) {
-            AsyncImage(url: viewModel.animeCoverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-            }
-            .frame(width: 80, height: 120)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+    private var offlineFlatEpisodesListView: some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(viewModel.offlineEpisodes) { episode in
+                EpisodeRowView(episode: episode,
+                               progress: viewModel.watchProgressMap[episode.id],
+                               onTap: { selectedEpisode = episode },
+                               onDelete: { viewModel.deleteDownload(episodeId: episode.id) })
 
-            VStack(alignment: .leading, spacing: .spacingXS) {
-                Text(viewModel.animeTitle)
-                    .font(.headline)
-                    .lineLimit(2)
-
-                if let sourceName = viewModel.sourceName {
-                    Text(sourceName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Text("\(viewModel.offlineEpisodes.count) Episode\(viewModel.offlineEpisodes.count == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(.spacingM)
-    }
-
-    private func offlineEpisodeRow(episode: Episode) -> some View {
-        HStack(spacing: .spacingS) {
-            Text(episode.number)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 40, height: 32)
-                .background(Color.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(episodeTitle(for: episode))
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                if let progress = viewModel.watchProgressMap[episode.id] {
-                    if progress.isCompleted {
-                        Text("Completed")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("\(Int((1 - progress.progress) * 100))% left")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("Not watched")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if episode.id != viewModel.offlineEpisodes.last?.id {
+                    Divider()
+                        .padding(.leading, .spacingS)
                 }
             }
-
-            Spacer()
-
-            if let progress = viewModel.watchProgressMap[episode.id], progress.isCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.body)
-                    .foregroundStyle(.green)
-            }
         }
-    }
-
-    private func episodeTitle(for episode: Episode) -> String {
-        guard let title = episode.title, title != episode.number else {
-            return "Episode \(episode.number)"
-        }
-        return title
-    }
-
-    private func deleteEpisodes(at offsets: IndexSet) {
-        for index in offsets {
-            let episode = viewModel.offlineEpisodes[index]
-            viewModel.deleteDownload(episodeId: episode.id)
-        }
+        .background(Color(.tertiarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
     }
 }

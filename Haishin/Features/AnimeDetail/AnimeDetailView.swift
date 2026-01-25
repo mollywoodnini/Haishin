@@ -120,8 +120,6 @@ struct AnimeDetailView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
                 }
             }
         }

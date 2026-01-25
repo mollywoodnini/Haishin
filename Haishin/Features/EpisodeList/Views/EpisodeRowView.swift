@@ -23,15 +23,16 @@ struct EpisodeRowView: View {
     private let progress: WatchProgress?
     private let downloadState: DownloadState?
     private let onTap: () -> Void
-    private let onDownload: () -> Void
-    private let onCancelDownload: () -> Void
+    private let onDownload: (() -> Void)?
+    private let onCancelDownload: (() -> Void)?
+    private let onDelete: (() -> Void)?
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new episode row view.
+    /// Creates a new episode row view for online mode with download functionality.
     /// - Parameters:
     ///   - episode: The episode to display.
     ///   - progress: The watch progress for this episode, if any.
@@ -51,6 +52,26 @@ struct EpisodeRowView: View {
         self.onTap = onTap
         self.onDownload = onDownload
         self.onCancelDownload = onCancelDownload
+        self.onDelete = nil
+    }
+
+    /// Creates a new episode row view for offline mode (downloaded episodes).
+    /// - Parameters:
+    ///   - episode: The episode to display.
+    ///   - progress: The watch progress for this episode, if any.
+    ///   - onTap: Action to perform when the row is tapped.
+    ///   - onDelete: Action to perform when the delete button is tapped.
+    init(episode: Episode,
+         progress: WatchProgress?,
+         onTap: @escaping () -> Void,
+         onDelete: @escaping () -> Void) {
+        self.episode = episode
+        self.progress = progress
+        self.downloadState = nil
+        self.onTap = onTap
+        self.onDownload = nil
+        self.onCancelDownload = nil
+        self.onDelete = onDelete
     }
 
 
@@ -64,7 +85,7 @@ struct EpisodeRowView: View {
                 episodeNumberBadge
                 episodeInfo
                 Spacer()
-                downloadButton
+                actionButton
                 completionCheckmark
             }
 
@@ -116,11 +137,21 @@ struct EpisodeRowView: View {
             Text("Downloading (\(Int(downloadProgress * 100))% complete)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        } else if let progress, !progress.isCompleted {
-            Text("\(Int((1 - progress.progress) * 100))% left")
+        } else if let progress {
+            if progress.isCompleted {
+                Text("Completed")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("\(Int((1 - progress.progress) * 100))% left")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else if onDelete != nil {
+            Text("Not watched")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        } else if downloadState == nil {
+        } else {
             Text("Start Now")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -128,29 +159,40 @@ struct EpisodeRowView: View {
     }
 
     @ViewBuilder
-    private var downloadButton: some View {
-        switch downloadState {
-        case .downloading(let downloadProgress):
-            downloadingIndicator(progress: downloadProgress)
-
-        case .completed:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title3)
-                .foregroundStyle(.green)
-
-        case .pending:
-            ProgressView()
-                .frame(width: 24, height: 24)
-
-        case .failed, .cancelled, nil:
+    private var actionButton: some View {
+        if let onDelete {
             Button {
-                onDownload()
+                onDelete()
             } label: {
-                Image(systemName: "icloud.and.arrow.down")
-                    .font(.title3)
-                    .foregroundStyle(Color.accentColor)
+                Image(systemName: "trash")
+                    .font(.body)
+                    .foregroundStyle(.red)
             }
             .buttonStyle(.plain)
+        } else {
+            switch downloadState {
+            case .downloading(let downloadProgress):
+                downloadingIndicator(progress: downloadProgress)
+
+            case .completed:
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.green)
+
+            case .pending:
+                ProgressView()
+                    .frame(width: 24, height: 24)
+
+            case .failed, .cancelled, nil:
+                Button {
+                    onDownload?()
+                } label: {
+                    Image(systemName: "icloud.and.arrow.down")
+                        .font(.title3)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -171,7 +213,7 @@ struct EpisodeRowView: View {
                 .foregroundStyle(Color.accentColor)
         }
         .onTapGesture {
-            onCancelDownload()
+            onCancelDownload?()
         }
     }
 

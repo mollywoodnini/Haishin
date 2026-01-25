@@ -13,14 +13,17 @@ import SwiftUI
 // MARK: - EpisodeListHeaderView
 //#################################################################################
 
-/// Header view displaying anime cover, title, genres, and episode count.
+/// Header view displaying anime cover, title, and episode count.
 struct EpisodeListHeaderView: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    private let anime: Anime
+    private let title: String
+    private let coverURL: URL?
+    private let subtitle: String?
+    private let episodeCount: Int
 
 
     //#################################################################################
@@ -28,9 +31,24 @@ struct EpisodeListHeaderView: View {
     //#################################################################################
 
     /// Creates a new episode list header view.
+    /// - Parameter title: The anime title.
+    /// - Parameter coverURL: The cover image URL.
+    /// - Parameter subtitle: Optional subtitle (e.g., genres or source name).
+    /// - Parameter episodeCount: The number of episodes.
+    init(title: String, coverURL: URL?, subtitle: String?, episodeCount: Int) {
+        self.title = title
+        self.coverURL = coverURL
+        self.subtitle = subtitle
+        self.episodeCount = episodeCount
+    }
+
+    /// Creates a new episode list header view from an Anime object.
     /// - Parameter anime: The anime to display.
     init(anime: Anime) {
-        self.anime = anime
+        self.title = anime.title
+        self.coverURL = anime.coverURL
+        self.subtitle = anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", ")
+        self.episodeCount = anime.episodes.count
     }
 
 
@@ -40,7 +58,7 @@ struct EpisodeListHeaderView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: .spacingM) {
-            KFImage(anime.coverURL)
+            KFImage(coverURL)
                 .resizable()
                 .placeholder {
                     Rectangle()
@@ -51,18 +69,18 @@ struct EpisodeListHeaderView: View {
                 .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
             VStack(alignment: .leading, spacing: .spacingXS) {
-                Text(anime.title)
+                Text(title)
                     .font(.headline)
                     .lineLimit(2)
 
-                if !anime.genres.isEmpty {
-                    Text(anime.genres.joined(separator: ", "))
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
-                Text("\(anime.episodes.count) Episode\(anime.episodes.count == 1 ? "" : "s")")
+                Text("\(episodeCount) Episode\(episodeCount == 1 ? "" : "s")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

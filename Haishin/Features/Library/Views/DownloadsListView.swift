@@ -47,7 +47,7 @@ struct DownloadsListView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.spacingM)
+                    .padding(.spacingS)
                 }
             }
         }
