@@ -30,6 +30,8 @@ struct AnimeListRow: View {
         case recent(RecentAnime)
         /// Subscribed anime display.
         case subscribed(SubscribedAnime)
+        /// Downloaded anime display with episode count and progress.
+        case downloaded(DownloadedAnime)
     }
 
 
@@ -88,6 +90,8 @@ struct AnimeListRow: View {
             return anime.coverURL
         case .subscribed(let anime):
             return anime.coverURL
+        case .downloaded(let anime):
+            return anime.coverURL
         }
     }
 
@@ -98,6 +102,8 @@ struct AnimeListRow: View {
         case .recent(let anime):
             return anime.title
         case .subscribed(let anime):
+            return anime.title
+        case .downloaded(let anime):
             return anime.title
         }
     }
@@ -142,6 +148,8 @@ struct AnimeListRow: View {
             } else if let totalEpisodes = item.totalEpisodes {
                 badgeText("\(totalEpisodes) ep")
             }
+        case .downloaded(let anime):
+            badgeText("\(anime.totalCount) ep")
         case .recent, .subscribed:
             EmptyView()
         }
@@ -170,6 +178,8 @@ struct AnimeListRow: View {
                 recentInfoContent(anime: anime)
             case .subscribed:
                 subscribedInfoContent
+            case .downloaded(let anime):
+                downloadedInfoContent(anime: anime)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -242,6 +252,30 @@ struct AnimeListRow: View {
             .lineLimit(2)
     }
 
+    @ViewBuilder
+    private func downloadedInfoContent(anime: DownloadedAnime) -> some View {
+        Text(anime.title)
+            .font(.body)
+            .fontWeight(.medium)
+            .lineLimit(2)
+
+        Text(downloadStatusText(for: anime))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+
+        if anime.inProgressCount > 0 {
+            HStack(spacing: .spacingXXS) {
+                ProgressView(value: anime.averageProgress)
+                    .frame(width: 60)
+
+                Text("\(Int(anime.averageProgress * 100))%")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
 
     //#################################################################################
     // MARK: - Private Methods
@@ -252,5 +286,13 @@ struct AnimeListRow: View {
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    private func downloadStatusText(for anime: DownloadedAnime) -> String {
+        if anime.inProgressCount > 0 {
+            return "\(anime.inProgressCount) in progress"
+        } else {
+            return "\(anime.completedCount) downloaded"
+        }
     }
 }

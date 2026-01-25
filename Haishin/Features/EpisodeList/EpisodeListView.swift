@@ -385,6 +385,7 @@ struct EpisodeListView: View {
 
     private func episodeRowView(episode: Episode) -> some View {
         let progress = viewModel.watchProgressMap[episode.id]
+        let downloadState = viewModel.getDownloadState(for: episode.id)
 
         return VStack(alignment: .leading, spacing: .spacingXS) {
             HStack(spacing: .spacingS) {
@@ -401,8 +402,16 @@ struct EpisodeListView: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
-                    if let progress, !progress.isCompleted {
+                    if let downloadState, case .downloading(let downloadProgress) = downloadState {
+                        Text("Downloading (\(Int(downloadProgress * 100)) % complete)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if let progress, !progress.isCompleted {
                         Text("\(Int((1 - progress.progress) * 100)) % left")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if downloadState == nil {
+                        Text("Start Now")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -410,18 +419,19 @@ struct EpisodeListView: View {
 
                 Spacer()
 
+                // Download button
+                downloadButton(for: episode, downloadState: downloadState)
+
                 if let progress, progress.isCompleted {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.body)
                         .foregroundStyle(.green)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
 
-            if let progress, !progress.isCompleted, progress.progress > 0 {
+            if let downloadState, case .downloading(let downloadProgress) = downloadState {
+                ProgressBarView(progress: downloadProgress)
+            } else if let progress, !progress.isCompleted, progress.progress > 0 {
                 ProgressBarView(progress: progress.progress)
             }
         }
@@ -430,6 +440,50 @@ struct EpisodeListView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             selectedEpisode = episode
+        }
+    }
+
+    @ViewBuilder
+    private func downloadButton(for episode: Episode, downloadState: DownloadState?) -> some View {
+        switch downloadState {
+        case .downloading(let progress):
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                    .frame(width: 24, height: 24)
+
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .frame(width: 24, height: 24)
+                    .rotationEffect(.degrees(-90))
+
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .onTapGesture {
+                viewModel.cancelDownload(episodeId: episode.id)
+            }
+
+        case .completed:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .foregroundStyle(.green)
+
+        case .pending:
+            ProgressView()
+                .frame(width: 24, height: 24)
+
+        case .failed, .cancelled, nil:
+            Button {
+                viewModel.startDownload(episode: episode)
+            } label: {
+                Image(systemName: "icloud.and.arrow.down")
+                    .font(.title3)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 }

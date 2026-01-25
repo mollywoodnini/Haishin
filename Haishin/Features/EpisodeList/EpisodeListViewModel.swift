@@ -51,6 +51,7 @@ final class EpisodeListViewModel {
     private let sourceManager: SourceManaging
     private let watchProgressService: WatchProgressServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol
+    private let downloadService: DownloadServiceProtocol
     private var userPreferences: UserPreferences
 
 
@@ -65,18 +66,21 @@ final class EpisodeListViewModel {
     ///   - sourceManager: The source manager for fetching episodes.
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
+    ///   - downloadService: The service for managing downloads.
     ///   - userPreferences: The user preferences for source selection.
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
+         downloadService: DownloadServiceProtocol = DownloadService.shared,
          userPreferences: UserPreferences) {
         self.aniListAnime = aniListAnime
         self.sourceId = sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
+        self.downloadService = downloadService
         self.userPreferences = userPreferences
         self.isSubscribed = subscriptionService.isSubscribed(id: aniListAnime.id)
     }
@@ -232,6 +236,37 @@ final class EpisodeListViewModel {
     /// Returns the anime title for display in source picker.
     var animeTitle: String {
         aniListAnime.title
+    }
+
+    /// Gets the download state for a specific episode.
+    /// - Parameter episodeId: The episode ID to check.
+    /// - Returns: The download state, or nil if not downloading.
+    func getDownloadState(for episodeId: String) -> DownloadState? {
+        downloadService.getDownloadState(episodeId: episodeId)
+    }
+
+    /// Starts downloading an episode.
+    /// - Parameter episode: The episode to download.
+    func startDownload(episode: Episode) {
+        guard let source = sourceManager.installedSources.first(where: { $0.id == sourceId }) else {
+            return
+        }
+
+        downloadService.startDownload(animeId: aniListAnime.id,
+                                       animeTitle: aniListAnime.title,
+                                       animeCoverURL: aniListAnime.coverURL,
+                                       episodeId: episode.id,
+                                       episodeNumber: episode.number,
+                                       episodeTitle: episode.title,
+                                       sourceId: sourceId,
+                                       sourceName: source.info.name,
+                                       sourceURL: episode.url)
+    }
+
+    /// Cancels a download in progress.
+    /// - Parameter episodeId: The episode ID to cancel.
+    func cancelDownload(episodeId: String) {
+        downloadService.cancelDownload(episodeId: episodeId)
     }
 
 

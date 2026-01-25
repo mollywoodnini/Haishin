@@ -34,11 +34,12 @@ final class LibraryViewModel {
     var subscribedCount: Int { subscribedAnime.count }
 
     /// Count of downloaded items (placeholder for now).
-    var downloadsCount: Int { 0 }
+    var downloadsCount: Int { downloadService.totalDownloadsCount }
 
     private let watchProgressService: WatchProgressServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol
     private let sourceManager: SourceManaging
+    private let downloadService: DownloadServiceProtocol
 
 
     //#################################################################################
@@ -50,12 +51,15 @@ final class LibraryViewModel {
     ///   - watchProgressService: The service for accessing watch progress and recents.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - sourceManager: The source manager for episode fetching.
+    ///   - downloadService: The service for managing downloads.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         sourceManager: SourceManaging) {
+         sourceManager: SourceManaging,
+         downloadService: DownloadServiceProtocol = DownloadService.shared) {
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.sourceManager = sourceManager
+        self.downloadService = downloadService
         refresh()
     }
 
