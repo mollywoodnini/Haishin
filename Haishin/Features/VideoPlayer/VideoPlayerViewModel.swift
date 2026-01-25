@@ -204,10 +204,18 @@ final class VideoPlayerViewModel {
         if episode.url.hasPrefix("/") {
             // It's an absolute file path
             fileURL = URL(fileURLWithPath: episode.url)
-        } else if let url = URL(string: episode.url) {
+        } else if let url = URL(string: episode.url), url.isFileURL {
             fileURL = url
         } else {
             print("[VideoPlayerViewModel] Invalid offline file path: \(episode.url)")
+            error = VideoPlayerError.noSourcesAvailable
+            isLoading = false
+            return
+        }
+
+        // Verify the file exists
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            print("[VideoPlayerViewModel] Offline file not found: \(fileURL.path)")
             error = VideoPlayerError.noSourcesAvailable
             isLoading = false
             return

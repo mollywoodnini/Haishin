@@ -9,6 +9,32 @@ import Foundation
 
 
 //#################################################################################
+// MARK: - DownloadError
+//#################################################################################
+
+/// Errors that can occur during download operations.
+enum DownloadError: LocalizedError {
+    case sourceManagerNotAvailable
+    case noVideoSourceFound
+    case httpError(statusCode: Int)
+    case fileWriteError
+
+    var errorDescription: String? {
+        switch self {
+        case .sourceManagerNotAvailable:
+            return "Source manager is not available"
+        case .noVideoSourceFound:
+            return "No video source found for this episode"
+        case .httpError(let statusCode):
+            return "HTTP error: \(statusCode)"
+        case .fileWriteError:
+            return "Failed to write file to disk"
+        }
+    }
+}
+
+
+//#################################################################################
 // MARK: - DownloadState
 //#################################################################################
 
@@ -158,6 +184,9 @@ protocol DownloadServiceProtocol: AnyObject {
     /// Total count of downloaded episodes.
     var totalDownloadsCount: Int { get }
 
+    /// Sets the source manager for video extraction.
+    func setSourceManager(_ sourceManager: SourceManaging)
+
     /// Starts downloading an episode.
     func startDownload(animeId: Int,
                        animeTitle: String,
@@ -230,6 +259,11 @@ final class DownloadService: DownloadServiceProtocol {
     private var downloadTasks: [String: Task<Void, Never>] = [:]
     private let userDefaults: UserDefaults
     private let fileManager: FileManager
+    private var sourceManager: SourceManaging?
+    private var downloadsDirectory: URL {
+        let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return documentsPath.appendingPathComponent(Constants.downloadsDirectory)
+    }
 
 
     //#################################################################################
@@ -245,6 +279,12 @@ final class DownloadService: DownloadServiceProtocol {
         self.userDefaults = userDefaults
         self.fileManager = fileManager
         loadDownloads()
+    }
+
+    /// Sets the source manager for video extraction.
+    /// - Parameter sourceManager: The source manager to use.
+    func setSourceManager(_ sourceManager: SourceManaging) {
+        self.sourceManager = sourceManager
     }
 
 
@@ -304,9 +344,10 @@ final class DownloadService: DownloadServiceProtocol {
         downloadTasks[episodeId]?.cancel()
         downloadTasks.removeValue(forKey: episodeId)
 
+        // Remove the cancelled download entirely
         if let index = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
-            allEpisodes[index].state = .cancelled
             let animeId = allEpisodes[index].animeId
+            allEpisodes.remove(at: index)
             refreshGroupedAnime(forAnimeId: animeId)
             saveDownloads()
         }
@@ -356,34 +397,69 @@ final class DownloadService: DownloadServiceProtocol {
             return
         }
 
+        let episode = allEpisodes[index]
+
         // Update state to downloading
         allEpisodes[index].state = .downloading(progress: 0)
         refreshGroupedAnime(forAnimeId: allEpisodes[index].animeId)
         saveDownloads()
 
-        // Simulate download progress (in real implementation, this would use URLSession)
         do {
-            for progress in stride(from: 0.0, through: 1.0, by: 0.01) {
-                try Task.checkCancellation()
-                try await Task.sleep(for: .milliseconds(100))
+            try Task.checkCancellation()
 
-                if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
-                    allEpisodes[currentIndex].state = .downloading(progress: progress)
-                    refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
-                }
+            // Step 1: Extract the actual video URL from the source
+            guard let sourceManager else {
+                throw DownloadError.sourceManagerNotAvailable
             }
 
-            // Mark as completed
+            print("[DownloadService] Extracting video URL for episode: \(episodeId)")
+            let playbackInfo = try await sourceManager.getVideoSources(sourceId: episode.sourceId,
+                                                                        episodeId: episode.episodeId,
+                                                                        url: episode.sourceURL)
+
+            guard let videoSource = playbackInfo.sources.first else {
+                throw DownloadError.noVideoSourceFound
+            }
+
+            print("[DownloadService] Found video source: \(videoSource.url)")
+
+            try Task.checkCancellation()
+
+            // Step 2: Create the destination file path
+            let animeDirectory = downloadsDirectory.appendingPathComponent("\(episode.animeId)")
+            try fileManager.createDirectory(at: animeDirectory, withIntermediateDirectories: true)
+
+            let fileName = "\(episode.episodeNumber.replacingOccurrences(of: "/", with: "-")).mp4"
+            let destinationURL = animeDirectory.appendingPathComponent(fileName)
+
+            // Remove existing file if present
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+
+            // Step 3: Download the video file
+            print("[DownloadService] Downloading to: \(destinationURL.path)")
+            try await downloadFile(from: videoSource.url,
+                                   to: destinationURL,
+                                   headers: videoSource.headers,
+                                   episodeId: episodeId)
+
+            try Task.checkCancellation()
+
+            // Step 4: Mark as completed and set local file path
             if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
                 allEpisodes[currentIndex].state = .completed
                 allEpisodes[currentIndex].completedAt = Date()
-                // In real implementation, set localFilePath here
+                allEpisodes[currentIndex].localFilePath = destinationURL.path
                 refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
                 saveDownloads()
+                print("[DownloadService] Download completed: \(destinationURL.path)")
             }
         } catch is CancellationError {
+            print("[DownloadService] Download cancelled: \(episodeId)")
             // Already handled in cancelDownload
         } catch {
+            print("[DownloadService] Download failed: \(error)")
             if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
                 allEpisodes[currentIndex].state = .failed(error: error.localizedDescription)
                 refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
@@ -392,6 +468,46 @@ final class DownloadService: DownloadServiceProtocol {
         }
 
         downloadTasks.removeValue(forKey: episodeId)
+    }
+
+    private func downloadFile(from url: URL,
+                              to destination: URL,
+                              headers: [String: String]?,
+                              episodeId: String) async throws {
+        var request = URLRequest(url: url)
+        headers?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw DownloadError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
+        }
+
+        let expectedLength = httpResponse.expectedContentLength
+        var downloadedData = Data()
+        downloadedData.reserveCapacity(expectedLength > 0 ? Int(expectedLength) : 1024 * 1024 * 100)
+
+        var downloadedBytes: Int64 = 0
+
+        for try await byte in asyncBytes {
+            try Task.checkCancellation()
+            downloadedData.append(byte)
+            downloadedBytes += 1
+
+            // Update progress every ~100KB
+            if downloadedBytes % (100 * 1024) == 0 {
+                let progress = expectedLength > 0 ? Double(downloadedBytes) / Double(expectedLength) : 0
+                if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
+                    allEpisodes[currentIndex].state = .downloading(progress: min(progress, 0.99))
+                    refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
+                }
+            }
+        }
+
+        try downloadedData.write(to: destination)
     }
 
     private func updateGroupedAnime(animeId: Int,

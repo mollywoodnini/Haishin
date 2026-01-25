@@ -58,6 +58,7 @@ struct MainTabView: View {
         }
         .task {
             await sourceManager.loadInstalledSources()
+            DownloadService.shared.setSourceManager(sourceManager)
         }
     }
 }
