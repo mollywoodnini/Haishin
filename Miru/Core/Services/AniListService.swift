@@ -153,22 +153,18 @@ final class AniListService: AniListServicing {
             let title = media.title.english ?? media.title.romaji
             let studio = media.studios?.nodes.first?.name
 
-            return RecommendingItem(
-                id: "\(media.id)",
-                title: title,
-                subtitle: studio,
-                synopsis: media.description?.strippingHTML(),
-                coverURL: URL(string: media.coverImage.large),
-                anilistId: media.id,
-                totalEpisodes: media.episodes
-            )
+            return RecommendingItem(id: "\(media.id)",
+                                    title: title,
+                                    subtitle: studio,
+                                    synopsis: media.description?.strippingHTML(),
+                                    coverURL: URL(string: media.coverImage.large),
+                                    anilistId: media.id,
+                                    totalEpisodes: media.episodes)
         }
 
-        return PaginatedResponse(
-            items: items,
-            hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
-            currentPage: response.data.page.pageInfo?.currentPage ?? page
-        )
+        return PaginatedResponse(items: items,
+                                 hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
+                                 currentPage: response.data.page.pageInfo?.currentPage ?? page)
     }
 
     /// Fetches seasonal anime for the current season.
@@ -222,22 +218,18 @@ final class AniListService: AniListServicing {
             let title = media.title.english ?? media.title.romaji
             let studio = media.studios?.nodes.first?.name
 
-            return RecommendingItem(
-                id: "\(media.id)",
-                title: title,
-                subtitle: studio,
-                synopsis: media.description?.strippingHTML(),
-                coverURL: URL(string: media.coverImage.large),
-                anilistId: media.id,
-                totalEpisodes: media.episodes
-            )
+            return RecommendingItem(id: "\(media.id)",
+                                    title: title,
+                                    subtitle: studio,
+                                    synopsis: media.description?.strippingHTML(),
+                                    coverURL: URL(string: media.coverImage.large),
+                                    anilistId: media.id,
+                                    totalEpisodes: media.episodes)
         }
 
-        return PaginatedResponse(
-            items: items,
-            hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
-            currentPage: response.data.page.pageInfo?.currentPage ?? page
-        )
+        return PaginatedResponse(items: items,
+                                 hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
+                                 currentPage: response.data.page.pageInfo?.currentPage ?? page)
     }
 
     /// Fetches detailed information for a specific anime.
@@ -764,14 +756,12 @@ private extension AniListService {
             default: role = .background
             }
 
-            return AniListCharacter(
-                id: edge.node.id,
-                name: name,
-                imageURL: edge.node.image?.medium.flatMap { URL(string: $0) },
-                role: role,
-                voiceActorName: voiceActor?.name.full,
-                voiceActorImageURL: voiceActor?.image?.medium.flatMap { URL(string: $0) }
-            )
+            return AniListCharacter(id: edge.node.id,
+                                    name: name,
+                                    imageURL: edge.node.image?.medium.flatMap { URL(string: $0) },
+                                    role: role,
+                                    voiceActorName: voiceActor?.name.full,
+                                    voiceActorImageURL: voiceActor?.image?.medium.flatMap { URL(string: $0) })
         } ?? []
 
         let relations = media.relations?.edges.compactMap { edge -> AniListRelation? in
