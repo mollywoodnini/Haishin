@@ -46,7 +46,7 @@ struct AnimeDetailView: View {
     init(item: RecommendingItem,
          subscriptionService: SubscriptionServiceProtocol,
          watchProgressService: WatchProgressServiceProtocol,
-         sourceManager: SourceManaging? = nil) {
+         sourceManager: SourceManaging) {
         self._viewModel = State(initialValue: AnimeDetailViewModel(item: item,
                                                                    subscriptionService: subscriptionService,
                                                                    watchProgressService: watchProgressService,
@@ -66,7 +66,7 @@ struct AnimeDetailView: View {
          coverURL: URL?,
          subscriptionService: SubscriptionServiceProtocol,
          watchProgressService: WatchProgressServiceProtocol,
-         sourceManager: SourceManaging? = nil) {
+         sourceManager: SourceManaging) {
         self._viewModel = State(initialValue: AnimeDetailViewModel(animeId: animeId,
                                                                    previewTitle: title,
                                                                    previewCoverURL: coverURL,
@@ -736,6 +736,7 @@ struct AnimeDetailView: View {
                                    coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
                                    anilistId: 16498),
                         subscriptionService: SubscriptionService.shared,
-                        watchProgressService: WatchProgressService.shared)
+                        watchProgressService: WatchProgressService.shared,
+                        sourceManager: SourceManager())
     }
 }

@@ -19,8 +19,24 @@ struct LibraryView: View {
     // MARK: - Properties
     //#################################################################################
 
-    @State private var viewModel = LibraryViewModel(watchProgressService: WatchProgressService.shared,
-                                                    subscriptionService: SubscriptionService.shared)
+    @State private var viewModel: LibraryViewModel
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new library view.
+    /// - Parameter watchProgressService: The watch progress service to use.
+    /// - Parameter subscriptionService: The subscription service to use.
+    /// - Parameter sourceManager: The source manager to use.
+    init(watchProgressService: WatchProgressServiceProtocol,
+         subscriptionService: SubscriptionServiceProtocol,
+         sourceManager: SourceManaging) {
+        self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
+                                                               subscriptionService: subscriptionService,
+                                                               sourceManager: sourceManager))
+    }
 
 
     //#################################################################################
@@ -408,5 +424,7 @@ struct DownloadsListView: View {
 //#################################################################################
 
 #Preview {
-    LibraryView()
+    LibraryView(watchProgressService: WatchProgressService.shared,
+                subscriptionService: SubscriptionService.shared,
+                sourceManager: SourceManager.shared)
 }

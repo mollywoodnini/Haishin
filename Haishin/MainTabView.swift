@@ -15,7 +15,7 @@ struct MainTabView: View {
     //#################################################################################
 
     @State private var selectedTab: Tab = .browse
-    @State private var sourceManager = SourceManager()
+    @State private var sourceManager = SourceManager.shared
 
 
     //#################################################################################
@@ -30,7 +30,9 @@ struct MainTabView: View {
                 }
                 .tag(Tab.browse)
 
-            LibraryView()
+            LibraryView(watchProgressService: WatchProgressService.shared,
+                        subscriptionService: SubscriptionService.shared,
+                        sourceManager: sourceManager)
                 .tabItem {
                     Label(Tab.library.title, systemImage: Tab.library.icon)
                 }
@@ -54,7 +56,6 @@ struct MainTabView: View {
                 }
                 .tag(Tab.settings)
         }
-        .environment(\.sourceManager, sourceManager)
         .task {
             await sourceManager.loadInstalledSources()
         }

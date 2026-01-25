@@ -93,7 +93,8 @@ struct AnimeListView: View {
                     NavigationLink {
                         AnimeDetailView(item: item,
                                         subscriptionService: SubscriptionService.shared,
-                                        watchProgressService: WatchProgressService.shared)
+                                        watchProgressService: WatchProgressService.shared,
+                                        sourceManager: SourceManager.shared)
                     } label: {
                         AnimeListRow(item: item)
                     }

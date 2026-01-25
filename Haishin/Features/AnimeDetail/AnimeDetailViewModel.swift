@@ -53,7 +53,7 @@ final class AnimeDetailViewModel {
 
     private let subscriptionService: SubscriptionServiceProtocol
     private let watchProgressService: WatchProgressServiceProtocol
-    private let sourceManager: SourceManaging?
+    private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
     private var userPreferences: UserPreferences
 
@@ -78,7 +78,7 @@ final class AnimeDetailViewModel {
          aniListService: AniListServicing,
          subscriptionService: SubscriptionServiceProtocol,
          watchProgressService: WatchProgressServiceProtocol,
-         sourceManager: SourceManaging?,
+         sourceManager: SourceManaging,
          userPreferences: UserPreferences) {
         self.animeId = animeId
         self.previewTitle = previewTitle
@@ -103,7 +103,7 @@ final class AnimeDetailViewModel {
                      aniListService: AniListServicing,
                      subscriptionService: SubscriptionServiceProtocol,
                      watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging?,
+                     sourceManager: SourceManaging,
                      userPreferences: UserPreferences) {
         self.init(animeId: item.anilistId,
                   previewTitle: item.title,
@@ -126,7 +126,7 @@ final class AnimeDetailViewModel {
     convenience init(item: RecommendingItem,
                      subscriptionService: SubscriptionServiceProtocol,
                      watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging?,
+                     sourceManager: SourceManaging,
                      userPreferences: UserPreferences = UserPreferences()) {
         self.init(item: item,
                   aniListService: AniListService(),
@@ -151,7 +151,7 @@ final class AnimeDetailViewModel {
                      previewCoverURL: URL?,
                      subscriptionService: SubscriptionServiceProtocol,
                      watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging?,
+                     sourceManager: SourceManaging,
                      userPreferences: UserPreferences = UserPreferences()) {
         self.init(animeId: animeId,
                   previewTitle: previewTitle,
@@ -206,8 +206,7 @@ final class AnimeDetailViewModel {
     /// Validates the selected source and returns whether it's valid for navigation.
     /// - Returns: `true` if source is valid and navigation can proceed, `false` if source picker should be shown.
     func validateSourceSelection() -> Bool {
-        guard let selectedId = selectedSourceId,
-              let sourceManager else {
+        guard let selectedId = selectedSourceId else {
             return false
         }
 
@@ -234,8 +233,7 @@ final class AnimeDetailViewModel {
     /// - Returns: A new `EpisodeListViewModel` if anime and source are available, `nil` otherwise.
     func makeEpisodeListViewModel() -> EpisodeListViewModel? {
         guard let anime,
-              let sourceId = selectedSourceId,
-              let sourceManager else {
+              let sourceId = selectedSourceId else {
             return nil
         }
 
@@ -277,7 +275,7 @@ final class AnimeDetailViewModel {
 
     /// Returns the list of installed sources for the source picker.
     var installedSources: [InstalledSource] {
-        sourceManager?.installedSources ?? []
+        sourceManager.installedSources
     }
 }
 

@@ -15,6 +15,9 @@ final class SourceManager: SourceManaging {
     // MARK: - Properties
     //#################################################################################
 
+    /// Shared instance for app-wide use.
+    static let shared = SourceManager()
+
     /// Currently installed sources.
     private(set) var installedSources: [InstalledSource] = []
 
@@ -117,6 +120,11 @@ final class SourceManager: SourceManaging {
             }
 
             installedSources = sources
+            
+            // Auto-select if there's exactly one source and none is currently selected
+            if sources.count == 1, UserPreferences.shared.selectedSourceId == nil {
+                UserPreferences.shared.selectedSourceId = sources.first?.id
+            }
         } catch {
             lastError = error
             print("[SourceManager] Failed to load sources: \(error)")
@@ -160,6 +168,9 @@ final class SourceManager: SourceManaging {
         // Load the source
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
+        
+        // Automatically select the newly installed source
+        UserPreferences.shared.selectedSourceId = installedSource.id
     }
     
     /// Installs a source from a URL string.
@@ -226,6 +237,9 @@ final class SourceManager: SourceManaging {
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
         
+        // Automatically select the newly installed source
+        UserPreferences.shared.selectedSourceId = installedSource.id
+        
         print("[SourceManager] Installation complete!")
     }
 
@@ -248,6 +262,16 @@ final class SourceManager: SourceManaging {
         }
 
         installedSources.removeAll { $0.id == sourceId }
+        
+        // If the uninstalled source was selected, update selection
+        if UserPreferences.shared.selectedSourceId == sourceId {
+            // Auto-select if there's exactly one source remaining, otherwise clear
+            if installedSources.count == 1 {
+                UserPreferences.shared.selectedSourceId = installedSources.first?.id
+            } else {
+                UserPreferences.shared.selectedSourceId = nil
+            }
+        }
         
         // Clean up the JS source
         Task {

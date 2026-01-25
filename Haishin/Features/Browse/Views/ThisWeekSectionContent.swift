@@ -44,7 +44,8 @@ struct ThisWeekSectionContent: View {
                     NavigationLink {
                         AnimeDetailView(item: item,
                                         subscriptionService: SubscriptionService.shared,
-                                        watchProgressService: WatchProgressService.shared)
+                                        watchProgressService: WatchProgressService.shared,
+                                        sourceManager: SourceManager.shared)
                     } label: {
                         ThisWeekCard(item: item)
                     }

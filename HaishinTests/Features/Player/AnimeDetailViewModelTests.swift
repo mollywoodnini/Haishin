@@ -113,12 +113,13 @@ struct AnimeDetailViewModelTests {
     private func makeSUT(item: RecommendingItem? = nil,
                          aniListService: MockAniListService? = nil,
                          subscriptionService: MockSubscriptionService? = nil,
-                         watchProgressService: MockWatchProgressService? = nil) -> AnimeDetailViewModel {
+                         watchProgressService: MockWatchProgressService? = nil,
+                         sourceManager: MockSourceManager? = nil) -> AnimeDetailViewModel {
         AnimeDetailViewModel(item: item ?? TestFixtures.makeRecommendingItem(),
                              aniListService: aniListService ?? MockAniListService(),
                              subscriptionService: subscriptionService ?? MockSubscriptionService(),
                              watchProgressService: watchProgressService ?? MockWatchProgressService(),
-                             sourceManager: nil,
+                             sourceManager: sourceManager ?? MockSourceManager(),
                              userPreferences: UserPreferences())
     }
 

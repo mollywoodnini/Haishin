@@ -16,7 +16,6 @@ struct SearchView: View {
 
     @State private var viewModel: SearchViewModel
     @State private var searchText = ""
-    private let sourceManager: SourceManaging
 
 
     //#################################################################################
@@ -26,7 +25,6 @@ struct SearchView: View {
     /// Creates a new search view.
     /// - Parameter sourceManager: The source manager to use.
     init(sourceManager: SourceManaging) {
-        self.sourceManager = sourceManager
         self._viewModel = State(initialValue: SearchViewModel(sourceManager: sourceManager))
     }
 

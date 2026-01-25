@@ -38,7 +38,7 @@ final class LibraryViewModel {
 
     private let watchProgressService: WatchProgressServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol
-    private let sourceManager: SourceManaging?
+    private let sourceManager: SourceManaging
 
 
     //#################################################################################
@@ -52,7 +52,7 @@ final class LibraryViewModel {
     ///   - sourceManager: The source manager for episode fetching.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         sourceManager: SourceManaging? = nil) {
+         sourceManager: SourceManaging) {
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.sourceManager = sourceManager
