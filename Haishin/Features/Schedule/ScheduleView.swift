@@ -5,7 +5,6 @@
 //  Created by Tan Nghia La on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 
@@ -90,7 +89,18 @@ private struct ScheduleDaySection: View {
     // MARK: - Properties
     //#################################################################################
 
-    let day: ScheduleDay
+    private let day: ScheduleDay
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new schedule day section.
+    /// - Parameter day: The schedule day to display.
+    init(day: ScheduleDay) {
+        self.day = day
+    }
 
 
     //#################################################################################
@@ -99,142 +109,42 @@ private struct ScheduleDaySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: .spacingS) {
-            // Day header
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                HStack(spacing: .spacingXS) {
-                    Text(day.dayOfWeek)
-                        .font(.title2)
-                        .fontWeight(.bold)
-
-                    if day.isToday {
-                        Text("Today")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, .spacingXS)
-                            .padding(.vertical, 2)
-                            .background(Color.highlight)
-                            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-                    }
-                }
-
-                Text(day.formattedDate)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Anime cards for this day
+            dayHeader
+            
             ForEach(day.items) { item in
-                ScheduleAnimeRow(item: item)
+                AnimeListRow(item: item, mode: .schedule)
             }
         }
     }
-}
-
-
-//#################################################################################
-// MARK: - ScheduleAnimeRow
-//#################################################################################
-
-/// A row showing an anime in the schedule with air time.
-private struct ScheduleAnimeRow: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let imageWidth: CGFloat = 80
-        static let imageHeight: CGFloat = 110
-    }
 
 
     //#################################################################################
-    // MARK: - Properties
+    // MARK: - Private Views
     //#################################################################################
 
-    let item: RecommendingItem
+    private var dayHeader: some View {
+        VStack(alignment: .leading, spacing: .spacingXXS) {
+            HStack(spacing: .spacingXS) {
+                Text(day.dayOfWeek)
+                    .font(.title2)
+                    .fontWeight(.bold)
 
-
-    //#################################################################################
-    // MARK: - Body
-    //#################################################################################
-
-    var body: some View {
-        HStack(spacing: .spacingS) {
-            // Cover image with episode badge
-            ZStack(alignment: .bottomLeading) {
-                KFImage(item.coverURL)
-                    .resizable()
-                    .placeholder {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.secondary)
-                            }
-                    }
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: Constants.imageWidth, height: Constants.imageHeight)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-
-                // Episode badge
-                if let caption = item.caption {
-                    Text(caption)
+                if day.isToday {
+                    Text("Today")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, .spacingXS)
                         .padding(.vertical, 2)
-                        .background(.black.opacity(0.7))
+                        .background(Color.highlight)
                         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-                        .padding(.spacingXXS)
                 }
             }
 
-            // Info
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                // Air time
-                if let airDate = item.airDate {
-                    Text(formatTime(airDate))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.highlight)
-                }
-
-                Text(item.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-
-                if let synopsis = item.synopsis {
-                    Text(synopsis)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, .spacingXXS)
+            Text(day.formattedDate)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
-        .padding(.spacingS)
-        .background(Color.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
-    }
-
-
-    //#################################################################################
-    // MARK: - Private Methods
-    //#################################################################################
-
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
     }
 }
 
