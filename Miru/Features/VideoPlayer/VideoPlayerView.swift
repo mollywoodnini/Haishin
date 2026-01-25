@@ -19,6 +19,7 @@ struct VideoPlayerView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let animeTitle: String
+    private let animeCoverURL: URL?
 
 
     //#################################################################################
@@ -30,16 +31,21 @@ struct VideoPlayerView: View {
     ///   - episode: The episode to play.
     ///   - animeId: The anime ID for progress tracking.
     ///   - animeTitle: The title of the anime.
+    ///   - animeCoverURL: The cover URL of the anime.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
     init(episode: Episode,
          animeId: Int,
          animeTitle: String,
+         animeCoverURL: URL?,
          sourceId: String,
          sourceManager: SourceManaging) {
         self.animeTitle = animeTitle
+        self.animeCoverURL = animeCoverURL
         self._viewModel = State(initialValue: VideoPlayerViewModel(episode: episode,
                                                                     animeId: animeId,
+                                                                    animeTitle: animeTitle,
+                                                                    animeCoverURL: animeCoverURL,
                                                                     sourceId: sourceId,
                                                                     sourceManager: sourceManager))
     }

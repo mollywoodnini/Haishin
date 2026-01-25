@@ -34,6 +34,12 @@ final class VideoPlayerViewModel {
     /// The anime ID for progress tracking.
     let animeId: Int
 
+    /// The anime title for recents tracking.
+    let animeTitle: String
+
+    /// The anime cover URL for recents tracking.
+    let animeCoverURL: URL?
+
     /// The source ID to fetch streams from.
     let sourceId: String
 
@@ -79,16 +85,22 @@ final class VideoPlayerViewModel {
     /// - Parameters:
     ///   - episode: The episode to play.
     ///   - animeId: The anime ID for progress tracking.
+    ///   - animeTitle: The anime title for recents tracking.
+    ///   - animeCoverURL: The anime cover URL for recents tracking.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
     ///   - watchProgressService: The service for persisting watch progress.
     init(episode: Episode,
          animeId: Int,
+         animeTitle: String,
+         animeCoverURL: URL?,
          sourceId: String,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared) {
         self.episode = episode
         self.animeId = animeId
+        self.animeTitle = animeTitle
+        self.animeCoverURL = animeCoverURL
         self.sourceId = sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
@@ -241,7 +253,10 @@ final class VideoPlayerViewModel {
     }
 
     private func saveProgress() {
-        guard duration > 0 else { return }
+        guard duration > 0 else {
+            print("[VideoPlayerViewModel] Skipping progress save - duration is 0")
+            return
+        }
 
         let progress = WatchProgress(animeId: animeId,
                                      episodeId: episode.id,
@@ -251,7 +266,14 @@ final class VideoPlayerViewModel {
                                      lastUpdated: Date())
 
         watchProgressService.saveProgress(progress)
-        print("[VideoPlayerViewModel] Saved progress: \(Int(currentProgress * 100))%")
+
+        // Also update recents tracking
+        watchProgressService.updateRecentAnime(id: animeId,
+                                               title: animeTitle,
+                                               coverURL: animeCoverURL,
+                                               episodeNumber: episode.number)
+
+        print("[VideoPlayerViewModel] Saved progress: \(Int(currentProgress * 100))% and updated recents for '\(animeTitle)'")
     }
 
     private func observePlayerItem(_ playerItem: AVPlayerItem) {

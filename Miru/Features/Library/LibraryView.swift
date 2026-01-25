@@ -7,7 +7,12 @@
 
 import SwiftUI
 
-/// The library view showing saved anime.
+
+//#################################################################################
+// MARK: - LibraryView
+//#################################################################################
+
+/// The library view showing recents, subscribed anime, and downloads.
 struct LibraryView: View {
 
     //#################################################################################
@@ -15,7 +20,6 @@ struct LibraryView: View {
     //#################################################################################
 
     @State private var viewModel = LibraryViewModel()
-    @State private var selectedCategory: LibraryCategory = .watching
 
 
     //#################################################################################
@@ -24,77 +28,70 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                categoryPicker
+            ScrollView {
+                VStack(spacing: .spacingM) {
+                    // Top row: Recents and Subscribed
+                    HStack(spacing: .spacingS) {
+                        NavigationLink {
+                            RecentsListView(viewModel: viewModel)
+                        } label: {
+                            LibraryCard(icon: "clock.fill",
+                                        title: "Recents",
+                                        count: viewModel.recentsCount,
+                                        color: .blue)
+                        }
+                        .buttonStyle(.plain)
 
-                if viewModel.filteredItems(for: selectedCategory).isEmpty {
-                    emptyStateView
-                } else {
-                    libraryList
+                        NavigationLink {
+                            SubscribedListView(viewModel: viewModel)
+                        } label: {
+                            LibraryCard(icon: "bell.fill",
+                                        title: "Subscribed",
+                                        count: viewModel.subscribedCount,
+                                        color: .orange)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Bottom row: Downloads
+                    NavigationLink {
+                        DownloadsListView()
+                    } label: {
+                        LibraryWideCard(icon: "arrow.down.circle.fill",
+                                        title: "Downloads",
+                                        count: viewModel.downloadsCount,
+                                        color: .green)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
                 }
+                .padding(.spacingS)
             }
             .navigationTitle("Library")
-        }
-    }
-
-
-    //#################################################################################
-    // MARK: - Subviews
-    //#################################################################################
-
-    private var categoryPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: .spacingXS) {
-                ForEach(LibraryCategory.allCases) { category in
-                    CategoryChip(category: category,
-                                 isSelected: selectedCategory == category,
-                                 count: viewModel.filteredItems(for: category).count) {
-                        selectedCategory = category
-                    }
-                }
-            }
-            .padding(.horizontal, .spacingS)
-            .padding(.vertical, .spacingXS)
-        }
-    }
-
-    private var emptyStateView: some View {
-        ContentUnavailableView {
-            Label("No Anime", systemImage: selectedCategory.iconName)
-        } description: {
-            Text("Anime you add to \(selectedCategory.displayName) will appear here.")
-        }
-    }
-
-    private var libraryList: some View {
-        List {
-            ForEach(viewModel.filteredItems(for: selectedCategory)) { item in
-                LibraryItemRow(item: item)
-            }
-            .onDelete { indexSet in
-                viewModel.deleteItems(at: indexSet, in: selectedCategory)
+            .onAppear {
+                viewModel.refresh()
             }
         }
-        .listStyle(.plain)
     }
 }
 
 
 //#################################################################################
-// MARK: - CategoryChip
+// MARK: - LibraryCard
 //#################################################################################
 
-/// A chip button for selecting a library category.
-private struct CategoryChip: View {
+/// A square card for library categories.
+private struct LibraryCard: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    let category: LibraryCategory
-    let isSelected: Bool
+    let icon: String
+    let title: String
     let count: Int
-    let action: () -> Void
+    let color: Color
 
 
     //#################################################################################
@@ -102,35 +99,134 @@ private struct CategoryChip: View {
     //#################################################################################
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: .spacingXXS) {
-                Image(systemName: category.iconName)
-                Text(category.displayName)
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.caption2)
-                        .padding(.horizontal, .spacingXXS)
-                        .background(Capsule().fill(.secondary.opacity(0.3)))
-                }
+        VStack(alignment: .leading, spacing: .spacingXS) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+
+            Spacer()
+
+            HStack {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text("\(count)")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-            .font(.subheadline)
-            .padding(.horizontal, .spacingS)
-            .padding(.vertical, .spacingXS)
-            .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.15))
-            .foregroundStyle(isSelected ? .white : .primary)
-            .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .padding(.spacingS)
+        .frame(maxWidth: .infinity, minHeight: 100)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
     }
 }
 
 
 //#################################################################################
-// MARK: - LibraryItemRow
+// MARK: - LibraryWideCard
 //#################################################################################
 
-/// A row displaying a library item.
-private struct LibraryItemRow: View {
+/// A wide card for library categories (spanning full width).
+private struct LibraryWideCard: View {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    let icon: String
+    let title: String
+    let count: Int
+    let color: Color
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        HStack(spacing: .spacingS) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Text("\(count)")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.spacingS)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
+    }
+}
+
+
+//#################################################################################
+// MARK: - RecentsListView
+//#################################################################################
+
+/// A list view displaying recently watched anime.
+struct RecentsListView: View {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    @Bindable var viewModel: LibraryViewModel
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        Group {
+            if viewModel.recentAnime.isEmpty {
+                ContentUnavailableView {
+                    Label("No Recent Anime", systemImage: "clock")
+                } description: {
+                    Text("Anime you've started watching will appear here.")
+                }
+            } else {
+                List {
+                    ForEach(viewModel.recentAnime) { anime in
+                        NavigationLink {
+                            AnimeDetailView(animeId: anime.id,
+                                            title: anime.title,
+                                            coverURL: anime.coverURL)
+                        } label: {
+                            RecentAnimeRow(anime: anime)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .navigationTitle("Recents")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.refresh()
+        }
+    }
+}
+
+
+//#################################################################################
+// MARK: - RecentAnimeRow
+//#################################################################################
+
+/// A row displaying a recently watched anime.
+private struct RecentAnimeRow: View {
 
     //#################################################################################
     // MARK: - Constants
@@ -145,7 +241,7 @@ private struct LibraryItemRow: View {
     // MARK: - Properties
     //#################################################################################
 
-    let item: LibraryItem
+    let anime: RecentAnime
 
 
     //#################################################################################
@@ -154,7 +250,7 @@ private struct LibraryItemRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            AsyncImage(url: item.anime.coverURL) { image in
+            AsyncImage(url: anime.coverURL) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -166,12 +262,12 @@ private struct LibraryItemRow: View {
             .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(item.anime.title)
+                Text(anime.title)
                     .font(.body)
                     .lineLimit(2)
 
-                if let episode = item.lastWatchedEpisode {
-                    Text("Episode \(episode)")
+                if let episodeNumber = anime.lastEpisodeNumber {
+                    Text("Episode \(episodeNumber)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -180,6 +276,132 @@ private struct LibraryItemRow: View {
             Spacer()
         }
         .contentShape(Rectangle())
+    }
+}
+
+
+//#################################################################################
+// MARK: - SubscribedListView
+//#################################################################################
+
+/// A list view displaying subscribed anime.
+struct SubscribedListView: View {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    @Bindable var viewModel: LibraryViewModel
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        Group {
+            if viewModel.subscribedAnime.isEmpty {
+                ContentUnavailableView {
+                    Label("No Subscriptions", systemImage: "bell")
+                } description: {
+                    Text("Anime you subscribe to will appear here.")
+                }
+            } else {
+                List {
+                    ForEach(viewModel.subscribedAnime) { anime in
+                        NavigationLink {
+                            AnimeDetailView(animeId: anime.id,
+                                            title: anime.title,
+                                            coverURL: anime.coverURL)
+                        } label: {
+                            SubscribedAnimeRow(anime: anime)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .navigationTitle("Subscribed")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.refresh()
+        }
+    }
+}
+
+
+//#################################################################################
+// MARK: - SubscribedAnimeRow
+//#################################################################################
+
+/// A row displaying a subscribed anime.
+private struct SubscribedAnimeRow: View {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let thumbnailSize: CGFloat = 60
+    }
+
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    let anime: SubscribedAnime
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        HStack(spacing: .spacingS) {
+            AsyncImage(url: anime.coverURL) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.2))
+            }
+            .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(anime.title)
+                    .font(.body)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+
+//#################################################################################
+// MARK: - DownloadsListView
+//#################################################################################
+
+/// A placeholder view for downloads (not yet implemented).
+struct DownloadsListView: View {
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("No Downloads", systemImage: "arrow.down.circle")
+        } description: {
+            Text("Downloaded episodes will appear here.")
+        }
+        .navigationTitle("Downloads")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

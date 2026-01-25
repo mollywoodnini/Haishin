@@ -22,10 +22,14 @@ struct AnimeDetailView: View {
     @State private var viewModel: AnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.sourceManager) private var sourceManager
+    @Environment(\.openURL) private var openURL
     @State private var isSynopsisTruncated = false
     @State private var showingSourcePicker = false
     @State private var navigateToEpisodes = false
     @State private var userPreferences = UserPreferences()
+    @State private var isSubscribed = false
+
+    private let subscriptionService: SubscriptionServiceProtocol
 
 
     //#################################################################################
@@ -33,9 +37,13 @@ struct AnimeDetailView: View {
     //#################################################################################
 
     /// Creates a new detail view.
-    /// - Parameter item: The recommending item to show details for.
-    init(item: RecommendingItem) {
+    /// - Parameters:
+    ///   - item: The recommending item to show details for.
+    ///   - subscriptionService: The subscription service for managing subscriptions.
+    init(item: RecommendingItem,
+         subscriptionService: SubscriptionServiceProtocol = SubscriptionService.shared) {
         self._viewModel = State(initialValue: AnimeDetailViewModel(item: item))
+        self.subscriptionService = subscriptionService
     }
 
     /// Creates a new detail view with explicit parameters.
@@ -43,12 +51,17 @@ struct AnimeDetailView: View {
     ///   - animeId: The AniList ID.
     ///   - title: The preview title.
     ///   - coverURL: The preview cover URL.
-    init(animeId: Int, title: String, coverURL: URL?) {
+    ///   - subscriptionService: The subscription service for managing subscriptions.
+    init(animeId: Int,
+         title: String,
+         coverURL: URL?,
+         subscriptionService: SubscriptionServiceProtocol = SubscriptionService.shared) {
         self._viewModel = State(initialValue: AnimeDetailViewModel(
             animeId: animeId,
             previewTitle: title,
             previewCoverURL: coverURL
         ))
+        self.subscriptionService = subscriptionService
     }
 
 
@@ -73,6 +86,30 @@ struct AnimeDetailView: View {
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        toggleSubscription()
+                    } label: {
+                        Label(isSubscribed ? "Unsubscribe" : "Subscribe",
+                              systemImage: isSubscribed ? "bell.slash" : "bell")
+                    }
+
+                    if let siteUrl = viewModel.anime?.siteUrl {
+                        Button {
+                            openURL(siteUrl)
+                        } label: {
+                            Label("View on AniList", systemImage: "safari")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                }
+            }
+        }
         .navigationDestination(isPresented: $navigateToEpisodes) {
             if let anime = viewModel.anime, 
                let sourceId = userPreferences.selectedSourceId,
@@ -93,7 +130,28 @@ struct AnimeDetailView: View {
         }
         .task {
             await viewModel.loadDetails()
+            checkSubscriptionStatus()
         }
+    }
+
+
+    //#################################################################################
+    // MARK: - Subscription Methods
+    //#################################################################################
+
+    private func checkSubscriptionStatus() {
+        isSubscribed = subscriptionService.isSubscribed(id: viewModel.animeId)
+    }
+
+    private func toggleSubscription() {
+        if isSubscribed {
+            subscriptionService.unsubscribe(id: viewModel.animeId)
+        } else {
+            subscriptionService.subscribe(id: viewModel.animeId,
+                                          title: viewModel.displayTitle,
+                                          coverURL: viewModel.displayCoverURL)
+        }
+        isSubscribed.toggle()
     }
 
 

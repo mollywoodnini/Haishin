@@ -30,6 +30,7 @@ struct EpisodeListView: View {
 
     private let sourceManager: SourceManager
     private let watchProgressService: WatchProgressServiceProtocol
+    private let subscriptionService: SubscriptionServiceProtocol
 
 
     //#################################################################################
@@ -42,13 +43,16 @@ struct EpisodeListView: View {
     ///   - sourceId: The selected source ID.
     ///   - sourceManager: The shared source manager.
     ///   - watchProgressService: The service for accessing watch progress.
+    ///   - subscriptionService: The service for managing subscriptions.
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
          sourceManager: SourceManager,
-         watchProgressService: WatchProgressServiceProtocol) {
+         watchProgressService: WatchProgressServiceProtocol,
+         subscriptionService: SubscriptionServiceProtocol = SubscriptionService.shared) {
         print("[EpisodeListView] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
+        self.subscriptionService = subscriptionService
         self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
                                                                 sourceId: sourceId,
                                                                 sourceManager: sourceManager))
@@ -89,7 +93,7 @@ struct EpisodeListView: View {
                     Divider()
 
                     Button {
-                        isSubscribed.toggle()
+                        toggleSubscription()
                     } label: {
                         Label(isSubscribed ? "Unsubscribe" : "Subscribe",
                               systemImage: isSubscribed ? "bell.slash" : "bell")
@@ -113,19 +117,18 @@ struct EpisodeListView: View {
             print("[EpisodeListView] .task modifier fired")
             await viewModel.loadEpisodes()
             loadWatchProgress()
+            checkSubscriptionStatus()
         }
-        .fullScreenCover(item: $selectedEpisode) { episode in
+        .fullScreenCover(item: $selectedEpisode, onDismiss: {
+            // Reload progress when video player is dismissed
+            loadWatchProgress()
+        }) { episode in
             VideoPlayerView(episode: episode,
                             animeId: viewModel.aniListAnime.id,
                             animeTitle: viewModel.aniListAnime.title,
+                            animeCoverURL: viewModel.aniListAnime.coverURL,
                             sourceId: viewModel.sourceId,
                             sourceManager: sourceManager)
-        }
-        .onChange(of: selectedEpisode) { _, newValue in
-            // Reload progress when video player is dismissed
-            if newValue == nil {
-                loadWatchProgress()
-            }
         }
     }
 
@@ -513,6 +516,21 @@ struct EpisodeListView: View {
             progressMap[progress.episodeId] = progress
         }
         watchProgressMap = progressMap
+    }
+
+    private func checkSubscriptionStatus() {
+        isSubscribed = subscriptionService.isSubscribed(id: viewModel.aniListAnime.id)
+    }
+
+    private func toggleSubscription() {
+        if isSubscribed {
+            subscriptionService.unsubscribe(id: viewModel.aniListAnime.id)
+        } else {
+            subscriptionService.subscribe(id: viewModel.aniListAnime.id,
+                                          title: viewModel.aniListAnime.title,
+                                          coverURL: viewModel.aniListAnime.coverURL)
+        }
+        isSubscribed.toggle()
     }
 }
 
