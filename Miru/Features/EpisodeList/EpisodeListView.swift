@@ -25,13 +25,11 @@ struct EpisodeListView: View {
     @State private var userPreferences = UserPreferences()
     @State private var expandedRanges: Set<String> = []
     @State private var selectedEpisode: Episode?
-    @State private var selectedVideoSource: VideoSource?
-    @State private var mirrorActionEpisode: Episode?
-    @State private var availableMirrors: [VideoSource] = []
-    @State private var isLoadingMirrors = false
-    @State private var showingMirrorSheet = false
+    @State private var isSubscribed = false
+    @State private var watchProgressMap: [String: WatchProgress] = [:]
 
     private let sourceManager: SourceManager
+    private let watchProgressService: WatchProgressServiceProtocol
 
 
     //#################################################################################
@@ -43,9 +41,14 @@ struct EpisodeListView: View {
     ///   - aniListAnime: The AniList anime details.
     ///   - sourceId: The selected source ID.
     ///   - sourceManager: The shared source manager.
-    init(aniListAnime: AniListAnimeDetail, sourceId: String, sourceManager: SourceManager) {
+    ///   - watchProgressService: The service for accessing watch progress.
+    init(aniListAnime: AniListAnimeDetail,
+         sourceId: String,
+         sourceManager: SourceManager,
+         watchProgressService: WatchProgressServiceProtocol) {
         print("[EpisodeListView] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
         self.sourceManager = sourceManager
+        self.watchProgressService = watchProgressService
         self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
                                                                 sourceId: sourceId,
                                                                 sourceManager: sourceManager))
@@ -76,8 +79,23 @@ struct EpisodeListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Change Source") {
-                    showingSourcePicker = true
+                Menu {
+                    Button {
+                        showingSourcePicker = true
+                    } label: {
+                        Label("Change Source", systemImage: "arrow.triangle.2.circlepath")
+                    }
+
+                    Divider()
+
+                    Button {
+                        isSubscribed.toggle()
+                    } label: {
+                        Label(isSubscribed ? "Unsubscribe" : "Subscribe",
+                              systemImage: isSubscribed ? "bell.slash" : "bell")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
@@ -94,38 +112,19 @@ struct EpisodeListView: View {
         .task {
             print("[EpisodeListView] .task modifier fired")
             await viewModel.loadEpisodes()
+            loadWatchProgress()
         }
         .fullScreenCover(item: $selectedEpisode) { episode in
             VideoPlayerView(episode: episode,
+                            animeId: viewModel.aniListAnime.id,
                             animeTitle: viewModel.aniListAnime.title,
                             sourceId: viewModel.sourceId,
-                            sourceManager: sourceManager,
-                            preselectedSource: selectedVideoSource)
+                            sourceManager: sourceManager)
         }
         .onChange(of: selectedEpisode) { _, newValue in
-            // Reset selected video source when episode changes (unless coming from mirror selection)
+            // Reload progress when video player is dismissed
             if newValue == nil {
-                selectedVideoSource = nil
-            }
-        }
-        .confirmationDialog("Select Mirror",
-                            isPresented: $showingMirrorSheet,
-                            titleVisibility: .visible) {
-            ForEach(availableMirrors) { mirror in
-                Button(mirror.quality ?? mirror.serverName) {
-                    if let episode = mirrorActionEpisode {
-                        selectedVideoSource = mirror
-                        selectedEpisode = episode
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                mirrorActionEpisode = nil
-                availableMirrors = []
-            }
-        } message: {
-            if let episode = mirrorActionEpisode {
-                Text("Episode \(episode.number)")
+                loadWatchProgress()
             }
         }
     }
@@ -205,6 +204,11 @@ struct EpisodeListView: View {
                 // Header with anime info
                 animeHeaderView(anime: anime)
 
+                // Continue Watching button (if applicable)
+                if let continueEpisode = getContinueWatchingEpisode(from: anime.episodes) {
+                    continueWatchingButton(episode: continueEpisode)
+                }
+
                 // Show flat list for single range, collapsible sections for multiple ranges
                 if hasMultipleRanges {
                     episodeRangesView(ranges: anime.episodeRanges)
@@ -221,6 +225,77 @@ struct EpisodeListView: View {
                 expandedRanges.insert(firstRange.id)
             }
         }
+    }
+
+
+    //#################################################################################
+    // MARK: - Continue Watching Button
+    //#################################################################################
+
+    private func getContinueWatchingEpisode(from episodes: [Episode]) -> Episode? {
+        // Sort episodes by number to find the latest watched
+        let sortedEpisodes = episodes.sorted { ep1, ep2 in
+            (Int(ep1.number) ?? 0) < (Int(ep2.number) ?? 0)
+        }
+
+        // Find the last episode that has progress
+        var lastWatchedIndex: Int?
+        var lastWatchedProgress: WatchProgress?
+
+        for (index, episode) in sortedEpisodes.enumerated() {
+            if let progress = watchProgressMap[episode.id] {
+                lastWatchedIndex = index
+                lastWatchedProgress = progress
+            }
+        }
+
+        // No progress at all - no continue watching button
+        guard let lastIndex = lastWatchedIndex, let progress = lastWatchedProgress else {
+            return nil
+        }
+
+        // If the last watched episode is completed (>= 90%), return the next episode
+        if progress.isCompleted {
+            let nextIndex = lastIndex + 1
+            if nextIndex < sortedEpisodes.count {
+                return sortedEpisodes[nextIndex]
+            }
+            // All episodes completed - no continue watching
+            return nil
+        }
+
+        // Return the episode that's in progress
+        return sortedEpisodes[lastIndex]
+    }
+
+    private func continueWatchingButton(episode: Episode) -> some View {
+        Button {
+            selectedEpisode = episode
+        } label: {
+            HStack(spacing: .spacingM) {
+                // Play icon
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color.accentColor)
+
+                // Text content
+                VStack(alignment: .leading, spacing: .spacingXXS) {
+                    Text("Continue Watching")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text("Episode \(episode.number)")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
+
+                Spacer()
+            }
+            .padding(.spacingM)
+            .background(Color(.tertiarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+        }
+        .buttonStyle(.plain)
     }
 
 
@@ -372,80 +447,117 @@ struct EpisodeListView: View {
     }
 
     private func episodeRowView(episode: Episode) -> some View {
-        HStack(spacing: .spacingS) {
-            // Episode number badge
-            Text("\(episode.number)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 40, height: 32)
-                .background(Color.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+        let progress = watchProgressMap[episode.id]
+        
+        return VStack(alignment: .leading, spacing: .spacingXS) {
+            HStack(spacing: .spacingS) {
+                // Episode number badge
+                Text("\(episode.number)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 32)
+                    .background(Color.accentColor)
+                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
-            // Episode title or default text
-            VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(episodeTitle(for: episode))
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                // Episode title and progress info
+                VStack(alignment: .leading, spacing: .spacingXXS) {
+                    Text(episodeTitle(for: episode))
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    // Progress text if available
+                    if let progress, !progress.isCompleted {
+                        Text("\(Int((1 - progress.progress) * 100)) % left")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // Checkmark for completed episodes
+                if let progress, progress.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.green)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
 
-            Spacer()
-
-            // Show loading indicator when fetching mirrors for this episode
-            if isLoadingMirrors && mirrorActionEpisode?.id == episode.id {
-                ProgressView()
-                    .scaleEffect(0.8)
-            } else {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+            // Progress bar if episode has been partially watched
+            if let progress, !progress.isCompleted, progress.progress > 0 {
+                ProgressBarView(progress: progress.progress)
             }
         }
         .padding(.horizontal, .spacingS)
         .padding(.vertical, .spacingXS)
         .contentShape(Rectangle())
         .onTapGesture {
-            selectedVideoSource = nil
             selectedEpisode = episode
-        }
-        .onLongPressGesture {
-            fetchMirrors(for: episode)
         }
     }
 
 
     //#################################################################################
-    // MARK: - Mirror Fetching
+    // MARK: - Private Methods
     //#################################################################################
 
-    private func fetchMirrors(for episode: Episode) {
-        guard !isLoadingMirrors else { return }
+    private func loadWatchProgress() {
+        let allProgress = watchProgressService.getAllProgress(animeId: viewModel.aniListAnime.id)
+        var progressMap: [String: WatchProgress] = [:]
+        for progress in allProgress {
+            progressMap[progress.episodeId] = progress
+        }
+        watchProgressMap = progressMap
+    }
+}
 
-        mirrorActionEpisode = episode
-        isLoadingMirrors = true
 
-        Task {
-            do {
-                let playbackInfo = try await sourceManager.getVideoSources(sourceId: viewModel.sourceId,
-                                                                            episodeId: episode.id,
-                                                                            url: episode.url)
-                await MainActor.run {
-                    availableMirrors = playbackInfo.sources
-                    isLoadingMirrors = false
+//#################################################################################
+// MARK: - ProgressBarView
+//#################################################################################
 
-                    if availableMirrors.isEmpty {
-                        mirrorActionEpisode = nil
-                    } else {
-                        showingMirrorSheet = true
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    isLoadingMirrors = false
-                    mirrorActionEpisode = nil
-                    print("[EpisodeListView] Error fetching mirrors: \(error)")
-                }
+/// A simple progress bar view for displaying watch progress.
+private struct ProgressBarView: View {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let barHeight: CGFloat = 4
+    }
+
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    let progress: Double
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Background track
+                RoundedRectangle(cornerRadius: Constants.barHeight / 2)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: Constants.barHeight)
+
+                // Progress fill
+                RoundedRectangle(cornerRadius: Constants.barHeight / 2)
+                    .fill(Color.accentColor)
+                    .frame(width: geometry.size.width * progress, height: Constants.barHeight)
             }
         }
+        .frame(height: Constants.barHeight)
     }
 }

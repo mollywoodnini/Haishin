@@ -6,6 +6,8 @@
 //
 
 import AVFoundation
+import Combine
+import CoreMedia
 import Foundation
 
 /// ViewModel for managing video playback of anime episodes.
@@ -14,17 +16,26 @@ import Foundation
 final class VideoPlayerViewModel {
 
     //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let progressSaveInterval: TimeInterval = 5.0
+    }
+
+
+    //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
     /// The episode being played.
     let episode: Episode
 
+    /// The anime ID for progress tracking.
+    let animeId: Int
+
     /// The source ID to fetch streams from.
     let sourceId: String
-
-    /// An optional pre-selected video source to play directly.
-    private let preselectedSource: VideoSource?
 
     /// The current playback info with available streams.
     private(set) var playbackInfo: PlaybackInfo?
@@ -41,7 +52,23 @@ final class VideoPlayerViewModel {
     /// The last error that occurred.
     private(set) var error: Error?
 
+    /// Current playback progress (0.0 to 1.0).
+    private(set) var currentProgress: Double = 0
+
+    /// Current playback time in seconds.
+    private(set) var currentTime: TimeInterval = 0
+
+    /// Total duration in seconds.
+    private(set) var duration: TimeInterval = 0
+
     private let sourceManager: SourceManaging
+    private let watchProgressService: WatchProgressServiceProtocol
+    private var allSources: [VideoSource] = []
+    private var currentSourceIndex = 0
+    private var playerItemObserver: AnyCancellable?
+    private var playerItemFailedObserver: NSObjectProtocol?
+    private var timeObserver: Any?
+    private var lastSavedTime: TimeInterval = 0
 
 
     //#################################################################################
@@ -51,17 +78,20 @@ final class VideoPlayerViewModel {
     /// Creates a new video player view model.
     /// - Parameters:
     ///   - episode: The episode to play.
+    ///   - animeId: The anime ID for progress tracking.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
-    ///   - preselectedSource: An optional pre-selected video source to play directly.
+    ///   - watchProgressService: The service for persisting watch progress.
     init(episode: Episode,
+         animeId: Int,
          sourceId: String,
          sourceManager: SourceManaging,
-         preselectedSource: VideoSource? = nil) {
+         watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared) {
         self.episode = episode
+        self.animeId = animeId
         self.sourceId = sourceId
         self.sourceManager = sourceManager
-        self.preselectedSource = preselectedSource
+        self.watchProgressService = watchProgressService
     }
 
 
@@ -73,15 +103,16 @@ final class VideoPlayerViewModel {
     func loadAndPlay() async {
         isLoading = true
         error = nil
+        currentSourceIndex = 0
 
         print("[VideoPlayerViewModel] Loading streams for episode \(episode.number)")
 
-        // If a pre-selected source was provided, use it directly
-        if let preselectedSource {
-            print("[VideoPlayerViewModel] Using pre-selected source: \(preselectedSource.serverName)")
-            selectSource(preselectedSource)
-            isLoading = false
-            return
+        // Restore previous progress if available
+        if let savedProgress = watchProgressService.getProgress(animeId: animeId, episodeId: episode.id) {
+            currentTime = savedProgress.currentTime
+            duration = savedProgress.duration
+            currentProgress = savedProgress.progress
+            print("[VideoPlayerViewModel] Restored progress: \(Int(savedProgress.progress * 100))%")
         }
 
         do {
@@ -90,6 +121,7 @@ final class VideoPlayerViewModel {
                                                                 episodeId: episode.id,
                                                                 url: episode.url)
             playbackInfo = info
+            allSources = info.sources
 
             print("[VideoPlayerViewModel] Got \(info.sources.count) video source(s)")
 
@@ -107,36 +139,6 @@ final class VideoPlayerViewModel {
         }
     }
 
-    /// Selects a video source and starts playback.
-    /// - Parameter source: The video source to play.
-    func selectSource(_ source: VideoSource) {
-        selectedSource = source
-        print("[VideoPlayerViewModel] Selected source: \(source.serverName) - \(source.quality ?? "default")")
-
-        // Create AVPlayer with the source URL
-        var request = URLRequest(url: source.url)
-
-        // Add any required headers
-        if let headers = source.headers {
-            for (key, value) in headers {
-                request.addValue(value, forHTTPHeaderField: key)
-            }
-        }
-
-        let asset = AVURLAsset(url: source.url, options: source.headers.map { ["AVURLAssetHTTPHeaderFieldsKey": $0] })
-        let playerItem = AVPlayerItem(asset: asset)
-
-        if player == nil {
-            player = AVPlayer(playerItem: playerItem)
-        } else {
-            player?.replaceCurrentItem(with: playerItem)
-        }
-
-        // Start playback
-        player?.play()
-        print("[VideoPlayerViewModel] Playback started")
-    }
-
     /// Pauses playback.
     func pause() {
         player?.pause()
@@ -147,11 +149,164 @@ final class VideoPlayerViewModel {
         player?.play()
     }
 
-    /// Cleans up the player when done.
+    /// Cleans up the player and saves progress when done.
     func cleanup() {
+        saveProgress()
+        removeTimeObserver()
+        removePlayerItemObservers()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         player = nil
+    }
+
+
+    //#################################################################################
+    // MARK: - Private Methods
+    //#################################################################################
+
+    private func selectSource(_ source: VideoSource) {
+        selectedSource = source
+        print("[VideoPlayerViewModel] Selected source: \(source.serverName) - \(source.quality ?? "default")")
+
+        let asset = AVURLAsset(url: source.url,
+                               options: source.headers.map { ["AVURLAssetHTTPHeaderFieldsKey": $0] })
+        let playerItem = AVPlayerItem(asset: asset)
+
+        // Observe player item for failures
+        observePlayerItem(playerItem)
+
+        if player == nil {
+            player = AVPlayer(playerItem: playerItem)
+        } else {
+            player?.replaceCurrentItem(with: playerItem)
+        }
+
+        // Setup time observer for progress tracking
+        setupTimeObserver()
+
+        // Seek to saved position if we have one
+        if currentTime > 0 {
+            let seekTime = CMTime(seconds: currentTime, preferredTimescale: 600)
+            player?.seek(to: seekTime) { [weak self] _ in
+                self?.player?.play()
+                print("[VideoPlayerViewModel] Resumed playback at \(Int(self?.currentTime ?? 0))s")
+            }
+        } else {
+            player?.play()
+        }
+
+        print("[VideoPlayerViewModel] Playback started")
+    }
+
+    private func setupTimeObserver() {
+        removeTimeObserver()
+
+        guard let player else { return }
+
+        // Observe time every 0.5 seconds
+        let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            Task { @MainActor [weak self] in
+                self?.handleTimeUpdate(time)
+            }
+        }
+    }
+
+    private func removeTimeObserver() {
+        if let observer = timeObserver {
+            player?.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+    }
+
+    private func handleTimeUpdate(_ time: CMTime) {
+        guard let player,
+              let currentItem = player.currentItem else { return }
+
+        let currentSeconds = time.seconds
+        let durationSeconds = currentItem.duration.seconds
+
+        // Skip if duration is not valid yet
+        guard durationSeconds.isFinite && durationSeconds > 0 else { return }
+
+        currentTime = currentSeconds
+        duration = durationSeconds
+        currentProgress = min(currentSeconds / durationSeconds, 1.0)
+
+        // Save progress periodically (every N seconds)
+        if abs(currentSeconds - lastSavedTime) >= Constants.progressSaveInterval {
+            saveProgress()
+            lastSavedTime = currentSeconds
+        }
+    }
+
+    private func saveProgress() {
+        guard duration > 0 else { return }
+
+        let progress = WatchProgress(animeId: animeId,
+                                     episodeId: episode.id,
+                                     episodeNumber: episode.number,
+                                     currentTime: currentTime,
+                                     duration: duration,
+                                     lastUpdated: Date())
+
+        watchProgressService.saveProgress(progress)
+        print("[VideoPlayerViewModel] Saved progress: \(Int(currentProgress * 100))%")
+    }
+
+    private func observePlayerItem(_ playerItem: AVPlayerItem) {
+        removePlayerItemObservers()
+
+        // Observe status changes using Combine
+        playerItemObserver = playerItem.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                if status == .failed {
+                    self?.handlePlaybackFailure(playerItem.error)
+                }
+            }
+
+        // Observe failed to play to end notification
+        playerItemFailedObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime,
+            object: playerItem,
+            queue: .main
+        ) { [weak self] notification in
+            let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
+            guard let self else { return }
+            Task { @MainActor [weak self] in
+                self?.handlePlaybackFailure(error)
+            }
+        }
+    }
+
+    private func removePlayerItemObservers() {
+        playerItemObserver?.cancel()
+        playerItemObserver = nil
+
+        if let observer = playerItemFailedObserver {
+            NotificationCenter.default.removeObserver(observer)
+            playerItemFailedObserver = nil
+        }
+    }
+
+    private func handlePlaybackFailure(_ playbackError: Error?) {
+        print("[VideoPlayerViewModel] Playback failed: \(playbackError?.localizedDescription ?? "Unknown error")")
+        tryNextSource()
+    }
+
+    private func tryNextSource() {
+        currentSourceIndex += 1
+
+        guard currentSourceIndex < allSources.count else {
+            print("[VideoPlayerViewModel] All sources exhausted, no more fallbacks available")
+            error = VideoPlayerError.allSourcesFailed
+            return
+        }
+
+        let nextSource = allSources[currentSourceIndex]
+        print("[VideoPlayerViewModel] Trying fallback source \(currentSourceIndex + 1)/\(allSources.count): \(nextSource.serverName)")
+        selectSource(nextSource)
     }
 }
 
@@ -163,6 +318,7 @@ final class VideoPlayerViewModel {
 enum VideoPlayerError: LocalizedError {
     case noSourcesAvailable
     case streamLoadFailed
+    case allSourcesFailed
 
     var errorDescription: String? {
         switch self {
@@ -170,6 +326,8 @@ enum VideoPlayerError: LocalizedError {
             return "No video sources available for this episode."
         case .streamLoadFailed:
             return "Failed to load video stream."
+        case .allSourcesFailed:
+            return "All video sources failed to play. Please try a different source."
         }
     }
 }

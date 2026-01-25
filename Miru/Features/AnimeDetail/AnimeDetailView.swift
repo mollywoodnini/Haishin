@@ -78,7 +78,11 @@ struct AnimeDetailView: View {
                let sourceId = userPreferences.selectedSourceId,
                let sourceManager = sourceManager {
                 let _ = print("[AnimeDetailView] Navigation destination triggered. Creating EpisodeListView")
-                EpisodeListView(aniListAnime: anime, sourceId: sourceId, sourceManager: sourceManager)
+                
+                EpisodeListView(aniListAnime: anime,
+                                sourceId: sourceId,
+                                sourceManager: sourceManager,
+                                watchProgressService: WatchProgressService.shared)
             } else {
                 let _ = print("[AnimeDetailView] Navigation destination triggered but conditions not met:")
                 let _ = print("  anime: \(viewModel.anime != nil ? "exists" : "nil")")

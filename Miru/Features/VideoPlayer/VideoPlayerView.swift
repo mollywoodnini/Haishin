@@ -28,20 +28,20 @@ struct VideoPlayerView: View {
     /// Creates a new video player view.
     /// - Parameters:
     ///   - episode: The episode to play.
+    ///   - animeId: The anime ID for progress tracking.
     ///   - animeTitle: The title of the anime.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
-    ///   - preselectedSource: An optional pre-selected video source to play directly.
     init(episode: Episode,
+         animeId: Int,
          animeTitle: String,
          sourceId: String,
-         sourceManager: SourceManaging,
-         preselectedSource: VideoSource? = nil) {
+         sourceManager: SourceManaging) {
         self.animeTitle = animeTitle
         self._viewModel = State(initialValue: VideoPlayerViewModel(episode: episode,
+                                                                    animeId: animeId,
                                                                     sourceId: sourceId,
-                                                                    sourceManager: sourceManager,
-                                                                    preselectedSource: preselectedSource))
+                                                                    sourceManager: sourceManager))
     }
 
 
