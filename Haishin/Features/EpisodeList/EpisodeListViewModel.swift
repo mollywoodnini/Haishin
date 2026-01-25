@@ -157,6 +157,35 @@ final class EpisodeListViewModel {
             }
     }
 
+    /// Creates a new episodes view model for source search results.
+    /// - Parameters:
+    ///   - animePreview: The anime preview from source search.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - watchProgressService: The service for accessing watch progress.
+    ///   - downloadService: The service for managing downloads.
+    init(animePreview: AnimePreview,
+         sourceManager: SourceManaging,
+         watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared,
+         downloadService: DownloadServiceProtocol = DownloadService.shared) {
+        self.mode = .online
+        self.animeId = animePreview.id.hashValue
+        self.animeTitle = animePreview.title
+        self.animeCoverURL = animePreview.coverURL
+        self.aniListAnime = nil
+        self.downloadedAnime = nil
+        self.sourceId = animePreview.sourceId
+        self.sourceManager = sourceManager
+        self.watchProgressService = watchProgressService
+        self.subscriptionService = nil
+        self.downloadService = downloadService
+        self.userPreferences = nil
+        self.isSubscribed = false
+        self._animePreviewDetailsURL = animePreview.detailsURL
+    }
+
+    /// The details URL for direct source navigation (when initialized with AnimePreview).
+    private var _animePreviewDetailsURL: String?
+
 
     //#################################################################################
     // MARK: - Public Computed Properties
@@ -357,33 +386,42 @@ final class EpisodeListViewModel {
         }
 
         do {
-            // Generate search queries with fallbacks
-            let searchQueries = generateSearchQueries()
+            let detailsURL: String
+            
+            // If we have a direct details URL from AnimePreview, use it
+            if let directURL = _animePreviewDetailsURL {
+                detailsURL = directURL
+            } else {
+                // Generate search queries with fallbacks
+                let searchQueries = generateSearchQueries()
 
-            // Try each query until we find results
-            var searchResults: [AnimePreview] = []
+                // Try each query until we find results
+                var searchResults: [AnimePreview] = []
 
-            for query in searchQueries {
-                let results = try await sourceManager.search(sourceId: sourceId,
-                                                             query: query,
-                                                             page: 1)
+                for query in searchQueries {
+                    let results = try await sourceManager.search(sourceId: sourceId,
+                                                                 query: query,
+                                                                 page: 1)
 
-                if !results.isEmpty {
-                    searchResults = results
-                    break
+                    if !results.isEmpty {
+                        searchResults = results
+                        break
+                    }
                 }
-            }
 
-            // Check if we found any results
-            guard let firstResult = searchResults.first else {
-                error = EpisodesError.animeNotFound
-                isLoading = false
-                return
+                // Check if we found any results
+                guard let firstResult = searchResults.first else {
+                    error = EpisodesError.animeNotFound
+                    isLoading = false
+                    return
+                }
+                
+                detailsURL = firstResult.detailsURL
             }
 
             // Fetch full anime details with episodes
             let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
-                                                                url: firstResult.detailsURL)
+                                                                url: detailsURL)
             sourceAnime = anime
             loadWatchProgress()
             isLoading = false

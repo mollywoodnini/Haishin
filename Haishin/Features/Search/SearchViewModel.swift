@@ -73,6 +73,15 @@ final class SearchViewModel {
         await searchTask?.value
     }
 
+    /// Creates an EpisodeListViewModel for the given anime preview.
+    /// - Parameter animePreview: The anime preview to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the anime.
+    @MainActor
+    func makeEpisodeListViewModel(for animePreview: AnimePreview) -> EpisodeListViewModel {
+        EpisodeListViewModel(animePreview: animePreview,
+                             sourceManager: sourceManager)
+    }
+
 
     //#################################################################################
     // MARK: - Private Methods

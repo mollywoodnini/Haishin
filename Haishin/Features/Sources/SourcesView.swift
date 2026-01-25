@@ -150,7 +150,7 @@ struct SourcesView: View {
             } else {
                 ForEach(viewModel.installedSources) { source in
                     InstalledSourceRow(source: source) {
-                        viewModel.toggleSource(source)
+                        viewModel.selectSource(source)
                     } onDelete: {
                         viewModel.uninstallSource(source)
                     }

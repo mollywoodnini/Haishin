@@ -10,6 +10,19 @@ import Kingfisher
 
 
 //#################################################################################
+// MARK: - SizingMode
+//#################################################################################
+
+/// Defines how a StandardAnimeCard should size itself.
+enum StandardAnimeCardSizingMode {
+    /// Fixed width card, suitable for horizontal scroll sections.
+    case fixed
+    /// Flexible width card that fills available space, suitable for grids.
+    case flexible
+}
+
+
+//#################################################################################
 // MARK: - StandardAnimeCard
 //#################################################################################
 
@@ -23,6 +36,7 @@ struct StandardAnimeCard: View {
     private struct Constants {
         static let cardWidth: CGFloat = 140
         static let imageHeight: CGFloat = 200
+        static let imageAspectRatio: CGFloat = 2 / 3
         static let textHeight: CGFloat = 60
     }
 
@@ -31,17 +45,39 @@ struct StandardAnimeCard: View {
     // MARK: - Properties
     //#################################################################################
 
-    private let item: RecommendingItem
+    private let title: String
+    private let coverURL: URL?
+    private let totalEpisodes: Int?
+    private let subtitle: String?
+    private let sizingMode: StandardAnimeCardSizingMode
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new standard anime card.
-    /// - Parameter item: The recommending item to display.
-    init(item: RecommendingItem) {
-        self.item = item
+    /// Creates a new standard anime card from a recommending item.
+    /// - Parameters:
+    ///   - item: The recommending item to display.
+    ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
+    init(item: RecommendingItem, sizingMode: StandardAnimeCardSizingMode = .fixed) {
+        self.title = item.title
+        self.coverURL = item.coverURL
+        self.totalEpisodes = item.totalEpisodes
+        self.subtitle = item.subtitle
+        self.sizingMode = sizingMode
+    }
+
+    /// Creates a new standard anime card from an anime preview.
+    /// - Parameters:
+    ///   - animePreview: The anime preview to display.
+    ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
+    init(animePreview: AnimePreview, sizingMode: StandardAnimeCardSizingMode = .fixed) {
+        self.title = animePreview.title
+        self.coverURL = animePreview.coverURL
+        self.totalEpisodes = nil
+        self.subtitle = nil
+        self.sizingMode = sizingMode
     }
 
 
@@ -51,57 +87,111 @@ struct StandardAnimeCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
-            // Image with fixed height at top
-            ZStack(alignment: .bottomLeading) {
-                KFImage(item.coverURL)
-                    .resizable()
-                    .placeholder {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.secondary)
-                            }
-                    }
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: Constants.cardWidth, height: Constants.imageHeight)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-
-                // Episode count badge if available
-                if let totalEpisodes = item.totalEpisodes {
-                    Text("\(totalEpisodes) ep")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, .spacingXS)
-                        .padding(.vertical, 3)
-                        .background(.black.opacity(0.7))
-                        .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-                        .padding(.spacingXXS)
-                }
-            }
-
-            // Text content with spacer to push to bottom
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-                    .frame(width: Constants.cardWidth, alignment: .leading)
-
-                if let subtitle = item.subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: Constants.cardWidth, alignment: .leading)
-                }
-
-                Spacer(minLength: 0)
-            }
-            .frame(height: Constants.textHeight)
+            imageView
+            textView
         }
-        .frame(width: Constants.cardWidth)
+        .modifier(CardWidthModifier(sizingMode: sizingMode, width: Constants.cardWidth))
+    }
+
+
+    //#################################################################################
+    // MARK: - Subviews
+    //#################################################################################
+
+    private var imageView: some View {
+        ZStack(alignment: .bottomLeading) {
+            KFImage(coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .aspectRatio(contentMode: .fill)
+                .modifier(ImageFrameModifier(sizingMode: sizingMode,
+                                             fixedWidth: Constants.cardWidth,
+                                             fixedHeight: Constants.imageHeight,
+                                             aspectRatio: Constants.imageAspectRatio))
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+
+            if let totalEpisodes {
+                Text("\(totalEpisodes) ep")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, .spacingXS)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.7))
+                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+                    .padding(.spacingXXS)
+            }
+        }
+    }
+
+    private var textView: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: Constants.textHeight)
+    }
+}
+
+
+//#################################################################################
+// MARK: - CardWidthModifier
+//#################################################################################
+
+/// A view modifier that applies width constraints based on sizing mode.
+private struct CardWidthModifier: ViewModifier {
+    let sizingMode: StandardAnimeCardSizingMode
+    let width: CGFloat
+
+    func body(content: Content) -> some View {
+        switch sizingMode {
+        case .fixed:
+            content.frame(width: width)
+        case .flexible:
+            content.frame(maxWidth: .infinity)
+        }
+    }
+}
+
+
+//#################################################################################
+// MARK: - ImageFrameModifier
+//#################################################################################
+
+/// A view modifier that applies image frame constraints based on sizing mode.
+private struct ImageFrameModifier: ViewModifier {
+    let sizingMode: StandardAnimeCardSizingMode
+    let fixedWidth: CGFloat
+    let fixedHeight: CGFloat
+    let aspectRatio: CGFloat
+
+    func body(content: Content) -> some View {
+        switch sizingMode {
+        case .fixed:
+            content.frame(width: fixedWidth, height: fixedHeight)
+        case .flexible:
+            content.aspectRatio(aspectRatio, contentMode: .fit)
+        }
     }
 }

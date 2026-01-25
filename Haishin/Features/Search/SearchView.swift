@@ -5,7 +5,6 @@
 //  Created by Miru on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 /// The search view for finding anime across sources.
@@ -68,7 +67,7 @@ struct SearchView: View {
                       spacing: .spacingS) {
                 ForEach(viewModel.results) { anime in
                     NavigationLink(value: anime) {
-                        SearchResultCard(anime: anime)
+                        StandardAnimeCard(animePreview: anime, sizingMode: .flexible)
                     }
                     .buttonStyle(.plain)
                 }
@@ -80,59 +79,8 @@ struct SearchView: View {
                 ProgressView()
             }
         }
-//        .navigationDestination(for: AnimePreview.self) { anime in
-//            AnimeDetailView(anime: anime, sourceManager: sourceManager)
-//        }
-    }
-}
-
-
-//#################################################################################
-// MARK: - SearchResultCard
-//#################################################################################
-
-/// A card displaying a search result.
-private struct SearchResultCard: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let cardHeight: CGFloat = 200
-    }
-
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    let anime: AnimePreview
-
-
-    //#################################################################################
-    // MARK: - Body
-    //#################################################################################
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: .spacingXXS) {
-            KFImage(anime.coverURL)
-                .resizable()
-                .placeholder {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .aspectRatio(contentMode: .fill)
-                .frame(height: Constants.cardHeight)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-
-            Text(anime.title)
-                .font(.caption)
-                .lineLimit(2)
+        .navigationDestination(for: AnimePreview.self) { anime in
+            EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(for: anime))
         }
     }
 }
