@@ -98,14 +98,26 @@ struct VideoPlayerView: View {
     //#################################################################################
 
     private var loadingView: some View {
-        VStack(spacing: .spacingM) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.white)
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: .spacingM) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
 
-            Text("Loading Episode \(viewModel.episode.number)...")
-                .font(.headline)
-                .foregroundStyle(.white)
+                Text("Loading Episode \(viewModel.episode.number)...")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.spacingM)
+            }
         }
     }
 
