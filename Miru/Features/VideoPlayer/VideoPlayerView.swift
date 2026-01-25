@@ -157,14 +157,15 @@ struct VideoPlayerView: View {
                     // Episode info
                     VStack(alignment: .trailing) {
                         Text(animeTitle)
-                            .font(.subheadline)
+                            .font(.headline)
                             .foregroundStyle(.white.opacity(0.7))
 
                         Text("Episode \(viewModel.episode.number)")
-                            .font(.headline)
+                            .font(.subheadline)
                             .foregroundStyle(.white)
 
-                        if let title = viewModel.episode.title {
+                        if let title = viewModel.episode.title,
+                           title != "\(viewModel.episode.number)" {
                             Text(title)
                                 .font(.caption)
                                 .foregroundStyle(.white.opacity(0.7))
