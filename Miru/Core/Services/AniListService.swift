@@ -144,7 +144,7 @@ final class AniListService: AniListServicing {
         let variables: [String: Any] = [
             "page": page,
             "perPage": Constants.pageSize,
-            "isAdult": showNSFW ? nil : false
+            "isAdult": showNSFW
         ]
 
         let response: MediaPageResponse = try await executeQuery(query, variables: variables)
