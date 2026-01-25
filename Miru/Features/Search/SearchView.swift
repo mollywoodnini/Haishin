@@ -81,9 +81,9 @@ struct SearchView: View {
                 ProgressView()
             }
         }
-        .navigationDestination(for: AnimePreview.self) { anime in
-            AnimeDetailView(anime: anime, sourceManager: sourceManager)
-        }
+//        .navigationDestination(for: AnimePreview.self) { anime in
+//            AnimeDetailView(anime: anime, sourceManager: sourceManager)
+//        }
     }
 }
 

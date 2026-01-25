@@ -1,5 +1,5 @@
 //
-//  EpisodesView.swift
+//  EpisodeListView.swift
 //  Miru
 //
 //  Created by Miru on 24.01.26.
@@ -9,21 +9,22 @@ import SwiftUI
 
 
 //#################################################################################
-// MARK: - EpisodesView
+// MARK: - EpisodeListView
 //#################################################################################
 
 /// View for displaying episodes from a JavaScript source.
-struct EpisodesView: View {
+struct EpisodeListView: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    @State private var viewModel: EpisodesViewModel
+    @State private var viewModel: EpisodeListViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingSourcePicker = false
     @State private var userPreferences = UserPreferences()
     @State private var expandedRanges: Set<String> = []
+    @State private var selectedEpisode: Episode?
 
     private let sourceManager: SourceManager
 
@@ -38,12 +39,12 @@ struct EpisodesView: View {
     ///   - sourceId: The selected source ID.
     ///   - sourceManager: The shared source manager.
     init(aniListAnime: AniListAnimeDetail, sourceId: String, sourceManager: SourceManager) {
-        print("[EpisodesView] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
+        print("[EpisodeListView] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
         self.sourceManager = sourceManager
-        self._viewModel = State(initialValue: EpisodesViewModel(aniListAnime: aniListAnime,
+        self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
                                                                 sourceId: sourceId,
                                                                 sourceManager: sourceManager))
-        print("[EpisodesView] init complete. ViewModel isLoading: \(self._viewModel.wrappedValue.isLoading)")
+        print("[EpisodeListView] init complete. ViewModel isLoading: \(self._viewModel.wrappedValue.isLoading)")
     }
 
 
@@ -52,7 +53,7 @@ struct EpisodesView: View {
     //#################################################################################
 
     var body: some View {
-        let _ = print("[EpisodesView] body evaluated. isLoading: \(viewModel.isLoading), sourceAnime: \(viewModel.sourceAnime != nil ? "exists" : "nil"), error: \(viewModel.error != nil ? "exists" : "nil")")
+        let _ = print("[EpisodeListView] body evaluated. isLoading: \(viewModel.isLoading), sourceAnime: \(viewModel.sourceAnime != nil ? "exists" : "nil"), error: \(viewModel.error != nil ? "exists" : "nil")")
         
         ZStack {
             if viewModel.isLoading && viewModel.sourceAnime == nil {
@@ -86,8 +87,13 @@ struct EpisodesView: View {
                              sourceManager: sourceManager)
         }
         .task {
-            print("[EpisodesView] .task modifier fired")
+            print("[EpisodeListView] .task modifier fired")
             await viewModel.loadEpisodes()
+        }
+        .fullScreenCover(item: $selectedEpisode) { episode in
+            VideoPlayerView(episode: episode,
+                            sourceId: viewModel.sourceId,
+                            sourceManager: sourceManager)
         }
     }
 
@@ -112,10 +118,10 @@ struct EpisodesView: View {
     //#################################################################################
 
     private func errorView(error: Error) -> some View {
-        let _ = print("[EpisodesView] Showing error: \(error)")
-        let _ = print("[EpisodesView] Error type: \(type(of: error))")
+        let _ = print("[EpisodeListView] Showing error: \(error)")
+        let _ = print("[EpisodeListView] Error type: \(type(of: error))")
         let isSourceNotFound = (error as? EpisodesError) == .sourceNotFoundHint
-        let _ = print("[EpisodesView] Is source not found error: \(isSourceNotFound)")
+        let _ = print("[EpisodeListView] Is source not found error: \(isSourceNotFound)")
         
         return VStack(spacing: .spacingM) {
             Image(systemName: "exclamationmark.triangle")
@@ -134,10 +140,10 @@ struct EpisodesView: View {
             // Special handling for source not found error
             if let episodesError = error as? EpisodesError, episodesError == .sourceNotFoundHint {
                 Button("Select Different Source") {
-                    print("[EpisodesView] 'Select Different Source' button tapped")
+                    print("[EpisodeListView] 'Select Different Source' button tapped")
                     // Clear the invalid source selection
                     userPreferences.selectedSourceId = nil
-                    print("[EpisodesView] Cleared selectedSourceId, showing picker")
+                    print("[EpisodeListView] Cleared selectedSourceId, showing picker")
                     showingSourcePicker = true
                 }
                 .buttonStyle(.borderedProminent)
@@ -323,6 +329,14 @@ struct EpisodesView: View {
     //#################################################################################
     // MARK: - Episode Row View
     //#################################################################################
+    
+    private func episodeTitle(for episode: Episode) -> String {
+        guard let title = episode.title, title != "\(episode.number)" else {
+            return "Episode \(episode.number)"
+        }
+        
+        return title
+    }
 
     private func episodeRowView(episode: Episode) -> some View {
         HStack(spacing: .spacingS) {
@@ -336,7 +350,7 @@ struct EpisodesView: View {
 
             // Episode title or default text
             VStack(alignment: .leading, spacing: .spacingXXS) {
-                Text(episode.title ?? "Episode \(episode.number)")
+                Text(episodeTitle(for: episode))
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -352,8 +366,7 @@ struct EpisodesView: View {
         .padding(.vertical, .spacingXS)
         .contentShape(Rectangle())
         .onTapGesture {
-            // TODO: Navigate to video player
-            print("Tapped episode: \(episode.number)")
+            selectedEpisode = episode
         }
     }
 }

@@ -91,7 +91,7 @@ struct AnimeListView: View {
             LazyVStack(spacing: .spacingS) {
                 ForEach(viewModel.items) { item in
                     NavigationLink {
-                        AniListAnimeDetailView(item: item)
+                        AnimeDetailView(item: item)
                     } label: {
                         AnimeListRow(item: item)
                     }

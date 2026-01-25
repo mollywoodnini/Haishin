@@ -1,5 +1,5 @@
 //
-//  AniListAnimeDetailView.swift
+//  AnimeDetailView.swift
 //  Miru
 //
 //  Created by Miru on 24.01.26.
@@ -9,18 +9,17 @@ import SwiftUI
 
 
 //#################################################################################
-// MARK: - AniListAnimeDetailView
+// MARK: - AnimeDetailView
 //#################################################################################
 
 /// A detailed view for anime fetched from AniList.
-/// Inspired by NineAnimator's AnimeInformationTableViewController design.
-struct AniListAnimeDetailView: View {
+struct AnimeDetailView: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    @State private var viewModel: AniListAnimeDetailViewModel
+    @State private var viewModel: AnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.sourceManager) private var sourceManager
     @State private var isSynopsisTruncated = false
@@ -36,7 +35,7 @@ struct AniListAnimeDetailView: View {
     /// Creates a new detail view.
     /// - Parameter item: The recommending item to show details for.
     init(item: RecommendingItem) {
-        self._viewModel = State(initialValue: AniListAnimeDetailViewModel(item: item))
+        self._viewModel = State(initialValue: AnimeDetailViewModel(item: item))
     }
 
     /// Creates a new detail view with explicit parameters.
@@ -45,7 +44,7 @@ struct AniListAnimeDetailView: View {
     ///   - title: The preview title.
     ///   - coverURL: The preview cover URL.
     init(animeId: Int, title: String, coverURL: URL?) {
-        self._viewModel = State(initialValue: AniListAnimeDetailViewModel(
+        self._viewModel = State(initialValue: AnimeDetailViewModel(
             animeId: animeId,
             previewTitle: title,
             previewCoverURL: coverURL
@@ -78,10 +77,10 @@ struct AniListAnimeDetailView: View {
             if let anime = viewModel.anime, 
                let sourceId = userPreferences.selectedSourceId,
                let sourceManager = sourceManager {
-                let _ = print("[AniListAnimeDetailView] Navigation destination triggered. Creating EpisodesView")
-                EpisodesView(aniListAnime: anime, sourceId: sourceId, sourceManager: sourceManager)
+                let _ = print("[AnimeDetailView] Navigation destination triggered. Creating EpisodeListView")
+                EpisodeListView(aniListAnime: anime, sourceId: sourceId, sourceManager: sourceManager)
             } else {
-                let _ = print("[AniListAnimeDetailView] Navigation destination triggered but conditions not met:")
+                let _ = print("[AnimeDetailView] Navigation destination triggered but conditions not met:")
                 let _ = print("  anime: \(viewModel.anime != nil ? "exists" : "nil")")
                 let _ = print("  sourceId: \(userPreferences.selectedSourceId ?? "nil")")
                 let _ = print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
@@ -543,7 +542,7 @@ struct AniListAnimeDetailView: View {
                 LazyHStack(spacing: .spacingS) {
                     ForEach(relations) { relation in
                         NavigationLink {
-                            AniListAnimeDetailView(
+                            AnimeDetailView(
                                 animeId: relation.id,
                                 title: relation.title,
                                 coverURL: relation.coverURL
@@ -573,7 +572,7 @@ struct AniListAnimeDetailView: View {
                 LazyHStack(spacing: .spacingS) {
                     ForEach(recommendations) { rec in
                         NavigationLink {
-                            AniListAnimeDetailView(
+                            AnimeDetailView(
                                 animeId: rec.id,
                                 title: rec.title,
                                 coverURL: rec.coverURL
@@ -664,7 +663,7 @@ struct AniListAnimeDetailView: View {
 
     private var viewEpisodesButton: some View {
         Button {
-            print("[AniListAnimeDetailView] VIEW EPISODES button tapped")
+            print("[AnimeDetailView] VIEW EPISODES button tapped")
             print("  selectedSourceId: \(userPreferences.selectedSourceId ?? "nil")")
             print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
             
@@ -672,21 +671,21 @@ struct AniListAnimeDetailView: View {
             if let selectedId = userPreferences.selectedSourceId,
                let sourceManager = sourceManager {
                 let sourceExists = sourceManager.installedSources.contains(where: { $0.id == selectedId })
-                print("[AniListAnimeDetailView] Source '\(selectedId)' exists: \(sourceExists)")
+                print("[AnimeDetailView] Source '\(selectedId)' exists: \(sourceExists)")
                 
                 if sourceExists {
                     // Source exists, navigate directly
-                    print("[AniListAnimeDetailView] Source valid, setting navigateToEpisodes = true")
+                    print("[AnimeDetailView] Source valid, setting navigateToEpisodes = true")
                     navigateToEpisodes = true
                 } else {
                     // Source doesn't exist, clear it and show picker
-                    print("[AniListAnimeDetailView] Source invalid, clearing and showing picker")
+                    print("[AnimeDetailView] Source invalid, clearing and showing picker")
                     userPreferences.selectedSourceId = nil
                     showingSourcePicker = true
                 }
             } else {
                 // No source selected, show picker
-                print("[AniListAnimeDetailView] No source selected, showing picker")
+                print("[AnimeDetailView] No source selected, showing picker")
                 showingSourcePicker = true
             }
         } label: {
@@ -699,11 +698,11 @@ struct AniListAnimeDetailView: View {
                 SourcePickerView(animeTitle: viewModel.displayTitle,
                                  selectedSourceId: $userPreferences.selectedSourceId,
                                  onSourceSelected: {
-                                     print("[AniListAnimeDetailView] Source selected from picker, dismissing sheet")
+                                     print("[AnimeDetailView] Source selected from picker, dismissing sheet")
                                      showingSourcePicker = false
                                      // Navigate to episodes view after sheet dismisses
                                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                         print("[AniListAnimeDetailView] Setting navigateToEpisodes = true after delay")
+                                         print("[AnimeDetailView] Setting navigateToEpisodes = true after delay")
                                          navigateToEpisodes = true
                                      }
                                  },
@@ -720,7 +719,7 @@ struct AniListAnimeDetailView: View {
 
 #Preview {
     NavigationStack {
-        AniListAnimeDetailView(
+        AnimeDetailView(
             item: RecommendingItem(
                 id: "1",
                 title: "Attack on Titan",

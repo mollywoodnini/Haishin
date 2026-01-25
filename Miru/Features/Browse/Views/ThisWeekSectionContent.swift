@@ -42,7 +42,7 @@ struct ThisWeekSectionContent: View {
             LazyHStack(spacing: .spacingS) {
                 ForEach(items) { item in
                     NavigationLink {
-                        AniListAnimeDetailView(item: item)
+                        AnimeDetailView(item: item)
                     } label: {
                         ThisWeekCard(item: item)
                     }

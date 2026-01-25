@@ -1,5 +1,5 @@
 //
-//  EpisodesViewModel.swift
+//  EpisodeListViewModel.swift
 //  Miru
 //
 //  Created by Miru on 24.01.26.
@@ -10,7 +10,7 @@ import Foundation
 /// ViewModel for managing episode fetching from JavaScript sources.
 @Observable
 @MainActor
-final class EpisodesViewModel {
+final class EpisodeListViewModel {
 
     //#################################################################################
     // MARK: - Properties
@@ -46,11 +46,11 @@ final class EpisodesViewModel {
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
          sourceManager: SourceManaging) {
-        print("[EpisodesViewModel] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
+        print("[EpisodeListViewModel] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
         self.aniListAnime = aniListAnime
         self.sourceId = sourceId
         self.sourceManager = sourceManager
-        print("[EpisodesViewModel] init complete. SourceManager has \(sourceManager.installedSources.count) sources")
+        print("[EpisodeListViewModel] init complete. SourceManager has \(sourceManager.installedSources.count) sources")
     }
 
     /// Convenience initializer with default source manager.
@@ -73,16 +73,16 @@ final class EpisodesViewModel {
         isLoading = true
         error = nil
         
-        print("[EpisodesViewModel] Loading episodes for '\(aniListAnime.title)' from source '\(sourceId)'")
-        print("[EpisodesViewModel] SourceManager installed sources: \(sourceManager.installedSources.count)")
+        print("[EpisodeListViewModel] Loading episodes for '\(aniListAnime.title)' from source '\(sourceId)'")
+        print("[EpisodeListViewModel] SourceManager installed sources: \(sourceManager.installedSources.count)")
         
         // Log all installed source IDs for debugging
         let installedIds = sourceManager.installedSources.map { $0.id }.joined(separator: ", ")
-        print("[EpisodesViewModel] Installed source IDs: [\(installedIds)]")
+        print("[EpisodeListViewModel] Installed source IDs: [\(installedIds)]")
         
         // Validate that the selected source exists
         guard sourceManager.installedSources.contains(where: { $0.id == sourceId }) else {
-            print("[EpisodesViewModel] ERROR: Selected source '\(sourceId)' not found in installed sources")
+            print("[EpisodeListViewModel] ERROR: Selected source '\(sourceId)' not found in installed sources")
             error = EpisodesError.sourceNotFoundHint
             isLoading = false
             return
@@ -91,18 +91,18 @@ final class EpisodesViewModel {
         do {
             // Generate search queries with fallbacks
             let searchQueries = generateSearchQueries()
-            print("[EpisodesViewModel] Generated \(searchQueries.count) search queries: \(searchQueries)")
+            print("[EpisodeListViewModel] Generated \(searchQueries.count) search queries: \(searchQueries)")
             
             // Try each query until we find results
             var searchResults: [AnimePreview] = []
             var successfulQuery: String?
             
             for query in searchQueries {
-                print("[EpisodesViewModel] Trying search query: '\(query)'")
+                print("[EpisodeListViewModel] Trying search query: '\(query)'")
                 let results = try await sourceManager.search(sourceId: sourceId,
                                                              query: query,
                                                              page: 1)
-                print("[EpisodesViewModel] Search for '\(query)' returned \(results.count) results")
+                print("[EpisodeListViewModel] Search for '\(query)' returned \(results.count) results")
                 
                 if !results.isEmpty {
                     searchResults = results
@@ -113,24 +113,24 @@ final class EpisodesViewModel {
 
             // Check if we found any results
             guard let firstResult = searchResults.first else {
-                print("[EpisodesViewModel] No search results found after trying all queries")
+                print("[EpisodeListViewModel] No search results found after trying all queries")
                 error = EpisodesError.animeNotFound
                 isLoading = false
                 return
             }
             
-            print("[EpisodesViewModel] Found match with query '\(successfulQuery ?? "unknown")'")
-            print("[EpisodesViewModel] Using first result: '\(firstResult.title)'")
+            print("[EpisodeListViewModel] Found match with query '\(successfulQuery ?? "unknown")'")
+            print("[EpisodeListViewModel] Using first result: '\(firstResult.title)'")
 
             // Fetch full anime details with episodes
-            print("[EpisodesViewModel] Fetching anime details...")
+            print("[EpisodeListViewModel] Fetching anime details...")
             let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
                                                                 url: firstResult.detailsURL)
-            print("[EpisodesViewModel] Got anime with \(anime.episodes.count) episodes")
+            print("[EpisodeListViewModel] Got anime with \(anime.episodes.count) episodes")
             sourceAnime = anime
             isLoading = false
         } catch {
-            print("[EpisodesViewModel] Error loading episodes: \(error)")
+            print("[EpisodeListViewModel] Error loading episodes: \(error)")
             self.error = error
             isLoading = false
         }

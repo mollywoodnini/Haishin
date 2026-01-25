@@ -1,5 +1,5 @@
 //
-//  AniListAnimeDetailViewModel.swift
+//  AnimeDetailViewModel.swift
 //  Miru
 //
 //  Created by Miru on 24.01.26.
@@ -9,13 +9,13 @@ import Foundation
 
 
 //#################################################################################
-// MARK: - AniListAnimeDetailViewModel
+// MARK: - AnimeDetailViewModel
 //#################################################################################
 
 /// ViewModel for displaying detailed anime information from AniList.
 @Observable
 @MainActor
-final class AniListAnimeDetailViewModel {
+final class AnimeDetailViewModel {
 
     //#################################################################################
     // MARK: - Properties
@@ -115,7 +115,7 @@ final class AniListAnimeDetailViewModel {
             anime = try await aniListService.fetchAnimeDetails(id: animeId)
         } catch {
             self.error = error
-            print("[AniListAnimeDetailViewModel] Failed to load details: \(error)")
+            print("[AnimeDetailViewModel] Failed to load details: \(error)")
         }
 
         isLoading = false
@@ -134,7 +134,7 @@ final class AniListAnimeDetailViewModel {
 // MARK: - Computed Properties
 //#################################################################################
 
-extension AniListAnimeDetailViewModel {
+extension AnimeDetailViewModel {
 
     /// The display title (loaded or preview).
     var displayTitle: String {
