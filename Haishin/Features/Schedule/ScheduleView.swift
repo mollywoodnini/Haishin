@@ -5,6 +5,7 @@
 //  Created by Tan Nghia La on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -163,21 +164,20 @@ private struct ScheduleAnimeRow: View {
         HStack(spacing: .spacingS) {
             // Cover image with episode badge
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: item.coverURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .frame(width: Constants.imageWidth, height: Constants.imageHeight)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+                KFImage(item.coverURL)
+                    .resizable()
+                    .placeholder {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Constants.imageWidth, height: Constants.imageHeight)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
                 // Episode badge
                 if let caption = item.caption {

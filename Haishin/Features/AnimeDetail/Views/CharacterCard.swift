@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -39,20 +40,19 @@ struct CharacterCard: View {
 
     var body: some View {
         VStack(spacing: .spacingXXS) {
-            AsyncImage(url: character.imageURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(width: 80, height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(character.imageURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 80, height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(spacing: 2) {
                 Text(character.name)

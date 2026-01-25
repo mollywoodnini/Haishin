@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -191,13 +192,12 @@ struct AnimeDetailView: View {
             .overlay {
                 Group {
                     if let bannerURL = viewModel.anime?.bannerURL {
-                        AsyncImage(url: bannerURL) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            coverAsBackground
-                        }
+                        KFImage(bannerURL)
+                            .resizable()
+                            .placeholder {
+                                coverAsBackground
+                            }
+                            .aspectRatio(contentMode: .fill)
                     } else {
                         coverAsBackground
                     }
@@ -208,45 +208,30 @@ struct AnimeDetailView: View {
     }
 
     private var coverAsBackground: some View {
-        AsyncImage(url: viewModel.displayCoverURL) { image in
-            image
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .blur(radius: 20)
-        } placeholder: {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.2))
-        }
+        KFImage(viewModel.displayCoverURL)
+            .resizable()
+            .placeholder {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.2))
+            }
+            .aspectRatio(contentMode: .fill)
+            .blur(radius: 20)
     }
 
     private var coverImage: some View {
         Color.clear
             .frame(width: 120, height: 170)
             .overlay {
-                AsyncImage(url: viewModel.displayCoverURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.secondary)
-                            }
-                    case .empty:
+                KFImage(viewModel.displayCoverURL)
+                    .resizable()
+                    .placeholder {
                         Rectangle()
                             .fill(Color.secondary.opacity(0.2))
                             .overlay {
                                 ProgressView()
                             }
-                    @unknown default:
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
                     }
-                }
+                    .aspectRatio(contentMode: .fill)
             }
             .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
             .shadow(radius: 8)
@@ -637,14 +622,13 @@ struct AnimeDetailView: View {
                         Link(destination: link.url) {
                             HStack(spacing: .spacingXS) {
                                 if let iconURL = link.icon {
-                                    AsyncImage(url: iconURL) { image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        Image(systemName: "play.rectangle.fill")
-                                    }
-                                    .frame(width: 20, height: 20)
+                                    KFImage(iconURL)
+                                        .resizable()
+                                        .placeholder {
+                                            Image(systemName: "play.rectangle.fill")
+                                        }
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 20, height: 20)
                                 } else {
                                     Image(systemName: "play.rectangle.fill")
                                 }

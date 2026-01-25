@@ -5,6 +5,7 @@
 //  Created by Miru on 25.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 /// A view for selecting a source to watch anime from.
@@ -111,16 +112,15 @@ struct SourcePickerView: View {
                         onSourceSelected()
                     } label: {
                         HStack(spacing: .spacingS) {
-                            AsyncImage(url: source.info.iconURL) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                Image(systemName: "globe")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+                            KFImage(source.info.iconURL)
+                                .resizable()
+                                .placeholder {
+                                    Image(systemName: "globe")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 40, height: 40)
+                                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
                             
                             VStack(alignment: .leading, spacing: .spacingXXS) {
                                 Text(source.info.name)

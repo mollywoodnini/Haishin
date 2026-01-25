@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 /// The search view for finding anime across sources.
@@ -115,20 +116,19 @@ private struct SearchResultCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
-            AsyncImage(url: anime.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(height: Constants.cardHeight)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            KFImage(anime.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(height: Constants.cardHeight)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
             Text(anime.title)
                 .font(.caption)

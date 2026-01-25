@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Kingfisher
 
 
 //#################################################################################
@@ -265,16 +266,15 @@ private struct RecentAnimeRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            AsyncImage(url: anime.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-            }
-            .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(anime.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(alignment: .leading, spacing: .spacingXXS) {
                 Text(anime.title)
@@ -372,16 +372,15 @@ private struct SubscribedAnimeRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            AsyncImage(url: anime.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-            }
-            .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(anime.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(alignment: .leading, spacing: .spacingXXS) {
                 Text(anime.title)

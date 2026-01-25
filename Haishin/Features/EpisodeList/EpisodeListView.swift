@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -267,16 +268,15 @@ struct EpisodeListView: View {
 
     private func animeHeaderView(anime: Anime) -> some View {
         HStack(alignment: .top, spacing: .spacingM) {
-            AsyncImage(url: anime.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-            }
-            .frame(width: 80, height: 120)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+            KFImage(anime.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 80, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
             VStack(alignment: .leading, spacing: .spacingXS) {
                 Text(anime.title)

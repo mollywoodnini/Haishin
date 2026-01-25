@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -39,21 +40,20 @@ struct RecommendationCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
-            AsyncImage(url: recommendation.coverURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-            .frame(width: 100, height: 140)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(recommendation.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 100, height: 140)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             Text(recommendation.title)
                 .font(.caption)

@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -154,28 +155,27 @@ private struct AnimeListRow: View {
         HStack(spacing: .spacingS) {
             // Cover image with badge - flush to edges
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: item.coverURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .frame(width: Constants.imageWidth, height: Constants.rowHeight)
-                .clipped()
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: .cornerRadiusM,
-                        bottomLeadingRadius: .cornerRadiusM,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 0
+                KFImage(item.coverURL)
+                    .resizable()
+                    .placeholder {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Constants.imageWidth, height: Constants.rowHeight)
+                    .clipped()
+                    .clipShape(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: .cornerRadiusM,
+                            bottomLeadingRadius: .cornerRadiusM,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 0
+                        )
                     )
-                )
 
                 // Episode badge
                 if let caption = item.caption {

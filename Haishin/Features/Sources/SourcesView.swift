@@ -5,6 +5,7 @@
 //  Created by Miru on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -202,16 +203,15 @@ private struct InstalledSourceRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            AsyncImage(url: source.info.iconURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                Image(systemName: "globe")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(source.info.iconURL)
+                .resizable()
+                .placeholder {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.secondary)
+                }
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(alignment: .leading, spacing: .spacingXXS) {
                 Text(source.info.name)
@@ -267,16 +267,15 @@ private struct RepositorySourceRow: View {
 
     var body: some View {
         HStack(spacing: .spacingS) {
-            AsyncImage(url: source.iconURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                Image(systemName: "globe")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+            KFImage(source.iconURL)
+                .resizable()
+                .placeholder {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.secondary)
+                }
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
 
             VStack(alignment: .leading, spacing: .spacingXXS) {
                 HStack {
