@@ -23,6 +23,9 @@ final class VideoPlayerViewModel {
     /// The source ID to fetch streams from.
     let sourceId: String
 
+    /// An optional pre-selected video source to play directly.
+    private let preselectedSource: VideoSource?
+
     /// The current playback info with available streams.
     private(set) var playbackInfo: PlaybackInfo?
 
@@ -50,12 +53,15 @@ final class VideoPlayerViewModel {
     ///   - episode: The episode to play.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
+    ///   - preselectedSource: An optional pre-selected video source to play directly.
     init(episode: Episode,
          sourceId: String,
-         sourceManager: SourceManaging) {
+         sourceManager: SourceManaging,
+         preselectedSource: VideoSource? = nil) {
         self.episode = episode
         self.sourceId = sourceId
         self.sourceManager = sourceManager
+        self.preselectedSource = preselectedSource
     }
 
 
@@ -70,9 +76,18 @@ final class VideoPlayerViewModel {
 
         print("[VideoPlayerViewModel] Loading streams for episode \(episode.number)")
 
+        // If a pre-selected source was provided, use it directly
+        if let preselectedSource {
+            print("[VideoPlayerViewModel] Using pre-selected source: \(preselectedSource.serverName)")
+            selectSource(preselectedSource)
+            isLoading = false
+            return
+        }
+
         do {
             // Fetch playback info from source
             let info = try await sourceManager.getVideoSources(sourceId: sourceId,
+                                                                episodeId: episode.id,
                                                                 url: episode.url)
             playbackInfo = info
 

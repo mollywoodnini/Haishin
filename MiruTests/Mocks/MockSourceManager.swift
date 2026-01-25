@@ -130,7 +130,7 @@ final class MockSourceManager: SourceManaging {
         return try getAnimeDetailsResult.get()
     }
 
-    func getVideoSources(sourceId: String, url: String) async throws -> PlaybackInfo {
+    func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo {
         getVideoSourcesCallCount += 1
         return try getVideoSourcesResult.get()
     }

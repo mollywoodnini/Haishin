@@ -25,6 +25,11 @@ struct EpisodeListView: View {
     @State private var userPreferences = UserPreferences()
     @State private var expandedRanges: Set<String> = []
     @State private var selectedEpisode: Episode?
+    @State private var selectedVideoSource: VideoSource?
+    @State private var mirrorActionEpisode: Episode?
+    @State private var availableMirrors: [VideoSource] = []
+    @State private var isLoadingMirrors = false
+    @State private var showingMirrorSheet = false
 
     private let sourceManager: SourceManager
 
@@ -92,8 +97,36 @@ struct EpisodeListView: View {
         }
         .fullScreenCover(item: $selectedEpisode) { episode in
             VideoPlayerView(episode: episode,
+                            animeTitle: viewModel.aniListAnime.title,
                             sourceId: viewModel.sourceId,
-                            sourceManager: sourceManager)
+                            sourceManager: sourceManager,
+                            preselectedSource: selectedVideoSource)
+        }
+        .onChange(of: selectedEpisode) { _, newValue in
+            // Reset selected video source when episode changes (unless coming from mirror selection)
+            if newValue == nil {
+                selectedVideoSource = nil
+            }
+        }
+        .confirmationDialog("Select Mirror",
+                            isPresented: $showingMirrorSheet,
+                            titleVisibility: .visible) {
+            ForEach(availableMirrors) { mirror in
+                Button(mirror.quality ?? mirror.serverName) {
+                    if let episode = mirrorActionEpisode {
+                        selectedVideoSource = mirror
+                        selectedEpisode = episode
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                mirrorActionEpisode = nil
+                availableMirrors = []
+            }
+        } message: {
+            if let episode = mirrorActionEpisode {
+                Text("Episode \(episode.number)")
+            }
         }
     }
 
@@ -358,15 +391,61 @@ struct EpisodeListView: View {
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            // Show loading indicator when fetching mirrors for this episode
+            if isLoadingMirrors && mirrorActionEpisode?.id == episode.id {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.horizontal, .spacingS)
         .padding(.vertical, .spacingXS)
         .contentShape(Rectangle())
         .onTapGesture {
+            selectedVideoSource = nil
             selectedEpisode = episode
+        }
+        .onLongPressGesture {
+            fetchMirrors(for: episode)
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Mirror Fetching
+    //#################################################################################
+
+    private func fetchMirrors(for episode: Episode) {
+        guard !isLoadingMirrors else { return }
+
+        mirrorActionEpisode = episode
+        isLoadingMirrors = true
+
+        Task {
+            do {
+                let playbackInfo = try await sourceManager.getVideoSources(sourceId: viewModel.sourceId,
+                                                                            episodeId: episode.id,
+                                                                            url: episode.url)
+                await MainActor.run {
+                    availableMirrors = playbackInfo.sources
+                    isLoadingMirrors = false
+
+                    if availableMirrors.isEmpty {
+                        mirrorActionEpisode = nil
+                    } else {
+                        showingMirrorSheet = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoadingMirrors = false
+                    mirrorActionEpisode = nil
+                    print("[EpisodeListView] Error fetching mirrors: \(error)")
+                }
+            }
         }
     }
 }

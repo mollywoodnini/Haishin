@@ -18,6 +18,8 @@ struct VideoPlayerView: View {
     @State private var viewModel: VideoPlayerViewModel
     @Environment(\.dismiss) private var dismiss
 
+    private let animeTitle: String
+
 
     //#################################################################################
     // MARK: - Initialization
@@ -26,14 +28,20 @@ struct VideoPlayerView: View {
     /// Creates a new video player view.
     /// - Parameters:
     ///   - episode: The episode to play.
+    ///   - animeTitle: The title of the anime.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
+    ///   - preselectedSource: An optional pre-selected video source to play directly.
     init(episode: Episode,
+         animeTitle: String,
          sourceId: String,
-         sourceManager: SourceManaging) {
+         sourceManager: SourceManaging,
+         preselectedSource: VideoSource? = nil) {
+        self.animeTitle = animeTitle
         self._viewModel = State(initialValue: VideoPlayerViewModel(episode: episode,
                                                                     sourceId: sourceId,
-                                                                    sourceManager: sourceManager))
+                                                                    sourceManager: sourceManager,
+                                                                    preselectedSource: preselectedSource))
     }
 
 
@@ -148,6 +156,10 @@ struct VideoPlayerView: View {
 
                     // Episode info
                     VStack(alignment: .trailing) {
+                        Text(animeTitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.7))
+
                         Text("Episode \(viewModel.episode.number)")
                             .font(.headline)
                             .foregroundStyle(.white)

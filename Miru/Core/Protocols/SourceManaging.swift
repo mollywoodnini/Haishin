@@ -85,7 +85,8 @@ protocol SourceManaging: AnyObject {
     /// Gets video sources for an episode.
     /// - Parameters:
     ///   - sourceId: The source.
+    ///   - episodeId: The episode identifier.
     ///   - url: The episode URL.
     /// - Returns: Playback information.
-    func getVideoSources(sourceId: String, url: String) async throws -> PlaybackInfo
+    func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo
 }

@@ -326,9 +326,10 @@ final class SourceManager: SourceManaging {
     /// Gets video sources for an episode.
     /// - Parameters:
     ///   - sourceId: The source.
+    ///   - episodeId: The episode identifier.
     ///   - url: The episode URL.
     /// - Returns: Playback information.
-    func getVideoSources(sourceId: String, url: String) async throws -> PlaybackInfo {
+    func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
@@ -336,9 +337,6 @@ final class SourceManager: SourceManaging {
         guard let episodeUrl = URL(string: url) else {
             throw SourceError.invalidResponse
         }
-        
-        // Extract episode ID from URL
-        let episodeId = episodeUrl.lastPathComponent
         
         // For now, use the first available server (in a real app, let user choose)
         // We'll need to get anime details first to know available servers
@@ -480,7 +478,7 @@ final class SourceManager: SourceManaging {
                         serverName: "Default",
                         quality: stream.quality,
                         url: URL(string: stream.url)!,
-                        headers: nil,
+                        headers: stream.headers,
                         requiresExtraction: false)
         }
         

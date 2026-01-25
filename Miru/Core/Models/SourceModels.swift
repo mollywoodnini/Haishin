@@ -181,6 +181,9 @@ struct Stream: Codable, Sendable, Hashable {
     
     /// Stream type
     let type: StreamType
+    
+    /// HTTP headers required for playback (e.g., Referer, User-Agent)
+    let headers: [String: String]?
 }
 
 
