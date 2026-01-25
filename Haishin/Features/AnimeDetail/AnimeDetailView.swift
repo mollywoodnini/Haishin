@@ -22,7 +22,6 @@ struct AnimeDetailView: View {
     @State private var viewModel: AnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @State private var showingSourcePicker = false
     @State private var navigateToEpisodes = false
 
 
@@ -89,9 +88,11 @@ struct AnimeDetailView: View {
                                       viewEpisodesButton: AnyView(viewEpisodesButton))
 
                 if viewModel.isLoading && viewModel.anime == nil {
-                    loadingSection
+                    AnimeDetailLoadingView()
                 } else if let error = viewModel.error, viewModel.anime == nil {
-                    errorSection(error: error)
+                    AnimeDetailErrorView(error: error) {
+                        await viewModel.retry()
+                    }
                 } else {
                     contentSections
                 }
@@ -138,47 +139,6 @@ struct AnimeDetailView: View {
 
 
     //#################################################################################
-    // MARK: - Loading & Error
-    //#################################################################################
-
-    private var loadingSection: some View {
-        VStack(spacing: .spacingM) {
-            ProgressView()
-            Text("Loading details...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, .spacingL)
-    }
-
-    private func errorSection(error: Error) -> some View {
-        VStack(spacing: .spacingS) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-
-            Text("Failed to load details")
-                .font(.headline)
-
-            Text(error.localizedDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button("Retry") {
-                Task {
-                    await viewModel.retry()
-                }
-            }
-            .buttonStyle(.bordered)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.spacingM)
-    }
-
-
-    //#################################################################################
     // MARK: - Content Sections
     //#################################################################################
 
@@ -206,7 +166,7 @@ struct AnimeDetailView: View {
         }
 
         if let nextEpisode = viewModel.anime?.nextAiringEpisode {
-            upcomingSection(episode: nextEpisode)
+            UpcomingSectionView(episode: nextEpisode)
         }
 
         if !viewModel.mainCharacters.isEmpty || !viewModel.supportingCharacters.isEmpty {
@@ -243,53 +203,18 @@ struct AnimeDetailView: View {
 
 
     //#################################################################################
-    // MARK: - Upcoming Section
-    //#################################################################################
-
-    private func upcomingSection(episode: AniListAiringEpisode) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Upcoming")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: .spacingS) {
-                    UpcomingEpisodeCard(episode: episode)
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
     // MARK: - View Episodes Button
     //#################################################################################
 
     private var viewEpisodesButton: some View {
-        Button {
-            if viewModel.validateSourceSelection() {
-                navigateToEpisodes = true
-            } else {
-                showingSourcePicker = true
-            }
-        } label: {
-            Text("VIEW EPISODES")
-                .font(.system(size: 15, weight: .bold))
-        }
-        .buttonStyle(.borderedProminent)
-        .sheet(isPresented: $showingSourcePicker) {
-            SourcePickerView(animeTitle: viewModel.displayTitle,
-                             selectedSourceId: Binding(
-                                get: { viewModel.selectedSourceId },
-                                set: { viewModel.selectedSourceId = $0 }
-                             ),
-                             onSourceSelected: {
-                                 showingSourcePicker = false
-                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                     navigateToEpisodes = true
-                                 }
-                             },
-                             sources: viewModel.installedSources)
+        ViewEpisodesButton(animeTitle: viewModel.displayTitle,
+                           selectedSourceId: Binding(
+                               get: { viewModel.selectedSourceId },
+                               set: { viewModel.selectedSourceId = $0 }
+                           ),
+                           installedSources: viewModel.installedSources,
+                           validateSourceSelection: viewModel.validateSourceSelection) {
+            navigateToEpisodes = true
         }
     }
 }

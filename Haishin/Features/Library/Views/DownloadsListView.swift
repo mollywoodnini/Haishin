@@ -40,7 +40,7 @@ struct DownloadsListView: View {
                     LazyVStack(spacing: .spacingM) {
                         ForEach(downloadService.downloadedAnime) { anime in
                             NavigationLink {
-                                DownloadedAnimeDetailView(anime: anime)
+                                EpisodeListView(downloadedAnime: anime)
                             } label: {
                                 AnimeListRow(mode: .downloaded(anime))
                             }

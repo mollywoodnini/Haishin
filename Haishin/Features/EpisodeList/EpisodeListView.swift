@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - EpisodeListView
 //#################################################################################
 
-/// View for displaying episodes from a JavaScript source.
+/// View for displaying episodes from a JavaScript source or downloaded episodes.
 struct EpisodeListView: View {
 
     //#################################################################################
@@ -36,7 +36,7 @@ struct EpisodeListView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    /// Creates a new episodes view.
+    /// Creates a new episodes view for online mode.
     /// - Parameters:
     ///   - aniListAnime: The AniList anime details.
     ///   - sourceId: The selected source ID.
@@ -58,28 +58,33 @@ struct EpisodeListView: View {
                                                                    userPreferences: userPreferences))
     }
 
+    /// Creates a new episodes view for offline mode (downloaded episodes).
+    /// - Parameter downloadedAnime: The downloaded anime to display.
+    init(downloadedAnime: DownloadedAnime) {
+        self._viewModel = State(initialValue: EpisodeListViewModel(downloadedAnime: downloadedAnime))
+    }
+
 
     //#################################################################################
     // MARK: - Body
     //#################################################################################
 
     var body: some View {
-        ZStack {
-            if viewModel.isLoading && viewModel.sourceAnime == nil {
-                loadingView
-            } else if let error = viewModel.error {
-                errorView(error: error)
-            } else if let anime = viewModel.sourceAnime {
-                episodesListView(anime: anime)
-            } else {
-                Color.clear
+        Group {
+            switch viewModel.mode {
+            case .online:
+                onlineModeContent
+            case .offline:
+                offlineModeContent
             }
         }
-        .navigationTitle("Episodes")
+        .navigationTitle(viewModel.mode == .offline ? "Downloads" : "Episodes")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                toolbarMenu
+            if viewModel.mode == .online {
+                ToolbarItem(placement: .primaryAction) {
+                    onlineToolbarMenu
+                }
             }
         }
         .sheet(isPresented: $showingSourcePicker) {
@@ -102,14 +107,35 @@ struct EpisodeListView: View {
         }) { episode in
             VideoPlayerView(viewModel: viewModel.makeVideoPlayerViewModel(episode: episode))
         }
+        .onChange(of: viewModel.hasDownloadedEpisodes) { _, hasEpisodes in
+            // Dismiss if all episodes have been deleted in offline mode
+            if viewModel.mode == .offline && !hasEpisodes {
+                dismiss()
+            }
+        }
     }
 
 
     //#################################################################################
-    // MARK: - Private Views
+    // MARK: - Online Mode Views
     //#################################################################################
 
-    private var toolbarMenu: some View {
+    @ViewBuilder
+    private var onlineModeContent: some View {
+        ZStack {
+            if viewModel.isLoading && viewModel.sourceAnime == nil {
+                loadingView
+            } else if let error = viewModel.error {
+                errorView(error: error)
+            } else if let anime = viewModel.sourceAnime {
+                onlineEpisodesListView(anime: anime)
+            } else {
+                Color.clear
+            }
+        }
+    }
+
+    private var onlineToolbarMenu: some View {
         Menu {
             Button {
                 showingSourcePicker = true
@@ -175,7 +201,7 @@ struct EpisodeListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func episodesListView(anime: Anime) -> some View {
+    private func onlineEpisodesListView(anime: Anime) -> some View {
         let hasMultipleRanges = anime.episodeRanges.count > 1
 
         return ScrollView {
@@ -189,9 +215,9 @@ struct EpisodeListView: View {
                 }
 
                 if hasMultipleRanges {
-                    episodeRangesView(ranges: anime.episodeRanges)
+                    onlineEpisodeRangesView(ranges: anime.episodeRanges)
                 } else {
-                    flatEpisodesListView(episodes: anime.episodes)
+                    onlineFlatEpisodesListView(episodes: anime.episodes)
                 }
             }
             .padding(.spacingM)
@@ -203,7 +229,7 @@ struct EpisodeListView: View {
         }
     }
 
-    private func flatEpisodesListView(episodes: [Episode]) -> some View {
+    private func onlineFlatEpisodesListView(episodes: [Episode]) -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(episodes) { episode in
                 EpisodeRowView(episode: episode,
@@ -223,7 +249,7 @@ struct EpisodeListView: View {
         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
     }
 
-    private func episodeRangesView(ranges: [EpisodeRange]) -> some View {
+    private func onlineEpisodeRangesView(ranges: [EpisodeRange]) -> some View {
         LazyVStack(alignment: .leading, spacing: .spacingS) {
             ForEach(ranges) { range in
                 EpisodeRangeSectionView(range: range,
@@ -241,6 +267,151 @@ struct EpisodeListView: View {
                                         onDownload: { viewModel.startDownload(episode: $0) },
                                         onCancelDownload: { viewModel.cancelDownload(episodeId: $0) })
             }
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Offline Mode Views
+    //#################################################################################
+
+    @ViewBuilder
+    private var offlineModeContent: some View {
+        if viewModel.offlineEpisodes.isEmpty {
+            ContentUnavailableView {
+                Label("No Downloaded Episodes", systemImage: "arrow.down.circle")
+            } description: {
+                Text("Downloaded episodes will appear here.")
+            }
+        } else {
+            offlineEpisodesListView
+        }
+    }
+
+    private var offlineEpisodesListView: some View {
+        List {
+            // Header section
+            Section {
+                offlineHeaderView
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+
+            // Continue watching
+            if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {
+                Section {
+                    ContinueWatchingButtonView(episode: continueEpisode) {
+                        selectedEpisode = continueEpisode
+                    }
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+
+            // Episodes section
+            Section {
+                ForEach(viewModel.offlineEpisodes) { episode in
+                    offlineEpisodeRow(episode: episode)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedEpisode = episode
+                        }
+                }
+                .onDelete(perform: deleteEpisodes)
+            } header: {
+                Text("Episodes")
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    private var offlineHeaderView: some View {
+        HStack(alignment: .top, spacing: .spacingM) {
+            AsyncImage(url: viewModel.animeCoverURL) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+            }
+            .frame(width: 80, height: 120)
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+
+            VStack(alignment: .leading, spacing: .spacingXS) {
+                Text(viewModel.animeTitle)
+                    .font(.headline)
+                    .lineLimit(2)
+
+                if let sourceName = viewModel.sourceName {
+                    Text(sourceName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("\(viewModel.offlineEpisodes.count) Episode\(viewModel.offlineEpisodes.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.spacingM)
+    }
+
+    private func offlineEpisodeRow(episode: Episode) -> some View {
+        HStack(spacing: .spacingS) {
+            Text(episode.number)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 32)
+                .background(Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(episodeTitle(for: episode))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                if let progress = viewModel.watchProgressMap[episode.id] {
+                    if progress.isCompleted {
+                        Text("Completed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(Int((1 - progress.progress) * 100))% left")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Not watched")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            if let progress = viewModel.watchProgressMap[episode.id], progress.isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+
+    private func episodeTitle(for episode: Episode) -> String {
+        guard let title = episode.title, title != episode.number else {
+            return "Episode \(episode.number)"
+        }
+        return title
+    }
+
+    private func deleteEpisodes(at offsets: IndexSet) {
+        for index in offsets {
+            let episode = viewModel.offlineEpisodes[index]
+            viewModel.deleteDownload(episodeId: episode.id)
         }
     }
 }

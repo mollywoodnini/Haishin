@@ -43,6 +43,9 @@ final class VideoPlayerViewModel {
     /// The source ID to fetch streams from.
     let sourceId: String
 
+    /// Whether this is playing a downloaded file.
+    let isOfflineMode: Bool
+
     /// The current playback info with available streams.
     private(set) var playbackInfo: PlaybackInfo?
 
@@ -67,7 +70,7 @@ final class VideoPlayerViewModel {
     /// Total duration in seconds.
     private(set) var duration: TimeInterval = 0
 
-    private let sourceManager: SourceManaging
+    private let sourceManager: SourceManaging?
     private let watchProgressService: WatchProgressServiceProtocol
     private var allSources: [VideoSource] = []
     private var currentSourceIndex = 0
@@ -88,15 +91,17 @@ final class VideoPlayerViewModel {
     ///   - animeTitle: The anime title for recents tracking.
     ///   - animeCoverURL: The anime cover URL for recents tracking.
     ///   - sourceId: The source ID to fetch streams from.
-    ///   - sourceManager: The source manager for fetching video sources.
+    ///   - sourceManager: The source manager for fetching video sources (nil for offline mode).
     ///   - watchProgressService: The service for persisting watch progress.
+    ///   - isOfflineMode: Whether this is playing a downloaded file.
     init(episode: Episode,
          animeId: Int,
          animeTitle: String,
          animeCoverURL: URL?,
          sourceId: String,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol) {
+         sourceManager: SourceManaging?,
+         watchProgressService: WatchProgressServiceProtocol,
+         isOfflineMode: Bool = false) {
         self.episode = episode
         self.animeId = animeId
         self.animeTitle = animeTitle
@@ -104,6 +109,7 @@ final class VideoPlayerViewModel {
         self.sourceId = sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
+        self.isOfflineMode = isOfflineMode
     }
 
 
@@ -127,27 +133,12 @@ final class VideoPlayerViewModel {
             print("[VideoPlayerViewModel] Restored progress: \(Int(savedProgress.progress * 100))%")
         }
 
-        do {
-            // Fetch playback info from source
-            let info = try await sourceManager.getVideoSources(sourceId: sourceId,
-                                                                episodeId: episode.id,
-                                                                url: episode.url)
-            playbackInfo = info
-            allSources = info.sources
-
-            print("[VideoPlayerViewModel] Got \(info.sources.count) video source(s)")
-
-            // Select the first available source
-            guard let firstSource = info.sources.first else {
-                throw VideoPlayerError.noSourcesAvailable
-            }
-
-            selectSource(firstSource)
-            isLoading = false
-        } catch {
-            print("[VideoPlayerViewModel] Error loading streams: \(error)")
-            self.error = error
-            isLoading = false
+        if isOfflineMode {
+            // Offline mode: play from local file
+            await loadOfflineVideo()
+        } else {
+            // Online mode: fetch from source
+            await loadOnlineVideo()
         }
     }
 
@@ -175,6 +166,66 @@ final class VideoPlayerViewModel {
     //#################################################################################
     // MARK: - Private Methods
     //#################################################################################
+
+    private func loadOnlineVideo() async {
+        guard let sourceManager else {
+            error = VideoPlayerError.noSourcesAvailable
+            isLoading = false
+            return
+        }
+
+        do {
+            // Fetch playback info from source
+            let info = try await sourceManager.getVideoSources(sourceId: sourceId,
+                                                                episodeId: episode.id,
+                                                                url: episode.url)
+            playbackInfo = info
+            allSources = info.sources
+
+            print("[VideoPlayerViewModel] Got \(info.sources.count) video source(s)")
+
+            // Select the first available source
+            guard let firstSource = info.sources.first else {
+                throw VideoPlayerError.noSourcesAvailable
+            }
+
+            selectSource(firstSource)
+            isLoading = false
+        } catch {
+            print("[VideoPlayerViewModel] Error loading streams: \(error)")
+            self.error = error
+            isLoading = false
+        }
+    }
+
+    private func loadOfflineVideo() async {
+        // For offline mode, the episode URL contains the local file path
+        let fileURL: URL
+        if episode.url.hasPrefix("/") {
+            // It's an absolute file path
+            fileURL = URL(fileURLWithPath: episode.url)
+        } else if let url = URL(string: episode.url) {
+            fileURL = url
+        } else {
+            print("[VideoPlayerViewModel] Invalid offline file path: \(episode.url)")
+            error = VideoPlayerError.noSourcesAvailable
+            isLoading = false
+            return
+        }
+
+        print("[VideoPlayerViewModel] Playing offline file: \(fileURL.path)")
+
+        // Create a VideoSource for the local file
+        let localSource = VideoSource(id: "local-\(episode.id)",
+                                       serverName: "Local",
+                                       quality: "Downloaded",
+                                       url: fileURL,
+                                       headers: nil,
+                                       requiresExtraction: false)
+        allSources = [localSource]
+        selectSource(localSource)
+        isLoading = false
+    }
 
     private func selectSource(_ source: VideoSource) {
         selectedSource = source
