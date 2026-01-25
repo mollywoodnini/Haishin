@@ -15,7 +15,6 @@ struct SettingsView: View {
     //#################################################################################
 
     @AppStorage("appearance") private var appearance: AppearanceMode = .system
-    @AppStorage("autoPlay") private var autoPlay = true
     @State private var userPreferences = UserPreferences()
 
 
@@ -27,7 +26,6 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 appearanceSection
-                playbackSection
                 contentSection
                 aboutSection
             }
@@ -49,14 +47,6 @@ struct SettingsView: View {
             }
         } header: {
             Text("Appearance")
-        }
-    }
-
-    private var playbackSection: some View {
-        Section {
-            Toggle("Auto-play next episode", isOn: $autoPlay)
-        } header: {
-            Text("Playback")
         }
     }
 
