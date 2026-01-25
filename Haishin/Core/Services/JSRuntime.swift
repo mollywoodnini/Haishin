@@ -7,6 +7,7 @@
 
 import Foundation
 import JavaScriptCore
+import WebKit
 
 /// Manages JavaScript execution for anime sources.
 /// Uses JavaScriptCore to run source scripts in a sandboxed environment.
@@ -47,7 +48,9 @@ actor JSRuntime {
 
     private nonisolated(unsafe) let context: JSContext
     private let networkClient: NetworkClient
+    private let cookieStorage: HTTPCookieStorage
     private var loadedSources: [String: JSValue] = [:]
+    private var resolvedHosts: Set<String> = []
 
 
     //#################################################################################
@@ -55,14 +58,18 @@ actor JSRuntime {
     //#################################################################################
 
     /// Creates a new JavaScript runtime.
-    /// - Parameter networkClient: Network client for HTTP requests from JS.
-    init(networkClient: NetworkClient = NetworkClient()) throws {
+    /// - Parameters:
+    ///   - networkClient: Network client for HTTP requests from JS.
+    ///   - cookieStorage: Cookie storage shared with NetworkClient and ChallengeResolver.
+    init(networkClient: NetworkClient = NetworkClient(),
+         cookieStorage: HTTPCookieStorage = .shared) throws {
         guard let context = JSContext() else {
             throw JSError.contextCreationFailed
         }
 
         self.context = context
         self.networkClient = networkClient
+        self.cookieStorage = cookieStorage
 
         setupContext()
     }
@@ -261,8 +268,14 @@ actor JSRuntime {
     }
 
     private func handleFetch(id: Int, urlString: String, optionsJson: String) async {
+        print("[JSRuntime] ========================================")
+        print("[JSRuntime] handleFetch called")
+        print("[JSRuntime] URL: \(urlString)")
+        print("[JSRuntime] Options: \(optionsJson)")
+        
         do {
             guard let url = URL(string: urlString) else {
+                print("[JSRuntime] ERROR: Invalid URL")
                 resolveFetch(id: id, error: "Invalid URL: \(urlString)")
                 return
             }
@@ -273,15 +286,95 @@ actor JSRuntime {
                let options = try? JSONSerialization.jsonObject(with: optionsData) as? [String: Any],
                let headerDict = options["headers"] as? [String: String] {
                 headers = headerDict
+                print("[JSRuntime] Parsed headers: \(headerDict)")
+            }
+            
+            // Log cookies currently in storage for this host
+            if let host = url.host {
+                let hostCookies = cookieStorage.cookies?.filter { 
+                    $0.domain.contains(host) || host.contains($0.domain.replacingOccurrences(of: ".", with: "")) 
+                } ?? []
+                print("[JSRuntime] Cookies in storage for \(host): \(hostCookies.count)")
+                for cookie in hostCookies {
+                    print("[JSRuntime]   \(cookie.name)=\(cookie.value)")
+                }
             }
 
-            let data = try await networkClient.fetch(url: url, headers: headers)
-            let text = String(data: data, encoding: .utf8) ?? ""
+            // Check if we need to resolve a challenge for this host first
+            if let host = url.host, !resolvedHosts.contains(host) {
+                print("[JSRuntime] Host '\(host)' not yet resolved, making initial request...")
+                
+                // Try the request first - use fetchWithStatus to get body even on 403
+                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                let text = String(data: data, encoding: .utf8) ?? ""
+                
+                print("[JSRuntime] Response status: \(statusCode)")
+                print("[JSRuntime] Response length: \(text.count) chars")
+                print("[JSRuntime] Response preview: \(String(text.prefix(300)))...")
 
-            resolveFetch(id: id, result: text)
+                // Check if the response is a challenge page (typically 403 with challenge HTML)
+                if statusCode == 403 || ChallengeResolver.isChallengePage(text) {
+                    print("[JSRuntime] *** CHALLENGE PAGE DETECTED for \(host) (status: \(statusCode)) ***")
+                    print("[JSRuntime] Starting challenge resolution...")
+
+                    // Resolve the challenge using WebView (must be on MainActor)
+                    try await resolveChallengeOnMainActor(for: url)
+
+                    // Mark host as resolved
+                    resolvedHosts.insert(host)
+                    print("[JSRuntime] Host '\(host)' marked as resolved")
+                    
+                    // Log cookies after resolution
+                    let hostCookies = cookieStorage.cookies?.filter { 
+                        $0.domain.contains(host) || host.contains($0.domain.replacingOccurrences(of: ".", with: "")) 
+                    } ?? []
+                    print("[JSRuntime] Cookies after resolution for \(host): \(hostCookies.count)")
+                    for cookie in hostCookies {
+                        print("[JSRuntime]   \(cookie.name)=\(cookie.value)")
+                    }
+
+                    // Retry the original request with the new cookies
+                    print("[JSRuntime] Retrying original request...")
+                    let (retryData, retryStatus) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                    let retryText = String(data: retryData, encoding: .utf8) ?? ""
+                    print("[JSRuntime] Retry response status: \(retryStatus)")
+                    print("[JSRuntime] Retry response length: \(retryText.count) chars")
+                    print("[JSRuntime] Retry response preview: \(String(retryText.prefix(300)))...")
+                    
+                    // Check if retry also got a challenge
+                    if retryStatus == 403 || ChallengeResolver.isChallengePage(retryText) {
+                        print("[JSRuntime] WARNING: Retry still got challenge page!")
+                    }
+                    
+                    resolveFetch(id: id, result: retryText)
+                } else if statusCode >= 200 && statusCode < 300 {
+                    // Success, not a challenge page
+                    print("[JSRuntime] Not a challenge page, returning result")
+                    resolveFetch(id: id, result: text)
+                } else {
+                    // Other error
+                    print("[JSRuntime] HTTP error: \(statusCode)")
+                    resolveFetch(id: id, error: "HTTP error with status code: \(statusCode)")
+                }
+            } else {
+                // Host already resolved or no host, just fetch
+                print("[JSRuntime] Host already resolved or no host, fetching directly...")
+                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                let text = String(data: data, encoding: .utf8) ?? ""
+                print("[JSRuntime] Response status: \(statusCode)")
+                print("[JSRuntime] Response length: \(text.count) chars")
+                
+                if statusCode >= 200 && statusCode < 300 {
+                    resolveFetch(id: id, result: text)
+                } else {
+                    resolveFetch(id: id, error: "HTTP error with status code: \(statusCode)")
+                }
+            }
         } catch {
+            print("[JSRuntime] ERROR: \(error.localizedDescription)")
             resolveFetch(id: id, error: error.localizedDescription)
         }
+        print("[JSRuntime] ========================================")
     }
 
     private nonisolated func resolveFetch(id: Int, result: String? = nil, error: String? = nil) {
@@ -372,5 +465,11 @@ actor JSRuntime {
                           iconURL: iconURL,
                           isNSFW: dict["nsfw"] as? Bool ?? false,
                           description: dict["description"] as? String)
+    }
+
+    @MainActor
+    private func resolveChallengeOnMainActor(for url: URL) async throws {
+        let resolver = ChallengeResolver(cookieStorage: cookieStorage)
+        _ = try await resolver.resolveChallenge(for: url)
     }
 }

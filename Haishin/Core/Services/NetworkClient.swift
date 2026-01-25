@@ -7,8 +7,26 @@
 
 import Foundation
 
+
+//#################################################################################
+// MARK: - NetworkClientProtocol
+//#################################################################################
+
+/// Protocol for network operations, enabling dependency injection and testing.
+protocol NetworkClientProtocol: Sendable {
+    func fetch(url: URL, headers: [String: String]?) async throws -> Data
+    func fetchJSON<T: Decodable>(url: URL, type: T.Type, headers: [String: String]?) async throws -> T
+    func fetchHTML(url: URL, headers: [String: String]?) async throws -> String
+    func post(url: URL, body: Data?, headers: [String: String]?) async throws -> Data
+}
+
+
+//#################################################################################
+// MARK: - NetworkClient
+//#################################################################################
+
 /// A simple async/await network client for making HTTP requests.
-actor NetworkClient {
+actor NetworkClient: NetworkClientProtocol {
 
     //#################################################################################
     // MARK: - Constants
@@ -25,6 +43,7 @@ actor NetworkClient {
 
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let cookieStorage: HTTPCookieStorage
 
 
     //#################################################################################
@@ -32,12 +51,19 @@ actor NetworkClient {
     //#################################################################################
 
     /// Creates a new network client.
-    /// - Parameter configuration: URL session configuration. Defaults to `.default`.
-    init(configuration: URLSessionConfiguration = .default) {
+    /// - Parameters:
+    ///   - configuration: URL session configuration. Defaults to `.default`.
+    ///   - cookieStorage: Cookie storage for persisting cookies. Defaults to `.shared`.
+    init(configuration: URLSessionConfiguration = .default,
+         cookieStorage: HTTPCookieStorage = .shared) {
         configuration.timeoutIntervalForRequest = Constants.defaultTimeout
+        configuration.httpCookieStorage = cookieStorage
+        configuration.httpCookieAcceptPolicy = .always
+        configuration.httpShouldSetCookies = true
         self.session = URLSession(configuration: configuration)
         self.decoder = JSONDecoder()
         self.decoder.keyDecodingStrategy = .convertFromSnakeCase
+        self.cookieStorage = cookieStorage
     }
 
 
@@ -69,6 +95,29 @@ actor NetworkClient {
         }
 
         return data
+    }
+
+    /// Fetches data from a URL, returning both data and status code.
+    /// This method does NOT throw on non-2xx status codes, allowing caller to handle challenge pages.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: A tuple containing the raw data and HTTP status code.
+    func fetchWithStatus(url: URL, headers: [String: String]? = nil) async throws -> (data: Data, statusCode: Int) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        headers?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        return (data, httpResponse.statusCode)
     }
 
     /// Fetches and decodes JSON from a URL.

@@ -18,9 +18,6 @@ struct VideoPlayerView: View {
     @State private var viewModel: VideoPlayerViewModel
     @Environment(\.dismiss) private var dismiss
 
-    private let animeTitle: String
-    private let animeCoverURL: URL?
-
 
     //#################################################################################
     // MARK: - Initialization
@@ -29,8 +26,6 @@ struct VideoPlayerView: View {
     /// Creates a new video player view with an existing view model.
     /// - Parameter viewModel: The view model to use.
     init(viewModel: VideoPlayerViewModel) {
-        self.animeTitle = viewModel.animeTitle
-        self.animeCoverURL = viewModel.animeCoverURL
         self._viewModel = State(initialValue: viewModel)
     }
 
@@ -50,8 +45,6 @@ struct VideoPlayerView: View {
          sourceId: String,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol) {
-        self.animeTitle = animeTitle
-        self.animeCoverURL = animeCoverURL
         self._viewModel = State(initialValue: VideoPlayerViewModel(episode: episode,
                                                                    animeId: animeId,
                                                                    animeTitle: animeTitle,
@@ -76,13 +69,15 @@ struct VideoPlayerView: View {
             } else if let error = viewModel.error {
                 errorView(error: error)
             } else if let player = viewModel.player {
-                videoPlayerView(player: player)
+                AVPlayerViewControllerRepresentable(player: player, onDismiss: {
+                    dismiss()
+                })
+                .ignoresSafeArea()
             } else {
                 // Initial state before loading
                 loadingView
             }
         }
-        .navigationBarHidden(true)
         .statusBarHidden(true)
         .task {
             await viewModel.loadAndPlay()
@@ -158,52 +153,76 @@ struct VideoPlayerView: View {
             }
         }
     }
+}
+
+
+//#################################################################################
+// MARK: - AVPlayerViewControllerRepresentable
+//#################################################################################
+
+/// UIViewControllerRepresentable wrapper for AVPlayerViewController.
+/// This provides native video controls with a built-in dismiss button.
+struct AVPlayerViewControllerRepresentable: UIViewControllerRepresentable {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    private let player: AVPlayer
+    private let onDismiss: () -> Void
 
 
     //#################################################################################
-    // MARK: - Video Player View
+    // MARK: - Initialization
     //#################################################################################
 
-    private func videoPlayerView(player: AVPlayer) -> some View {
-        ZStack {
-            VideoPlayer(player: player)
-                .ignoresSafeArea()
+    /// Creates a new AVPlayerViewController representable.
+    /// - Parameters:
+    ///   - player: The AVPlayer instance to use.
+    ///   - onDismiss: Callback when the player is dismissed.
+    init(player: AVPlayer, onDismiss: @escaping () -> Void) {
+        self.player = player
+        self.onDismiss = onDismiss
+    }
 
-            // Overlay with dismiss button
-            VStack {
-                HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(.white.opacity(0.8))
-                            .padding(.spacingM)
-                    }
 
-                    Spacer()
+    //#################################################################################
+    // MARK: - UIViewControllerRepresentable
+    //#################################################################################
 
-                    // Episode info
-                    VStack(alignment: .trailing) {
-                        Text(animeTitle)
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.7))
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.delegate = context.coordinator
+        controller.allowsPictureInPicturePlayback = true
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        return controller
+    }
 
-                        Text("Episode \(viewModel.episode.number)")
-                            .font(.subheadline)
-                            .foregroundStyle(.white)
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        // No updates needed
+    }
 
-                        if let title = viewModel.episode.title,
-                           title != "\(viewModel.episode.number)" {
-                            Text(title)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                    }
-                    .padding(.spacingM)
-                }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: onDismiss)
+    }
 
-                Spacer()
+
+    //#################################################################################
+    // MARK: - Coordinator
+    //#################################################################################
+
+    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        private let onDismiss: () -> Void
+
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+
+        func playerViewController(_ playerViewController: AVPlayerViewController,
+                                  willEndFullScreenPresentationWithAnimationCoordinator coordinator: any UIViewControllerTransitionCoordinator) {
+            coordinator.animate(alongsideTransition: nil) { _ in
+                self.onDismiss()
             }
         }
     }
