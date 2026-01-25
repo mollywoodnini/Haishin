@@ -397,6 +397,7 @@ final class EpisodeListViewModel {
 
                 // Try each query until we find results
                 var searchResults: [AnimePreview] = []
+                var bestQuery = ""
 
                 for query in searchQueries {
                     let results = try await sourceManager.search(sourceId: sourceId,
@@ -405,18 +406,19 @@ final class EpisodeListViewModel {
 
                     if !results.isEmpty {
                         searchResults = results
+                        bestQuery = query
                         break
                     }
                 }
 
-                // Check if we found any results
-                guard let firstResult = searchResults.first else {
+                // Find the best matching result using title similarity
+                guard let bestMatch = findBestMatch(in: searchResults, for: bestQuery) else {
                     error = EpisodesError.animeNotFound
                     isLoading = false
                     return
                 }
                 
-                detailsURL = firstResult.detailsURL
+                detailsURL = bestMatch.detailsURL
             }
 
             // Fetch full anime details with episodes
@@ -532,6 +534,35 @@ final class EpisodeListViewModel {
                                                            range: range,
                                                            withTemplate: " $1")
         return modifiedTitle
+    }
+
+    /// Finds the best matching anime from search results using title similarity.
+    /// - Parameters:
+    ///   - results: The search results to search through.
+    ///   - query: The original search query.
+    /// - Returns: The best matching AnimePreview, or nil if no results.
+    private func findBestMatch(in results: [AnimePreview], for query: String) -> AnimePreview? {
+        guard !results.isEmpty else { return nil }
+
+        // If only one result, return it
+        if results.count == 1 {
+            return results.first
+        }
+
+        // Calculate similarity scores for each result
+        let scoredResults = results.map { result -> (preview: AnimePreview, score: Double) in
+            let score = query.similarityScore(to: result.title)
+            return (result, score)
+        }
+
+        // Sort by score descending and return the best match
+        let bestMatch = scoredResults.max { $0.score < $1.score }
+
+        if let best = bestMatch {
+            print("[EpisodeListViewModel] Best match: '\(best.preview.title)' with score \(String(format: "%.2f", best.score))")
+        }
+
+        return bestMatch?.preview
     }
 }
 

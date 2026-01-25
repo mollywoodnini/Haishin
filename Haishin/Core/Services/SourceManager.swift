@@ -435,7 +435,7 @@ final class SourceManager: SourceManaging {
     /// Converts a JSAnimePreview to AnimePreview
     private func convertToAnimePreview(_ jsPreview: JSAnimePreview, sourceId: String) -> AnimePreview {
         return AnimePreview(id: jsPreview.id,
-                            title: jsPreview.title,
+                            title: jsPreview.title.decodingHTMLEntities(),
                             coverURL: URL(string: jsPreview.coverUrl),
                             sourceId: sourceId,
                             detailsURL: jsPreview.url)
@@ -484,11 +484,11 @@ final class SourceManager: SourceManaging {
         }
         
         return Anime(id: jsDetails.id,
-                     title: jsDetails.title,
-                     alternativeTitles: jsDetails.englishTitle.map { [$0] } ?? [],
+                     title: jsDetails.title.decodingHTMLEntities(),
+                     alternativeTitles: jsDetails.englishTitle.map { [$0.decodingHTMLEntities()] } ?? [],
                      coverURL: URL(string: jsDetails.coverUrl),
                      bannerURL: nil, // JS sources don't typically provide banner
-                     synopsis: jsDetails.synopsis,
+                     synopsis: jsDetails.synopsis.decodingHTMLEntities(),
                      genres: jsDetails.genres,
                      status: status,
                      year: extractYear(from: jsDetails.releaseDate),
@@ -510,7 +510,7 @@ final class SourceManager: SourceManaging {
     private func convertToEpisode(_ jsEpisode: SourceEpisode) -> Episode {
         return Episode(id: jsEpisode.id,
                        number: String(jsEpisode.number),
-                       title: jsEpisode.title,
+                       title: jsEpisode.title.decodingHTMLEntities(),
                        thumbnailURL: nil, // JS sources don't typically provide thumbnails
                        url: jsEpisode.url,
                        duration: nil)

@@ -206,7 +206,11 @@ struct EpisodeListView: View {
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
-                EpisodeListHeaderView(anime: anime)
+                // Prefer AniList/preview cover URL, fallback to source cover if needed
+                EpisodeListHeaderView(title: anime.title,
+                                      coverURL: viewModel.animeCoverURL ?? anime.coverURL,
+                                      subtitle: anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", "),
+                                      episodeCount: anime.episodes.count)
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: anime.episodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
