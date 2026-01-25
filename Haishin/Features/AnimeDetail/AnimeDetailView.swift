@@ -5,7 +5,6 @@
 //  Created by Miru on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 
@@ -23,7 +22,6 @@ struct AnimeDetailView: View {
     @State private var viewModel: AnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @State private var isSynopsisTruncated = false
     @State private var showingSourcePicker = false
     @State private var navigateToEpisodes = false
 
@@ -84,7 +82,11 @@ struct AnimeDetailView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                headerSection
+                AnimeDetailHeaderView(displayTitle: viewModel.displayTitle,
+                                      alternativeTitles: viewModel.alternativeTitles,
+                                      bannerURL: viewModel.anime?.bannerURL,
+                                      coverURL: viewModel.displayCoverURL,
+                                      viewEpisodesButton: AnyView(viewEpisodesButton))
 
                 if viewModel.isLoading && viewModel.anime == nil {
                     loadingSection
@@ -136,109 +138,6 @@ struct AnimeDetailView: View {
 
 
     //#################################################################################
-    // MARK: - Header Section
-    //#################################################################################
-
-    private var headerSection: some View {
-        ZStack(alignment: .bottom) {
-            // Banner/Wallpaper
-            bannerImage
-                .frame(maxWidth: .infinity)
-
-            // Gradient overlay
-            LinearGradient(
-                colors: [.clear, .clear, Color(.systemBackground)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(maxWidth: .infinity)
-
-            // Content overlay
-            HStack(alignment: .bottom, spacing: .spacingS) {
-                // Cover image
-                coverImage
-
-                // Title and info
-                VStack(alignment: .leading, spacing: .spacingXXS) {
-                    Text(viewModel.displayTitle)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let altTitles = viewModel.alternativeTitles {
-                        Text(altTitles)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    
-                    // View Episodes Button
-                    viewEpisodesButton
-                        .padding(.top, .spacingXS)
-                }
-                .frame(maxWidth: .infinity, alignment: .bottomLeading)
-                .padding(.bottom, .spacingS)
-            }
-            .padding(.horizontal, .spacingS)
-            .padding(.bottom, .spacingXS)
-            .frame(maxWidth: .infinity)
-        }
-        .frame(height: 280)
-    }
-
-    private var bannerImage: some View {
-        Color.clear
-            .overlay {
-                Group {
-                    if let bannerURL = viewModel.anime?.bannerURL {
-                        KFImage(bannerURL)
-                            .resizable()
-                            .placeholder {
-                                coverAsBackground
-                            }
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        coverAsBackground
-                    }
-                }
-            }
-            .clipped()
-            .opacity(0.4)
-    }
-
-    private var coverAsBackground: some View {
-        KFImage(viewModel.displayCoverURL)
-            .resizable()
-            .placeholder {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-            }
-            .aspectRatio(contentMode: .fill)
-            .blur(radius: 20)
-    }
-
-    private var coverImage: some View {
-        Color.clear
-            .frame(width: 120, height: 170)
-            .overlay {
-                KFImage(viewModel.displayCoverURL)
-                    .resizable()
-                    .placeholder {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .overlay {
-                                ProgressView()
-                            }
-                    }
-                    .aspectRatio(contentMode: .fill)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-            .shadow(radius: 8)
-    }
-
-
-    //#################################################################################
     // MARK: - Loading & Error
     //#################################################################################
 
@@ -285,156 +184,61 @@ struct AnimeDetailView: View {
 
     @ViewBuilder
     private var contentSections: some View {
-        // Synopsis
         if let synopsis = viewModel.anime?.synopsis, !synopsis.isEmpty {
-            synopsisSection(synopsis: synopsis)
+            SynopsisSectionView(synopsis: synopsis,
+                                isExpanded: $viewModel.isSynopsisExpanded)
         }
 
-        // Genres
         if let genres = viewModel.anime?.genres, !genres.isEmpty {
-            genresSection(genres: genres)
+            GenresSectionView(genres: genres)
         }
 
-        // Ratings & Statistics
         if viewModel.formattedScore != nil {
-            ratingsStatisticsSection
+            RatingsStatisticsSectionView(formattedScore: viewModel.formattedScore,
+                                         popularityString: viewModel.popularityString,
+                                         favoritesString: viewModel.favoritesString)
         }
 
-        // Information
         if !viewModel.informationItems.isEmpty {
-            informationSection
+            InformationSectionView(items: viewModel.informationItems.map {
+                InformationSectionView.Item(key: $0.key, value: $0.value)
+            })
         }
 
-        // Upcoming episodes
         if let nextEpisode = viewModel.anime?.nextAiringEpisode {
             upcomingSection(episode: nextEpisode)
         }
 
-        // Characters
         if !viewModel.mainCharacters.isEmpty || !viewModel.supportingCharacters.isEmpty {
-            charactersSection
+            CharactersSectionView(characters: viewModel.mainCharacters + viewModel.supportingCharacters)
         }
 
-        // Related anime
         if let relations = viewModel.anime?.relations, !relations.isEmpty {
-            relationsSection(relations: relations)
+            RelationsSectionView(relations: relations) { relation in
+                AnimeDetailView(viewModel: viewModel.makeRelatedAnimeDetailViewModel(relation: relation))
+            }
         }
 
-        // Recommendations
         if let recommendations = viewModel.anime?.recommendations, !recommendations.isEmpty {
-            recommendationsSection(recommendations: recommendations)
+            RecommendationsSectionView(recommendations: recommendations) { rec in
+                AnimeDetailView(viewModel: viewModel.makeRecommendationDetailViewModel(recommendation: rec))
+            }
         }
 
-        // External links
         if !viewModel.streamingLinks.isEmpty {
-            streamingLinksSection
+            StreamingLinksSectionView(links: viewModel.streamingLinks.map {
+                StreamingLinksSectionView.LinkItem(site: $0.site, url: $0.url, icon: $0.icon)
+            })
         }
 
-        // Tags
         if !viewModel.displayTags.isEmpty {
-            tagsSection
+            TagsSectionView(tags: viewModel.displayTags.map {
+                TagsSectionView.TagItem(name: $0.name)
+            })
         }
 
-        // Bottom spacing
         Spacer()
             .frame(height: .spacingL)
-    }
-
-
-    //#################################################################################
-    // MARK: - Ratings & Statistics Section
-    //#################################################################################
-
-    private var ratingsStatisticsSection: some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Ratings & Statistics")
-
-            HStack(spacing: .spacingL) {
-                // Large score display
-                if let score = viewModel.formattedScore {
-                    VStack(spacing: .spacingXXS) {
-                        Text(score)
-                            .font(.system(size: 36, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.primary)
-
-                        Text("Average Score")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(minWidth: 80)
-                }
-
-                // Stats
-                VStack(alignment: .leading, spacing: .spacingXS) {
-                    if let popularity = viewModel.popularityString {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(popularity) users")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    if let favorites = viewModel.favoritesString {
-                        HStack {
-                            Image(systemName: "heart.fill")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(favorites) favorites")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.spacingS)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-            .padding(.horizontal, .spacingS)
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Information Section
-    //#################################################################################
-
-    private var informationSection: some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Information")
-
-            VStack(spacing: 0) {
-                ForEach(Array(viewModel.informationItems.enumerated()), id: \.offset) { index, item in
-                    HStack {
-                        Text(item.key)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text(item.value)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.vertical, .spacingXS)
-                    .padding(.horizontal, .spacingS)
-
-                    if index < viewModel.informationItems.count - 1 {
-                        Divider()
-                            .padding(.leading, .spacingS)
-                    }
-                }
-            }
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-            .padding(.horizontal, .spacingS)
-        }
-        .padding(.top, .spacingS)
     }
 
 
@@ -452,223 +256,6 @@ struct AnimeDetailView: View {
                 }
                 .padding(.horizontal, .spacingS)
             }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Synopsis Section
-    //#################################################################################
-
-    private func synopsisSection(synopsis: String) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Synopsis")
-
-            VStack(alignment: .leading, spacing: .spacingXS) {
-                Text(synopsis)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(viewModel.isSynopsisExpanded ? nil : 4)
-                    .background {
-                        GeometryReader { visibleGeometry in
-                            Color.clear
-                                .overlay {
-                                    Text(synopsis)
-                                        .font(.body)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .background {
-                                            GeometryReader { fullGeometry in
-                                                Color.clear.onAppear {
-                                                    isSynopsisTruncated = fullGeometry.size.height > visibleGeometry.size.height
-                                                }
-                                                .onChange(of: viewModel.isSynopsisExpanded) { _, _ in
-                                                    isSynopsisTruncated = fullGeometry.size.height > visibleGeometry.size.height
-                                                }
-                                            }
-                                        }
-                                        .hidden()
-                                }
-                        }
-                    }
-
-                if isSynopsisTruncated || viewModel.isSynopsisExpanded {
-                    Button(viewModel.isSynopsisExpanded ? "Show Less" : "Read More") {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewModel.isSynopsisExpanded.toggle()
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.accent)
-                }
-            }
-            .padding(.horizontal, .spacingS)
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Genres Section
-    //#################################################################################
-
-    private func genresSection(genres: [String]) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Genres")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: .spacingXS) {
-                    ForEach(genres, id: \.self) { genre in
-                        Text(genre)
-                            .font(.subheadline)
-                            .padding(.horizontal, .spacingS)
-                            .padding(.vertical, .spacingXS)
-                            .background(Color.highlight.opacity(0.15))
-                            .foregroundStyle(.highlight)
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Characters Section
-    //#################################################################################
-
-    private var charactersSection: some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Characters")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: .spacingS) {
-                    ForEach(viewModel.mainCharacters + viewModel.supportingCharacters) { character in
-                        CharacterCard(character: character)
-                    }
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Relations Section
-    //#################################################################################
-
-    private func relationsSection(relations: [AniListRelation]) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Related")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: .spacingS) {
-                    ForEach(relations) { relation in
-                        NavigationLink {
-                            AnimeDetailView(viewModel: viewModel.makeRelatedAnimeDetailViewModel(relation: relation))
-                        } label: {
-                            RelationCard(relation: relation)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Recommendations Section
-    //#################################################################################
-
-    private func recommendationsSection(recommendations: [AniListRecommendation]) -> some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "You Might Also Like")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: .spacingS) {
-                    ForEach(recommendations) { rec in
-                        NavigationLink {
-                            AnimeDetailView(viewModel: viewModel.makeRecommendationDetailViewModel(recommendation: rec))
-                        } label: {
-                            RecommendationCard(recommendation: rec)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Streaming Links Section
-    //#################################################################################
-
-    private var streamingLinksSection: some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Watch On")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: .spacingS) {
-                    ForEach(viewModel.streamingLinks) { link in
-                        Link(destination: link.url) {
-                            HStack(spacing: .spacingXS) {
-                                if let iconURL = link.icon {
-                                    KFImage(iconURL)
-                                        .resizable()
-                                        .placeholder {
-                                            Image(systemName: "play.rectangle.fill")
-                                        }
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 20, height: 20)
-                                } else {
-                                    Image(systemName: "play.rectangle.fill")
-                                }
-
-                                Text(link.site)
-                                    .font(.subheadline)
-                            }
-                            .padding(.horizontal, .spacingS)
-                            .padding(.vertical, .spacingXS)
-                            .background(Color.secondary.opacity(0.15))
-                            .clipShape(Capsule())
-                        }
-                    }
-                }
-                .padding(.horizontal, .spacingS)
-            }
-        }
-        .padding(.top, .spacingS)
-    }
-
-
-    //#################################################################################
-    // MARK: - Tags Section
-    //#################################################################################
-
-    private var tagsSection: some View {
-        VStack(alignment: .leading, spacing: .spacingXS) {
-            SectionHeader(title: "Tags")
-
-            FlowLayout(spacing: .spacingXS) {
-                ForEach(viewModel.displayTags) { tag in
-                    Text(tag.name)
-                        .font(.caption)
-                        .padding(.horizontal, .spacingXS)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.15))
-                        .clipShape(Capsule())
-                }
-            }
-            .padding(.horizontal, .spacingS)
         }
         .padding(.top, .spacingS)
     }
