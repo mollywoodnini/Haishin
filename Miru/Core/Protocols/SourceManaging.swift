@@ -44,6 +44,10 @@ protocol SourceManaging: AnyObject {
     ///   - source: The source info to install.
     ///   - repository: The repository containing the source.
     func installSource(_ source: SourceInfo, from repository: SourceRepository) async throws
+    
+    /// Installs a source from a URL string.
+    /// - Parameter urlString: The URL to the source JavaScript file.
+    func installSource(fromURL urlString: String) async throws
 
     /// Uninstalls a source.
     /// - Parameter sourceId: The source ID to uninstall.

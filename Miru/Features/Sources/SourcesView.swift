@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// View for managing anime sources.
 struct SourcesView: View {
@@ -16,7 +17,10 @@ struct SourcesView: View {
 
     @State private var viewModel: SourcesViewModel
     @State private var showingAddRepository = false
+    @State private var showingInstallFromURL = false
+    @State private var showingFilePicker = false
     @State private var repositoryURL = ""
+    @State private var sourceURL = ""
 
 
     //#################################################################################
@@ -46,8 +50,25 @@ struct SourcesView: View {
             .navigationTitle("Sources")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAddRepository = true
+                    Menu {
+                        Button {
+                            showingAddRepository = true
+                        } label: {
+                            Label("Add Repository", systemImage: "plus.rectangle.on.folder")
+                        }
+                        
+                        Button {
+                            showingInstallFromURL = true
+                        } label: {
+                            Label("Install from URL", systemImage: "link.badge.plus")
+                        }
+                        
+                        Button {
+                            showingFilePicker = true
+                        } label: {
+                            Label("Install from Files", systemImage: "doc.badge.plus")
+                        }
+                        
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -57,7 +78,6 @@ struct SourcesView: View {
                 TextField("Repository URL", text: $repositoryURL)
                     .textContentType(.URL)
                     .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
 
                 Button("Cancel", role: .cancel) {
                     repositoryURL = ""
@@ -71,6 +91,45 @@ struct SourcesView: View {
                 }
             } message: {
                 Text("Enter the URL of a source repository.")
+            }
+            .alert("Install from URL", isPresented: $showingInstallFromURL) {
+                TextField("Source URL", text: $sourceURL)
+                    .textContentType(.URL)
+                    .autocorrectionDisabled()
+
+                Button("Cancel", role: .cancel) {
+                    sourceURL = ""
+                }
+
+                Button("Install") {
+                    Task {
+                        await viewModel.installSourceFromURL(urlString: sourceURL)
+                        sourceURL = ""
+                    }
+                }
+            } message: {
+                Text("Enter the URL to a source JavaScript file.")
+            }
+            .fileImporter(isPresented: $showingFilePicker,
+                          allowedContentTypes: [.javaScript],
+                          allowsMultipleSelection: false) { result in
+                print("[SourcesView] File picker result received")
+                switch result {
+                case .success(let urls):
+                    print("[SourcesView] Success with \(urls.count) URLs")
+                    guard let url = urls.first else {
+                        print("[SourcesView] No URL in array")
+                        return
+                    }
+                    
+                    print("[SourcesView] Selected file: \(url)")
+                    
+                    Task {
+                        await viewModel.installSourceFromFile(fileURL: url)
+                    }
+                case .failure(let error):
+                    print("[SourcesView] File picker failed: \(error)")
+                }
             }
         }
     }

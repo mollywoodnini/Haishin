@@ -66,6 +66,49 @@ final class SourcesViewModel {
             self.error = error
         }
     }
+    
+    /// Installs a source from a direct URL.
+    /// - Parameter urlString: The URL to the source JavaScript file.
+    func installSourceFromURL(urlString: String) async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            try await sourceManager.installSource(fromURL: urlString)
+        } catch {
+            self.error = error
+        }
+    }
+    
+    /// Installs a source from a local file.
+    /// - Parameter fileURL: The file URL to the source JavaScript file.
+    func installSourceFromFile(fileURL: URL) async {
+        print("[SourcesViewModel] Installing from file: \(fileURL)")
+        print("[SourcesViewModel] File path: \(fileURL.path)")
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            // Start accessing the security-scoped resource
+            let accessing = fileURL.startAccessingSecurityScopedResource()
+            defer {
+                if accessing {
+                    fileURL.stopAccessingSecurityScopedResource()
+                }
+            }
+            
+            print("[SourcesViewModel] Security scoped access: \(accessing)")
+            
+            // Use the file path directly
+            try await sourceManager.installSource(fromURL: fileURL.path)
+            
+            print("[SourcesViewModel] Installation successful!")
+        } catch {
+            print("[SourcesViewModel] Installation failed: \(error)")
+            self.error = error
+        }
+    }
 
     /// Installs a source from a repository.
     /// - Parameters:

@@ -131,36 +131,70 @@ final class SourceManager: SourceManaging {
     }
     
     /// Installs a source from a URL string.
-    /// - Parameter urlString: The URL to the source JavaScript file.
+    /// - Parameter urlString: The URL to the source JavaScript file (can be HTTP/HTTPS or file:// URL).
     func installSource(fromURL urlString: String) async throws {
-        guard let url = URL(string: urlString) else {
-            throw SourceError.invalidScript
+        print("[SourceManager] Installing source from: \(urlString)")
+        
+        let script: String
+        
+        // Handle file:// URLs and local paths
+        if urlString.hasPrefix("file://") || urlString.hasPrefix("/") {
+            print("[SourceManager] Handling as local file")
+            let fileURL: URL
+            if urlString.hasPrefix("file://") {
+                guard let url = URL(string: urlString) else {
+                    print("[SourceManager] Failed to create URL from file:// string")
+                    throw SourceError.invalidScript
+                }
+                fileURL = url
+            } else {
+                fileURL = URL(fileURLWithPath: urlString)
+            }
+            
+            print("[SourceManager] Reading file at: \(fileURL.path)")
+            script = try String(contentsOf: fileURL, encoding: .utf8)
+            print("[SourceManager] Successfully read \(script.count) characters")
+        } else {
+            print("[SourceManager] Handling as remote URL")
+            // Handle HTTP/HTTPS URLs
+            guard let url = URL(string: urlString) else {
+                throw SourceError.invalidScript
+            }
+            
+            let scriptData = try await networkClient.fetch(url: url)
+            
+            guard let scriptString = String(data: scriptData, encoding: .utf8) else {
+                throw SourceError.invalidScript
+            }
+            script = scriptString
         }
         
-        let scriptData = try await networkClient.fetch(url: url)
-        
-        guard let script = String(data: scriptData, encoding: .utf8) else {
-            throw SourceError.invalidScript
-        }
-        
+        print("[SourceManager] Loading script into temporary runtime")
         // Extract source ID from the script by creating a temporary runtime
         let tempRuntime = try JSRuntime(networkClient: networkClient)
         let tempId = UUID().uuidString
         try await tempRuntime.loadSource(script: script, sourceId: tempId)
         let info = try await tempRuntime.getSourceInfo(sourceId: tempId)
         
+        print("[SourceManager] Source info: \(info.name) v\(info.version)")
+        
         // Check if already installed
         if installedSources.contains(where: { $0.id == info.id }) {
+            print("[SourceManager] Source already installed")
             throw SourceError.alreadyInstalled
         }
         
         // Save the script
         let localPath = sourcesDirectory.appendingPathComponent("\(info.id).js")
+        print("[SourceManager] Saving to: \(localPath.path)")
         try script.write(to: localPath, atomically: true, encoding: .utf8)
         
         // Load the source
+        print("[SourceManager] Loading source into runtime")
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
+        
+        print("[SourceManager] Installation complete!")
     }
 
     /// Uninstalls a source.
@@ -187,10 +221,13 @@ final class SourceManager: SourceManaging {
     ///   - page: Page number.
     /// - Returns: List of anime previews.
     func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        let result = try await jsRuntime?.callFunction(sourceId: sourceId,
-                                                       function: "getPopular",
-                                                       arguments: [page])
-        return try parseAnimeList(from: result, sourceId: sourceId)
+        // For JavaScript sources, getFeatured() maps to getPopular
+        guard let jsSource = jsSources[sourceId] else {
+            throw SourceError.sourceNotFound
+        }
+        
+        let featured = try await jsSource.getFeatured()
+        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
     }
 
     /// Gets the latest anime from a source.
@@ -199,10 +236,14 @@ final class SourceManager: SourceManaging {
     ///   - page: Page number.
     /// - Returns: List of anime previews.
     func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        let result = try await jsRuntime?.callFunction(sourceId: sourceId,
-                                                       function: "getLatest",
-                                                       arguments: [page])
-        return try parseAnimeList(from: result, sourceId: sourceId)
+        // For JavaScript sources, we use getFeatured() for both popular and latest
+        // Individual sources can differentiate in their implementation
+        guard let jsSource = jsSources[sourceId] else {
+            throw SourceError.sourceNotFound
+        }
+        
+        let featured = try await jsSource.getFeatured()
+        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
     }
 
     /// Searches for anime in a source.
@@ -212,10 +253,12 @@ final class SourceManager: SourceManaging {
     ///   - page: Page number.
     /// - Returns: List of matching anime previews.
     func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview] {
-        let result = try await jsRuntime?.callFunction(sourceId: sourceId,
-                                                       function: "search",
-                                                       arguments: [query, page])
-        return try parseAnimeList(from: result, sourceId: sourceId)
+        guard let jsSource = jsSources[sourceId] else {
+            throw SourceError.sourceNotFound
+        }
+        
+        let searchResult = try await jsSource.search(query: query, page: page)
+        return searchResult.results.map { convertToAnimePreview($0, sourceId: sourceId) }
     }
 
     /// Gets full anime details.
@@ -224,10 +267,19 @@ final class SourceManager: SourceManaging {
     ///   - url: The anime details URL.
     /// - Returns: Full anime information.
     func getAnimeDetails(sourceId: String, url: String) async throws -> Anime {
-        let result = try await jsRuntime?.callFunction(sourceId: sourceId,
-                                                       function: "getAnimeDetails",
-                                                       arguments: [url])
-        return try parseAnime(from: result, sourceId: sourceId)
+        guard let jsSource = jsSources[sourceId] else {
+            throw SourceError.sourceNotFound
+        }
+        
+        guard let animeUrl = URL(string: url) else {
+            throw SourceError.invalidResponse
+        }
+        
+        // Extract anime ID from URL (typically the last path component)
+        let animeId = animeUrl.lastPathComponent
+        
+        let details = try await jsSource.getAnimeDetails(animeId: animeId, animeUrl: animeUrl)
+        return try convertToAnime(details, sourceId: sourceId, detailsURL: url)
     }
 
     /// Gets video sources for an episode.
@@ -236,10 +288,25 @@ final class SourceManager: SourceManaging {
     ///   - url: The episode URL.
     /// - Returns: Playback information.
     func getVideoSources(sourceId: String, url: String) async throws -> PlaybackInfo {
-        let result = try await jsRuntime?.callFunction(sourceId: sourceId,
-                                                       function: "getVideoSources",
-                                                       arguments: [url])
-        return try parsePlaybackInfo(from: result)
+        guard let jsSource = jsSources[sourceId] else {
+            throw SourceError.sourceNotFound
+        }
+        
+        guard let episodeUrl = URL(string: url) else {
+            throw SourceError.invalidResponse
+        }
+        
+        // Extract episode ID from URL
+        let episodeId = episodeUrl.lastPathComponent
+        
+        // For now, use the first available server (in a real app, let user choose)
+        // We'll need to get anime details first to know available servers
+        // For simplicity, we'll use "default" as server name
+        let streams = try await jsSource.getEpisodeStreams(episodeId: episodeId,
+                                                            episodeUrl: episodeUrl,
+                                                            server: "default")
+        
+        return try convertToPlaybackInfo(streams, episodeId: episodeId)
     }
 
 
@@ -279,151 +346,107 @@ final class SourceManager: SourceManaging {
                                installedAt: installedAt)
     }
 
-    private func parseAnimeList(from result: Any?, sourceId: String) throws -> [AnimePreview] {
-        guard let array = result as? [[String: Any]] else {
-            throw SourceError.invalidResponse
-        }
-
-        return array.compactMap { dict -> AnimePreview? in
-            guard let id = dict["id"] as? String,
-                  let title = dict["title"] as? String,
-                  let detailsURL = dict["url"] as? String else {
-                return nil
-            }
-
-            let coverURL: URL?
-            if let coverString = dict["cover"] as? String {
-                coverURL = URL(string: coverString)
-            } else {
-                coverURL = nil
-            }
-
-            return AnimePreview(id: id,
-                                title: title,
-                                coverURL: coverURL,
-                                sourceId: sourceId,
-                                detailsURL: detailsURL)
-        }
+    // MARK: - Conversion Methods
+    
+    /// Converts a JSAnimePreview to AnimePreview
+    private func convertToAnimePreview(_ jsPreview: JSAnimePreview, sourceId: String) -> AnimePreview {
+        return AnimePreview(id: jsPreview.id,
+                            title: jsPreview.title,
+                            coverURL: URL(string: jsPreview.coverUrl),
+                            sourceId: sourceId,
+                            detailsURL: jsPreview.url)
     }
-
-    private func parseAnime(from result: Any?, sourceId: String) throws -> Anime {
-        guard let dict = result as? [String: Any],
-              let id = dict["id"] as? String,
-              let title = dict["title"] as? String,
-              let detailsURL = dict["url"] as? String else {
-            throw SourceError.invalidResponse
-        }
-
-        let coverURL: URL?
-        if let coverString = dict["cover"] as? String {
-            coverURL = URL(string: coverString)
-        } else {
-            coverURL = nil
-        }
-
-        let bannerURL: URL?
-        if let bannerString = dict["banner"] as? String {
-            bannerURL = URL(string: bannerString)
-        } else {
-            bannerURL = nil
-        }
-
+    
+    /// Converts JSAnimeDetails to Anime
+    private func convertToAnime(_ jsDetails: JSAnimeDetails,
+                                sourceId: String,
+                                detailsURL: String) throws -> Anime {
+        // Convert episodes from server-grouped to flat list
+        // For now, use the first available server's episodes
         let episodes: [Episode]
-        if let episodeArray = dict["episodes"] as? [[String: Any]] {
-            episodes = episodeArray.compactMap { parseEpisode(from: $0) }
+        if let firstServerEpisodes = jsDetails.episodes.values.first {
+            episodes = firstServerEpisodes.map { convertToEpisode($0) }
         } else {
             episodes = []
         }
-
-        let statusString = dict["status"] as? String ?? "unknown"
-        let status = AiringStatus(rawValue: statusString) ?? .unknown
-
-        return Anime(id: id,
-                     title: title,
-                     alternativeTitles: dict["alternativeTitles"] as? [String] ?? [],
-                     coverURL: coverURL,
-                     bannerURL: bannerURL,
-                     synopsis: dict["synopsis"] as? String,
-                     genres: dict["genres"] as? [String] ?? [],
+        
+        // Convert status
+        let status: AiringStatus
+        switch jsDetails.status {
+        case .ongoing:
+            status = .ongoing
+        case .completed:
+            status = .completed
+        case .upcoming:
+            status = .upcoming
+        case .unknown:
+            status = .unknown
+        }
+        
+        return Anime(id: jsDetails.id,
+                     title: jsDetails.title,
+                     alternativeTitles: jsDetails.englishTitle.map { [$0] } ?? [],
+                     coverURL: URL(string: jsDetails.coverUrl),
+                     bannerURL: nil, // JS sources don't typically provide banner
+                     synopsis: jsDetails.synopsis,
+                     genres: jsDetails.genres,
                      status: status,
-                     year: dict["year"] as? Int,
-                     rating: dict["rating"] as? String,
+                     year: extractYear(from: jsDetails.releaseDate),
+                     rating: jsDetails.rating.map { String(format: "%.1f", $0) },
                      sourceId: sourceId,
                      detailsURL: detailsURL,
                      episodes: episodes)
     }
-
-    private func parseEpisode(from dict: [String: Any]) -> Episode? {
-        guard let id = dict["id"] as? String,
-              let number = dict["number"] as? String,
-              let url = dict["url"] as? String else {
-            return nil
-        }
-
-        let thumbnailURL: URL?
-        if let thumbString = dict["thumbnail"] as? String {
-            thumbnailURL = URL(string: thumbString)
-        } else {
-            thumbnailURL = nil
-        }
-
-        return Episode(id: id,
-                       number: number,
-                       title: dict["title"] as? String,
-                       thumbnailURL: thumbnailURL,
-                       url: url,
-                       duration: dict["duration"] as? TimeInterval)
+    
+    /// Converts SourceEpisode to Episode
+    private func convertToEpisode(_ jsEpisode: SourceEpisode) -> Episode {
+        return Episode(id: jsEpisode.id,
+                       number: String(jsEpisode.number),
+                       title: jsEpisode.title,
+                       thumbnailURL: nil, // JS sources don't typically provide thumbnails
+                       url: jsEpisode.url,
+                       duration: nil)
     }
-
-    private func parsePlaybackInfo(from result: Any?) throws -> PlaybackInfo {
-        guard let dict = result as? [String: Any],
-              let episodeId = dict["episodeId"] as? String else {
-            throw SourceError.invalidResponse
+    
+    /// Converts JSEpisodeStream to PlaybackInfo
+    private func convertToPlaybackInfo(_ jsStream: JSEpisodeStream, episodeId: String) throws -> PlaybackInfo {
+        let videoSources = jsStream.streams.map { stream -> VideoSource in
+            VideoSource(id: UUID().uuidString,
+                        serverName: "Default",
+                        quality: stream.quality,
+                        url: URL(string: stream.url)!,
+                        headers: nil,
+                        requiresExtraction: false)
         }
-
-        let sources: [VideoSource]
-        if let sourceArray = dict["sources"] as? [[String: Any]] {
-            sources = sourceArray.compactMap { parseVideoSource(from: $0) }
-        } else {
-            sources = []
-        }
-
-        let subtitles: [Subtitle]
-        if let subArray = dict["subtitles"] as? [[String: Any]] {
-            subtitles = subArray.compactMap { parseSubtitle(from: $0) }
-        } else {
-            subtitles = []
-        }
-
-        return PlaybackInfo(episodeId: episodeId, sources: sources, subtitles: subtitles)
+        
+        let subtitles = jsStream.subtitles?.map { sub -> Subtitle in
+            Subtitle(id: UUID().uuidString,
+                     language: sub.language,
+                     label: sub.label ?? sub.language,
+                     url: URL(string: sub.url)!)
+        } ?? []
+        
+        return PlaybackInfo(episodeId: episodeId,
+                            sources: videoSources,
+                            subtitles: subtitles)
     }
-
-    private func parseVideoSource(from dict: [String: Any]) -> VideoSource? {
-        guard let id = dict["id"] as? String,
-              let serverName = dict["server"] as? String,
-              let urlString = dict["url"] as? String,
-              let url = URL(string: urlString) else {
-            return nil
+    
+    /// Extracts year from ISO 8601 date string
+    private func extractYear(from dateString: String?) -> Int? {
+        guard let dateString = dateString else { return nil }
+        
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: dateString) {
+            let calendar = Calendar.current
+            return calendar.component(.year, from: date)
         }
-
-        return VideoSource(id: id,
-                           serverName: serverName,
-                           quality: dict["quality"] as? String,
-                           url: url,
-                           headers: dict["headers"] as? [String: String],
-                           requiresExtraction: dict["requiresExtraction"] as? Bool ?? false)
-    }
-
-    private func parseSubtitle(from dict: [String: Any]) -> Subtitle? {
-        guard let id = dict["id"] as? String,
-              let language = dict["language"] as? String,
-              let label = dict["label"] as? String,
-              let urlString = dict["url"] as? String,
-              let url = URL(string: urlString) else {
-            return nil
+        
+        // Fallback: try to extract year from string (e.g., "2023-01-01")
+        if let year = Int(dateString.prefix(4)) {
+            return year
         }
-
-        return Subtitle(id: id, language: language, label: label, url: url)
+        
+        return nil
     }
 }
 

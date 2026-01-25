@@ -77,18 +77,28 @@ actor JSRuntime {
     ///   - script: The JavaScript source code.
     ///   - sourceId: Unique identifier for the source.
     func loadSource(script: String, sourceId: String) throws {
+        print("[JSRuntime] Loading source with ID: \(sourceId)")
+        print("[JSRuntime] Script length: \(script.count) characters")
+        
         context.evaluateScript(script)
+        
+        print("[JSRuntime] Script evaluated")
 
         if let exception = context.exception {
+            print("[JSRuntime] JavaScript exception: \(exception.toString() ?? "unknown")")
             throw JSError.scriptLoadFailed(exception.toString() ?? "Unknown error")
         }
 
+        print("[JSRuntime] Checking for 'source' object in global context")
         guard let sourceObject = context.objectForKeyedSubscript("source"),
               !sourceObject.isUndefined else {
+            print("[JSRuntime] ERROR: No 'source' object found!")
             throw JSError.scriptLoadFailed("No 'source' object exported from script")
         }
-
+        
+        print("[JSRuntime] Found source object: \(sourceObject)")
         loadedSources[sourceId] = sourceObject
+        print("[JSRuntime] Source loaded successfully")
     }
 
     /// Calls a function on a loaded source.
@@ -175,15 +185,23 @@ actor JSRuntime {
     /// - Parameter sourceId: The source identifier.
     /// - Returns: The source info.
     func getSourceInfo(sourceId: String) throws -> SourceInfo {
+        print("[JSRuntime] Getting source info for: \(sourceId)")
+        
         guard let source = loadedSources[sourceId] else {
+            print("[JSRuntime] ERROR: Source not found in loadedSources")
             throw JSError.functionNotFound("Source '\(sourceId)' not loaded")
         }
 
+        print("[JSRuntime] Converting source to dictionary")
         guard let infoDict = source.toDictionary() as? [String: Any] else {
+            print("[JSRuntime] ERROR: Cannot convert source to dictionary")
             throw JSError.invalidResult("Cannot read source properties")
         }
 
-        return try parseSourceInfo(from: infoDict, sourceId: sourceId)
+        print("[JSRuntime] Dictionary keys: \(infoDict.keys.joined(separator: ", "))")
+        let info = try parseSourceInfo(from: infoDict, sourceId: sourceId)
+        print("[JSRuntime] Successfully parsed source info: \(info.name) v\(info.version)")
+        return info
     }
 
     /// Unloads a source from the runtime.
