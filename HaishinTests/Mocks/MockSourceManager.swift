@@ -1,12 +1,12 @@
 //
 //  MockSourceManager.swift
-//  MiruTests
+//  HaishinTests
 //
-//  Created by Miru on 24.01.26.
+//  Created by Haishin on 24.01.26.
 //
 
 import Foundation
-@testable import Miru
+@testable import Haishin
 
 /// Mock implementation of SourceManaging for testing.
 final class MockSourceManager: SourceManaging {
@@ -103,6 +103,10 @@ final class MockSourceManager: SourceManaging {
         installedSourceInfos.append(source)
     }
 
+    func installSource(fromURL urlString: String) async throws {
+        installSourceCallCount += 1
+    }
+
     func uninstallSource(sourceId: String) throws {
         uninstallSourceCallCount += 1
         uninstalledSourceIds.append(sourceId)
@@ -182,18 +186,18 @@ final class MockAniListService: AniListServicing {
     // MARK: - AniListServicing Methods
     //#################################################################################
 
-    func fetchThisWeek() async throws -> [RecommendingItem] {
+    func fetchThisWeek(showNSFW: Bool) async throws -> [RecommendingItem] {
         fetchThisWeekCallCount += 1
         return try fetchThisWeekResult.get()
     }
 
-    func fetchTrending(page: Int) async throws -> PaginatedResponse {
+    func fetchTrending(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
         fetchTrendingCallCount += 1
         fetchTrendingPages.append(page)
         return try fetchTrendingResult.get()
     }
 
-    func fetchSeasonal(page: Int) async throws -> PaginatedResponse {
+    func fetchSeasonal(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
         fetchSeasonalCallCount += 1
         fetchSeasonalPages.append(page)
         return try fetchSeasonalResult.get()
@@ -246,19 +250,24 @@ enum TestFixtures {
     static func makeAnime(id: String = "1",
                           title: String = "Test Anime",
                           sourceId: String = "test-source") -> Anime {
-        Anime(id: id,
-              title: title,
-              alternativeTitles: [],
-              coverURL: nil,
-              bannerURL: nil,
-              synopsis: "A test anime for unit testing.",
-              genres: ["Action", "Comedy"],
-              status: .ongoing,
-              year: 2024,
-              rating: "PG-13",
-              sourceId: sourceId,
-              detailsURL: "/anime/\(id)",
-              episodes: [makeEpisode()])
+        let episode = makeEpisode()
+        let episodeRange = EpisodeRange(id: "range-1",
+                                        title: "1 - 1",
+                                        episodes: [episode])
+        return Anime(id: id,
+                     title: title,
+                     alternativeTitles: [],
+                     coverURL: nil,
+                     bannerURL: nil,
+                     synopsis: "A test anime for unit testing.",
+                     genres: ["Action", "Comedy"],
+                     status: .ongoing,
+                     year: 2024,
+                     rating: "PG-13",
+                     sourceId: sourceId,
+                     detailsURL: "/anime/\(id)",
+                     episodes: [episode],
+                     episodeRanges: [episodeRange])
     }
 
     /// Creates a sample Episode for testing.

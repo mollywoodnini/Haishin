@@ -1,12 +1,12 @@
 //
 //  AnimeListViewModelTests.swift
-//  MiruTests
+//  HaishinTests
 //
-//  Created by Miru on 24.01.26.
+//  Created by Haishin on 24.01.26.
 //
 
 import Testing
-@testable import Miru
+@testable import Haishin
 
 
 @Suite("AnimeListViewModel Tests")
@@ -14,75 +14,69 @@ import Testing
 struct AnimeListViewModelTests {
 
     //#################################################################################
+    // MARK: - Helper
+    //#################################################################################
+
+    /// Creates a fresh AnimeListViewModel with mocks.
+    private func makeSUT(title: String = "Trending",
+                         listType: AnimeListType = .trending,
+                         mockService: MockAniListService = MockAniListService()) -> AnimeListViewModel {
+        AnimeListViewModel(title: title,
+                           listType: listType,
+                           aniListService: mockService,
+                           userPreferences: UserPreferences())
+    }
+
+
+    //#################################################################################
     // MARK: - Initialization Tests
     //#################################################################################
 
     @Test("On initialization, title is set")
     func onInitialization_titleIsSet() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(title: "Trending")
 
         #expect(sut.title == "Trending")
     }
 
     @Test("On initialization, listType is set")
     func onInitialization_listTypeIsSet() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(listType: .trending)
 
         #expect(sut.listType == .trending)
     }
 
     @Test("On initialization, items is empty")
     func onInitialization_itemsIsEmpty() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT()
 
         #expect(sut.items.isEmpty)
     }
 
     @Test("On initialization, isLoading is false")
     func onInitialization_isLoadingIsFalse() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT()
 
         #expect(sut.isLoading == false)
     }
 
     @Test("On initialization, isLoadingMore is false")
     func onInitialization_isLoadingMoreIsFalse() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT()
 
         #expect(sut.isLoadingMore == false)
     }
 
     @Test("On initialization, hasMorePages is true")
     func onInitialization_hasMorePagesIsTrue() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT()
 
         #expect(sut.hasMorePages == true)
     }
 
     @Test("On initialization, error is nil")
     func onInitialization_errorIsNil() {
-        let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT()
 
         #expect(sut.error == nil)
     }
@@ -95,9 +89,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent calls AniList service")
     func loadInitialContent_callsAniListService() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         let items = [TestFixtures.makeRecommendingItem()]
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: items,
@@ -113,9 +105,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent with seasonal type calls fetchSeasonal")
     func loadInitialContent_withSeasonalType_callsFetchSeasonal() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Seasonal",
-                                      listType: .seasonal,
-                                      aniListService: mockService)
+        let sut = makeSUT(title: "Seasonal", listType: .seasonal, mockService: mockService)
 
         let items = [TestFixtures.makeRecommendingItem()]
         mockService.fetchSeasonalResult = .success(PaginatedResponse(items: items,
@@ -131,9 +121,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent on success populates items")
     func loadInitialContent_onSuccess_populatesItems() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         let item1 = TestFixtures.makeRecommendingItem(id: "1", title: "Anime 1")
         let item2 = TestFixtures.makeRecommendingItem(id: "2", title: "Anime 2")
@@ -151,9 +139,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent on success sets hasMorePages")
     func loadInitialContent_onSuccess_setsHasMorePages() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [],
                                                                       hasNextPage: false,
@@ -167,9 +153,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent on success sets isLoading to false")
     func loadInitialContent_onSuccess_setsIsLoadingToFalse() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [],
                                                                       hasNextPage: false,
@@ -183,9 +167,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent on error sets error")
     func loadInitialContent_onError_setsError() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .failure(MockError.testError)
 
@@ -197,9 +179,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent on error sets isLoading to false")
     func loadInitialContent_onError_setsIsLoadingToFalse() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .failure(MockError.testError)
 
@@ -211,9 +191,7 @@ struct AnimeListViewModelTests {
     @Test("loadInitialContent when items exist does not load")
     func loadInitialContent_whenItemsExist_doesNotLoad() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -234,9 +212,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore calls AniList service with next page")
     func loadMore_callsAniListServiceWithNextPage() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -252,9 +228,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore appends items to existing")
     func loadMore_appendsItemsToExisting() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         let item1 = TestFixtures.makeRecommendingItem(id: "1", title: "Anime 1")
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [item1],
@@ -277,9 +251,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore updates hasMorePages")
     func loadMore_updatesHasMorePages() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -298,9 +270,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore when no more pages does not load")
     func loadMore_whenNoMorePages_doesNotLoad() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: false,
@@ -316,9 +286,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore on error sets error")
     func loadMore_onError_setsError() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -334,9 +302,7 @@ struct AnimeListViewModelTests {
     @Test("loadMore on error sets isLoadingMore to false")
     func loadMore_onError_setsIsLoadingMoreToFalse() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -357,9 +323,7 @@ struct AnimeListViewModelTests {
     @Test("loadMoreIfNeeded when near end loads more")
     func loadMoreIfNeeded_whenNearEnd_loadsMore() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         var items: [RecommendingItem] = []
         for i in 1...6 {
@@ -380,9 +344,7 @@ struct AnimeListViewModelTests {
     @Test("loadMoreIfNeeded when not near end does not load")
     func loadMoreIfNeeded_whenNotNearEnd_doesNotLoad() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         var items: [RecommendingItem] = []
         for i in 1...10 {
@@ -403,9 +365,7 @@ struct AnimeListViewModelTests {
     @Test("loadMoreIfNeeded with non-existent item does not load")
     func loadMoreIfNeeded_withNonExistentItem_doesNotLoad() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,
@@ -427,9 +387,7 @@ struct AnimeListViewModelTests {
     @Test("refresh clears items and reloads")
     func refresh_clearsItemsAndReloads() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem(id: "1")],
                                                                       hasNextPage: false,
@@ -451,9 +409,7 @@ struct AnimeListViewModelTests {
     @Test("refresh resets hasMorePages")
     func refresh_resetsHasMorePages() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: false,
@@ -472,9 +428,7 @@ struct AnimeListViewModelTests {
     @Test("refresh clears error")
     func refresh_clearsError() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .failure(MockError.testError)
         await sut.loadInitialContent()
@@ -491,9 +445,7 @@ struct AnimeListViewModelTests {
     @Test("refresh resets page to one")
     func refresh_resetsPageToOne() async {
         let mockService = MockAniListService()
-        let sut = AnimeListViewModel(title: "Trending",
-                                      listType: .trending,
-                                      aniListService: mockService)
+        let sut = makeSUT(mockService: mockService)
 
         mockService.fetchTrendingResult = .success(PaginatedResponse(items: [TestFixtures.makeRecommendingItem()],
                                                                       hasNextPage: true,

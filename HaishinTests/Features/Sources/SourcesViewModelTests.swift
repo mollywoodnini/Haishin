@@ -1,13 +1,13 @@
 //
 //  SourcesViewModelTests.swift
-//  MiruTests
+//  HaishinTests
 //
-//  Created by Miru on 24.01.26.
+//  Created by Haishin on 24.01.26.
 //
 
 import Foundation
 import Testing
-@testable import Miru
+@testable import Haishin
 
 
 //#################################################################################

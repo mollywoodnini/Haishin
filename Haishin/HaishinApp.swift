@@ -1,6 +1,6 @@
 //
-//  MiruApp.swift
-//  Miru
+//  HaishinApp.swift
+//  Haishin
 //
 //  Created by Tan Nghia La on 24.01.26.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct MiruApp: App {
+struct HaishinApp: App {
 
     //#################################################################################
     // MARK: - Body

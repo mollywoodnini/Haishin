@@ -68,7 +68,6 @@ struct SourcesView: View {
                         } label: {
                             Label("Install from Files", systemImage: "doc.badge.plus")
                         }
-                        
                     } label: {
                         Image(systemName: "plus")
                     }

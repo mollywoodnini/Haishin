@@ -1,12 +1,12 @@
 //
 //  BrowseViewModelTests.swift
-//  MiruTests
+//  HaishinTests
 //
-//  Created by Miru on 24.01.26.
+//  Created by Haishin on 24.01.26.
 //
 
 import Testing
-@testable import Miru
+@testable import Haishin
 
 
 //#################################################################################
@@ -18,25 +18,32 @@ import Testing
 struct BrowseViewModelTests {
 
     //#################################################################################
+    // MARK: - Helper
+    //#################################################################################
+
+    /// Creates a fresh BrowseViewModel with mocks.
+    private func makeSUT(mockSourceManager: MockSourceManager = MockSourceManager(),
+                         mockAniListService: MockAniListService = MockAniListService()) -> BrowseViewModel {
+        BrowseViewModel(sourceManager: mockSourceManager,
+                        aniListService: mockAniListService,
+                        userPreferences: UserPreferences())
+    }
+
+
+    //#################################################################################
     // MARK: - Initialization Tests
     //#################################################################################
 
     @Test("On initialization, sections are initialized")
     func initialization_sectionsAreInitialized() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         #expect(sut.sections.count == 3)
     }
 
     @Test("On initialization, sections have correct IDs")
     func initialization_sectionsHaveCorrectIds() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         let sectionIds = sut.sections.map { $0.id }
         #expect(sectionIds.contains("this-week") == true)
@@ -46,10 +53,7 @@ struct BrowseViewModelTests {
 
     @Test("On initialization, sections have correct titles")
     func initialization_sectionsHaveCorrectTitles() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         let titles = sut.sections.map { $0.title }
         #expect(titles.contains("This Week") == true)
@@ -59,10 +63,7 @@ struct BrowseViewModelTests {
 
     @Test("On initialization, sections have correct styles")
     func initialization_sectionsHaveCorrectStyles() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         let thisWeekSection = sut.sections.first { $0.id == "this-week" }
         let trendingSection = sut.sections.first { $0.id == "trending" }
@@ -75,10 +76,7 @@ struct BrowseViewModelTests {
 
     @Test("On initialization, sections are empty")
     func initialization_sectionsAreEmpty() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         for section in sut.sections {
             #expect(section.items.isEmpty == true)
@@ -87,20 +85,14 @@ struct BrowseViewModelTests {
 
     @Test("On initialization, isLoading is false")
     func initialization_isLoadingIsFalse() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         #expect(sut.isLoading == false)
     }
 
     @Test("On initialization, error is nil")
     func initialization_errorIsNil() {
-        let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT()
 
         #expect(sut.error == nil)
     }
@@ -113,9 +105,7 @@ struct BrowseViewModelTests {
     @Test("installedSources returns source manager sources")
     func installedSources_returnsSourceManagerSources() {
         let mockSourceManager = MockSourceManager()
-        let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockSourceManager: mockSourceManager)
 
         // Given
         let source = TestFixtures.makeInstalledSource()
@@ -133,10 +123,8 @@ struct BrowseViewModelTests {
 
     @Test("loadContent calls all AniList service methods")
     func loadContent_callsAllAniListServiceMethods() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
@@ -154,10 +142,8 @@ struct BrowseViewModelTests {
 
     @Test("loadContent populates sections")
     func loadContent_populatesSections() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given
         let thisWeekItem = TestFixtures.makeRecommendingItem(id: "1", title: "This Week Anime")
@@ -188,10 +174,8 @@ struct BrowseViewModelTests {
 
     @Test("loadContent sets loading state to loaded")
     func loadContent_setsLoadingStateToLoaded() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
@@ -209,10 +193,8 @@ struct BrowseViewModelTests {
 
     @Test("loadContent sets loading state to failed on error")
     func loadContent_setsLoadingStateToFailedOnError() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given
         mockAniListService.fetchThisWeekResult = .failure(MockError.testError)
@@ -229,10 +211,8 @@ struct BrowseViewModelTests {
 
     @Test("loadContent when already loading does not load again")
     func loadContent_whenAlreadyLoading_doesNotLoadAgain() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given
         mockAniListService.fetchThisWeekResult = .success([])
@@ -256,10 +236,8 @@ struct BrowseViewModelTests {
 
     @Test("refresh resets and reloads sections")
     func refresh_resetsAndReloadsSections() async {
-        let mockSourceManager = MockSourceManager()
         let mockAniListService = MockAniListService()
-        let sut = BrowseViewModel(sourceManager: mockSourceManager,
-                                  aniListService: mockAniListService)
+        let sut = makeSUT(mockAniListService: mockAniListService)
 
         // Given - Load initial content
         mockAniListService.fetchThisWeekResult = .success([TestFixtures.makeRecommendingItem()])
