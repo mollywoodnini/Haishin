@@ -5,7 +5,6 @@
 //  Created by Miru on 24.01.26.
 //
 
-import Kingfisher
 import SwiftUI
 
 
@@ -80,24 +79,7 @@ struct EpisodeListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        showingSourcePicker = true
-                    } label: {
-                        Label("Change Source", systemImage: "arrow.triangle.2.circlepath")
-                    }
-
-                    Divider()
-
-                    Button {
-                        viewModel.toggleSubscription()
-                    } label: {
-                        Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
-                              systemImage: viewModel.isSubscribed ? "bell.slash" : "bell")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
+                toolbarMenu
             }
         }
         .sheet(isPresented: $showingSourcePicker) {
@@ -124,8 +106,29 @@ struct EpisodeListView: View {
 
 
     //#################################################################################
-    // MARK: - Loading View
+    // MARK: - Private Views
     //#################################################################################
+
+    private var toolbarMenu: some View {
+        Menu {
+            Button {
+                showingSourcePicker = true
+            } label: {
+                Label("Change Source", systemImage: "arrow.triangle.2.circlepath")
+            }
+
+            Divider()
+
+            Button {
+                viewModel.toggleSubscription()
+            } label: {
+                Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
+                      systemImage: viewModel.isSubscribed ? "bell.slash" : "bell")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+    }
 
     private var loadingView: some View {
         VStack(spacing: .spacingM) {
@@ -136,11 +139,6 @@ struct EpisodeListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
-
-    //#################################################################################
-    // MARK: - Error View
-    //#################################################################################
 
     private func errorView(error: Error) -> some View {
         let isSourceNotFound = (error as? EpisodesError) == .sourceNotFoundHint
@@ -177,20 +175,17 @@ struct EpisodeListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-
-    //#################################################################################
-    // MARK: - Episodes List View
-    //#################################################################################
-
     private func episodesListView(anime: Anime) -> some View {
         let hasMultipleRanges = anime.episodeRanges.count > 1
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
-                animeHeaderView(anime: anime)
+                EpisodeListHeaderView(anime: anime)
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: anime.episodes) {
-                    continueWatchingButton(episode: continueEpisode)
+                    ContinueWatchingButtonView(episode: continueEpisode) {
+                        selectedEpisode = continueEpisode
+                    }
                 }
 
                 if hasMultipleRanges {
@@ -208,48 +203,15 @@ struct EpisodeListView: View {
         }
     }
 
-
-    //#################################################################################
-    // MARK: - Continue Watching Button
-    //#################################################################################
-
-    private func continueWatchingButton(episode: Episode) -> some View {
-        Button {
-            selectedEpisode = episode
-        } label: {
-            HStack(spacing: .spacingM) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(Color.accentColor)
-
-                VStack(alignment: .leading, spacing: .spacingXXS) {
-                    Text("Continue Watching")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("Episode \(episode.number)")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-
-                Spacer()
-            }
-            .padding(.spacingM)
-            .background(Color(.tertiarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-        }
-        .buttonStyle(.plain)
-    }
-
-
-    //#################################################################################
-    // MARK: - Flat Episodes List View
-    //#################################################################################
-
     private func flatEpisodesListView(episodes: [Episode]) -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(episodes) { episode in
-                episodeRowView(episode: episode)
+                EpisodeRowView(episode: episode,
+                               progress: viewModel.watchProgressMap[episode.id],
+                               downloadState: viewModel.getDownloadState(for: episode.id),
+                               onTap: { selectedEpisode = episode },
+                               onDownload: { viewModel.startDownload(episode: episode) },
+                               onCancelDownload: { viewModel.cancelDownload(episodeId: episode.id) })
 
                 if episode.id != episodes.last?.id {
                     Divider()
@@ -261,273 +223,24 @@ struct EpisodeListView: View {
         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
     }
 
-
-    //#################################################################################
-    // MARK: - Anime Header View
-    //#################################################################################
-
-    private func animeHeaderView(anime: Anime) -> some View {
-        HStack(alignment: .top, spacing: .spacingM) {
-            KFImage(anime.coverURL)
-                .resizable()
-                .placeholder {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                }
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 80, height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-
-            VStack(alignment: .leading, spacing: .spacingXS) {
-                Text(anime.title)
-                    .font(.headline)
-                    .lineLimit(2)
-
-                if !anime.genres.isEmpty {
-                    Text(anime.genres.joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                Text("\(anime.episodes.count) Episode\(anime.episodes.count == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-    }
-
-
-    //#################################################################################
-    // MARK: - Episode Ranges View
-    //#################################################################################
-
     private func episodeRangesView(ranges: [EpisodeRange]) -> some View {
         LazyVStack(alignment: .leading, spacing: .spacingS) {
             ForEach(ranges) { range in
-                episodeRangeSectionView(range: range)
+                EpisodeRangeSectionView(range: range,
+                                        isExpanded: expandedRanges.contains(range.id),
+                                        watchProgressMap: viewModel.watchProgressMap,
+                                        onToggle: {
+                                            if expandedRanges.contains(range.id) {
+                                                expandedRanges.remove(range.id)
+                                            } else {
+                                                expandedRanges.insert(range.id)
+                                            }
+                                        },
+                                        getDownloadState: { viewModel.getDownloadState(for: $0) },
+                                        onEpisodeTap: { selectedEpisode = $0 },
+                                        onDownload: { viewModel.startDownload(episode: $0) },
+                                        onCancelDownload: { viewModel.cancelDownload(episodeId: $0) })
             }
         }
-    }
-
-
-    //#################################################################################
-    // MARK: - Episode Range Section View
-    //#################################################################################
-
-    private func episodeRangeSectionView(range: EpisodeRange) -> some View {
-        let isExpanded = expandedRanges.contains(range.id)
-
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    if isExpanded {
-                        expandedRanges.remove(range.id)
-                    } else {
-                        expandedRanges.insert(range.id)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(range.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    Text("\(range.episodes.count) ep")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Image(systemName: "chevron.right")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                }
-                .padding(.vertical, .spacingXS)
-                .padding(.horizontal, .spacingS)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(range.episodes) { episode in
-                        episodeRowView(episode: episode)
-
-                        if episode.id != range.episodes.last?.id {
-                            Divider()
-                                .padding(.leading, .spacingS)
-                        }
-                    }
-                }
-                .background(Color(.tertiarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
-                .padding(.top, .spacingXS)
-            }
-        }
-    }
-
-
-    //#################################################################################
-    // MARK: - Episode Row View
-    //#################################################################################
-
-    private func episodeTitle(for episode: Episode) -> String {
-        guard let title = episode.title, title != "\(episode.number)" else {
-            return "Episode \(episode.number)"
-        }
-        return title
-    }
-
-    private func episodeRowView(episode: Episode) -> some View {
-        let progress = viewModel.watchProgressMap[episode.id]
-        let downloadState = viewModel.getDownloadState(for: episode.id)
-
-        return VStack(alignment: .leading, spacing: .spacingXS) {
-            HStack(spacing: .spacingS) {
-                Text("\(episode.number)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 32)
-                    .background(Color.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
-
-                VStack(alignment: .leading, spacing: .spacingXXS) {
-                    Text(episodeTitle(for: episode))
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-
-                    if let downloadState, case .downloading(let downloadProgress) = downloadState {
-                        Text("Downloading (\(Int(downloadProgress * 100)) % complete)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else if let progress, !progress.isCompleted {
-                        Text("\(Int((1 - progress.progress) * 100)) % left")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else if downloadState == nil {
-                        Text("Start Now")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                // Download button
-                downloadButton(for: episode, downloadState: downloadState)
-
-                if let progress, progress.isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(.green)
-                }
-            }
-
-            if let downloadState, case .downloading(let downloadProgress) = downloadState {
-                ProgressBarView(progress: downloadProgress)
-            } else if let progress, !progress.isCompleted, progress.progress > 0 {
-                ProgressBarView(progress: progress.progress)
-            }
-        }
-        .padding(.horizontal, .spacingS)
-        .padding(.vertical, .spacingXS)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedEpisode = episode
-        }
-    }
-
-    @ViewBuilder
-    private func downloadButton(for episode: Episode, downloadState: DownloadState?) -> some View {
-        switch downloadState {
-        case .downloading(let progress):
-            ZStack {
-                Circle()
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                    .frame(width: 24, height: 24)
-
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                    .frame(width: 24, height: 24)
-                    .rotationEffect(.degrees(-90))
-
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 8))
-                    .foregroundStyle(Color.accentColor)
-            }
-            .onTapGesture {
-                viewModel.cancelDownload(episodeId: episode.id)
-            }
-
-        case .completed:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title3)
-                .foregroundStyle(.green)
-
-        case .pending:
-            ProgressView()
-                .frame(width: 24, height: 24)
-
-        case .failed, .cancelled, nil:
-            Button {
-                viewModel.startDownload(episode: episode)
-            } label: {
-                Image(systemName: "icloud.and.arrow.down")
-                    .font(.title3)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}
-
-
-//#################################################################################
-// MARK: - ProgressBarView
-//#################################################################################
-
-/// A simple progress bar view for displaying watch progress.
-private struct ProgressBarView: View {
-
-    //#################################################################################
-    // MARK: - Constants
-    //#################################################################################
-
-    private struct Constants {
-        static let barHeight: CGFloat = 4
-    }
-
-
-    //#################################################################################
-    // MARK: - Properties
-    //#################################################################################
-
-    let progress: Double
-
-
-    //#################################################################################
-    // MARK: - Body
-    //#################################################################################
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: Constants.barHeight / 2)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: Constants.barHeight)
-
-                RoundedRectangle(cornerRadius: Constants.barHeight / 2)
-                    .fill(Color.accentColor)
-                    .frame(width: geometry.size.width * progress, height: Constants.barHeight)
-            }
-        }
-        .frame(height: Constants.barHeight)
     }
 }
