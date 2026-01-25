@@ -19,7 +19,8 @@ struct LibraryView: View {
     // MARK: - Properties
     //#################################################################################
 
-    @State private var viewModel = LibraryViewModel()
+    @State private var viewModel = LibraryViewModel(watchProgressService: WatchProgressService.shared,
+                                                    subscriptionService: SubscriptionService.shared)
 
 
     //#################################################################################
@@ -201,9 +202,7 @@ struct RecentsListView: View {
                 List {
                     ForEach(viewModel.recentAnime) { anime in
                         NavigationLink {
-                            AnimeDetailView(animeId: anime.id,
-                                            title: anime.title,
-                                            coverURL: anime.coverURL)
+                            AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
                         } label: {
                             RecentAnimeRow(anime: anime)
                         }
@@ -310,9 +309,7 @@ struct SubscribedListView: View {
                 List {
                     ForEach(viewModel.subscribedAnime) { anime in
                         NavigationLink {
-                            AnimeDetailView(animeId: anime.id,
-                                            title: anime.title,
-                                            coverURL: anime.coverURL)
+                            AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
                         } label: {
                             SubscribedAnimeRow(anime: anime)
                         }

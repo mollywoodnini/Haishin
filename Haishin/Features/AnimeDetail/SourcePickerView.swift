@@ -14,12 +14,11 @@ struct SourcePickerView: View {
     // MARK: - Properties
     //#################################################################################
     
-    let animeTitle: String
-    @Binding var selectedSourceId: String?
-    let onSourceSelected: () -> Void
-    
-    private let sourceManager: SourceManager
-    
+    private let animeTitle: String
+    private let onSourceSelected: () -> Void
+    private let sources: [InstalledSource]
+
+    @Binding private var selectedSourceId: String?
     @Environment(\.dismiss) private var dismiss
 
 
@@ -32,26 +31,31 @@ struct SourcePickerView: View {
     ///   - animeTitle: The anime title being selected for.
     ///   - selectedSourceId: Binding to the selected source ID.
     ///   - onSourceSelected: Callback when a source is selected.
+    ///   - sources: The list of available sources to display.
+    init(animeTitle: String,
+         selectedSourceId: Binding<String?>,
+         onSourceSelected: @escaping () -> Void,
+         sources: [InstalledSource]) {
+        self.animeTitle = animeTitle
+        self._selectedSourceId = selectedSourceId
+        self.onSourceSelected = onSourceSelected
+        self.sources = sources
+    }
+
+    /// Creates a new source picker view with a source manager.
+    /// - Parameters:
+    ///   - animeTitle: The anime title being selected for.
+    ///   - selectedSourceId: Binding to the selected source ID.
+    ///   - onSourceSelected: Callback when a source is selected.
     ///   - sourceManager: The source manager for fetching sources.
     init(animeTitle: String,
          selectedSourceId: Binding<String?>,
          onSourceSelected: @escaping () -> Void,
-         sourceManager: SourceManager) {
-        self.animeTitle = animeTitle
-        self._selectedSourceId = selectedSourceId
-        self.onSourceSelected = onSourceSelected
-        self.sourceManager = sourceManager
-    }
-
-    /// Convenience initializer with default source manager.
-    @MainActor
-    init(animeTitle: String,
-         selectedSourceId: Binding<String?>,
-         onSourceSelected: @escaping () -> Void) {
+         sourceManager: SourceManaging) {
         self.init(animeTitle: animeTitle,
                   selectedSourceId: selectedSourceId,
                   onSourceSelected: onSourceSelected,
-                  sourceManager: SourceManager())
+                  sources: sourceManager.installedSources)
     }
     
     
@@ -62,7 +66,7 @@ struct SourcePickerView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if sourceManager.installedSources.isEmpty {
+                if sources.isEmpty {
                     emptyState
                 } else {
                     sourcesList
@@ -91,10 +95,8 @@ struct SourcePickerView: View {
         } description: {
             Text("Install sources to watch \"\(animeTitle)\"")
         } actions: {
-            NavigationLink {
-                SourcesView(sourceManager: sourceManager)
-            } label: {
-                Text("Manage Sources")
+            Button("Manage Sources") {
+                dismiss()
             }
             .buttonStyle(.borderedProminent)
         }
@@ -103,7 +105,7 @@ struct SourcePickerView: View {
     private var sourcesList: some View {
         List {
             Section {
-                ForEach(sourceManager.installedSources.filter(\.isEnabled)) { source in
+                ForEach(sources.filter(\.isEnabled)) { source in
                     Button {
                         selectedSourceId = source.id
                         onSourceSelected()
@@ -146,7 +148,7 @@ struct SourcePickerView: View {
             } header: {
                 Text("Available Sources")
             } footer: {
-                if sourceManager.installedSources.allSatisfy({ !$0.isEnabled }) {
+                if sources.allSatisfy({ !$0.isEnabled }) {
                     Text("All sources are disabled. Enable sources in Settings.")
                 }
             }
@@ -160,9 +162,8 @@ struct SourcePickerView: View {
 //#################################################################################
 
 #Preview {
-    SourcePickerView(
-        animeTitle: "Attack on Titan",
-        selectedSourceId: .constant(nil),
-        onSourceSelected: {}
-    )
+    SourcePickerView(animeTitle: "Attack on Titan",
+                     selectedSourceId: .constant(nil),
+                     onSourceSelected: {},
+                     sources: [])
 }

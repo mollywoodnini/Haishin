@@ -42,7 +42,9 @@ struct StandardSectionContent: View {
             LazyHStack(spacing: .spacingS) {
                 ForEach(items) { item in
                     NavigationLink {
-                        AnimeDetailView(item: item)
+                        AnimeDetailView(item: item,
+                                        subscriptionService: SubscriptionService.shared,
+                                        watchProgressService: WatchProgressService.shared)
                     } label: {
                         StandardAnimeCard(item: item)
                     }

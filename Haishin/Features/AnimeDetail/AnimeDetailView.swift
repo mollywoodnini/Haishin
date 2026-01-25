@@ -21,29 +21,36 @@ struct AnimeDetailView: View {
 
     @State private var viewModel: AnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.sourceManager) private var sourceManager
     @Environment(\.openURL) private var openURL
     @State private var isSynopsisTruncated = false
     @State private var showingSourcePicker = false
     @State private var navigateToEpisodes = false
-    @State private var userPreferences = UserPreferences()
-    @State private var isSubscribed = false
-
-    private let subscriptionService: SubscriptionServiceProtocol
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
+    /// Creates a new detail view with an existing view model.
+    /// - Parameter viewModel: The view model to use.
+    init(viewModel: AnimeDetailViewModel) {
+        self._viewModel = State(initialValue: viewModel)
+    }
+
     /// Creates a new detail view.
     /// - Parameters:
     ///   - item: The recommending item to show details for.
     ///   - subscriptionService: The subscription service for managing subscriptions.
+    ///   - watchProgressService: The watch progress service.
+    ///   - sourceManager: The source manager for fetching episodes.
     init(item: RecommendingItem,
-         subscriptionService: SubscriptionServiceProtocol = SubscriptionService.shared) {
-        self._viewModel = State(initialValue: AnimeDetailViewModel(item: item))
-        self.subscriptionService = subscriptionService
+         subscriptionService: SubscriptionServiceProtocol,
+         watchProgressService: WatchProgressServiceProtocol,
+         sourceManager: SourceManaging? = nil) {
+        self._viewModel = State(initialValue: AnimeDetailViewModel(item: item,
+                                                                   subscriptionService: subscriptionService,
+                                                                   watchProgressService: watchProgressService,
+                                                                   sourceManager: sourceManager))
     }
 
     /// Creates a new detail view with explicit parameters.
@@ -52,16 +59,20 @@ struct AnimeDetailView: View {
     ///   - title: The preview title.
     ///   - coverURL: The preview cover URL.
     ///   - subscriptionService: The subscription service for managing subscriptions.
+    ///   - watchProgressService: The watch progress service.
+    ///   - sourceManager: The source manager for fetching episodes.
     init(animeId: Int,
          title: String,
          coverURL: URL?,
-         subscriptionService: SubscriptionServiceProtocol = SubscriptionService.shared) {
-        self._viewModel = State(initialValue: AnimeDetailViewModel(
-            animeId: animeId,
-            previewTitle: title,
-            previewCoverURL: coverURL
-        ))
-        self.subscriptionService = subscriptionService
+         subscriptionService: SubscriptionServiceProtocol,
+         watchProgressService: WatchProgressServiceProtocol,
+         sourceManager: SourceManaging? = nil) {
+        self._viewModel = State(initialValue: AnimeDetailViewModel(animeId: animeId,
+                                                                   previewTitle: title,
+                                                                   previewCoverURL: coverURL,
+                                                                   subscriptionService: subscriptionService,
+                                                                   watchProgressService: watchProgressService,
+                                                                   sourceManager: sourceManager))
     }
 
 
@@ -90,10 +101,10 @@ struct AnimeDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
-                        toggleSubscription()
+                        viewModel.toggleSubscription()
                     } label: {
-                        Label(isSubscribed ? "Unsubscribe" : "Subscribe",
-                              systemImage: isSubscribed ? "bell.slash" : "bell")
+                        Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
+                              systemImage: viewModel.isSubscribed ? "bell.slash" : "bell")
                     }
 
                     if let siteUrl = viewModel.anime?.siteUrl {
@@ -111,47 +122,15 @@ struct AnimeDetailView: View {
             }
         }
         .navigationDestination(isPresented: $navigateToEpisodes) {
-            if let anime = viewModel.anime, 
-               let sourceId = userPreferences.selectedSourceId,
-               let sourceManager = sourceManager {
-                let _ = print("[AnimeDetailView] Navigation destination triggered. Creating EpisodeListView")
-                
-                EpisodeListView(aniListAnime: anime,
-                                sourceId: sourceId,
-                                sourceManager: sourceManager,
-                                watchProgressService: WatchProgressService.shared)
+            if let episodeListViewModel = viewModel.makeEpisodeListViewModel() {
+                EpisodeListView(viewModel: episodeListViewModel)
             } else {
-                let _ = print("[AnimeDetailView] Navigation destination triggered but conditions not met:")
-                let _ = print("  anime: \(viewModel.anime != nil ? "exists" : "nil")")
-                let _ = print("  sourceId: \(userPreferences.selectedSourceId ?? "nil")")
-                let _ = print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
                 Text("Error: Missing required data for episodes view")
             }
         }
         .task {
             await viewModel.loadDetails()
-            checkSubscriptionStatus()
         }
-    }
-
-
-    //#################################################################################
-    // MARK: - Subscription Methods
-    //#################################################################################
-
-    private func checkSubscriptionStatus() {
-        isSubscribed = subscriptionService.isSubscribed(id: viewModel.animeId)
-    }
-
-    private func toggleSubscription() {
-        if isSubscribed {
-            subscriptionService.unsubscribe(id: viewModel.animeId)
-        } else {
-            subscriptionService.subscribe(id: viewModel.animeId,
-                                          title: viewModel.displayTitle,
-                                          coverURL: viewModel.displayCoverURL)
-        }
-        isSubscribed.toggle()
     }
 
 
@@ -604,11 +583,7 @@ struct AnimeDetailView: View {
                 LazyHStack(spacing: .spacingS) {
                     ForEach(relations) { relation in
                         NavigationLink {
-                            AnimeDetailView(
-                                animeId: relation.id,
-                                title: relation.title,
-                                coverURL: relation.coverURL
-                            )
+                            AnimeDetailView(viewModel: viewModel.makeRelatedAnimeDetailViewModel(relation: relation))
                         } label: {
                             RelationCard(relation: relation)
                         }
@@ -634,11 +609,7 @@ struct AnimeDetailView: View {
                 LazyHStack(spacing: .spacingS) {
                     ForEach(recommendations) { rec in
                         NavigationLink {
-                            AnimeDetailView(
-                                animeId: rec.id,
-                                title: rec.title,
-                                coverURL: rec.coverURL
-                            )
+                            AnimeDetailView(viewModel: viewModel.makeRecommendationDetailViewModel(recommendation: rec))
                         } label: {
                             RecommendationCard(recommendation: rec)
                         }
@@ -725,29 +696,9 @@ struct AnimeDetailView: View {
 
     private var viewEpisodesButton: some View {
         Button {
-            print("[AnimeDetailView] VIEW EPISODES button tapped")
-            print("  selectedSourceId: \(userPreferences.selectedSourceId ?? "nil")")
-            print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
-            
-            // Validate that the selected source actually exists
-            if let selectedId = userPreferences.selectedSourceId,
-               let sourceManager = sourceManager {
-                let sourceExists = sourceManager.installedSources.contains(where: { $0.id == selectedId })
-                print("[AnimeDetailView] Source '\(selectedId)' exists: \(sourceExists)")
-                
-                if sourceExists {
-                    // Source exists, navigate directly
-                    print("[AnimeDetailView] Source valid, setting navigateToEpisodes = true")
-                    navigateToEpisodes = true
-                } else {
-                    // Source doesn't exist, clear it and show picker
-                    print("[AnimeDetailView] Source invalid, clearing and showing picker")
-                    userPreferences.selectedSourceId = nil
-                    showingSourcePicker = true
-                }
+            if viewModel.validateSourceSelection() {
+                navigateToEpisodes = true
             } else {
-                // No source selected, show picker
-                print("[AnimeDetailView] No source selected, showing picker")
                 showingSourcePicker = true
             }
         } label: {
@@ -756,20 +707,18 @@ struct AnimeDetailView: View {
         }
         .buttonStyle(.borderedProminent)
         .sheet(isPresented: $showingSourcePicker) {
-            if let sourceManager {
-                SourcePickerView(animeTitle: viewModel.displayTitle,
-                                 selectedSourceId: $userPreferences.selectedSourceId,
-                                 onSourceSelected: {
-                                     print("[AnimeDetailView] Source selected from picker, dismissing sheet")
-                                     showingSourcePicker = false
-                                     // Navigate to episodes view after sheet dismisses
-                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                         print("[AnimeDetailView] Setting navigateToEpisodes = true after delay")
-                                         navigateToEpisodes = true
-                                     }
-                                 },
-                                 sourceManager: sourceManager)
-            }
+            SourcePickerView(animeTitle: viewModel.displayTitle,
+                             selectedSourceId: Binding(
+                                get: { viewModel.selectedSourceId },
+                                set: { viewModel.selectedSourceId = $0 }
+                             ),
+                             onSourceSelected: {
+                                 showingSourcePicker = false
+                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                     navigateToEpisodes = true
+                                 }
+                             },
+                             sources: viewModel.installedSources)
         }
     }
 }
@@ -781,14 +730,12 @@ struct AnimeDetailView: View {
 
 #Preview {
     NavigationStack {
-        AnimeDetailView(
-            item: RecommendingItem(
-                id: "1",
-                title: "Attack on Titan",
-                subtitle: "MAPPA",
-                coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
-                anilistId: 16498
-            )
-        )
+        AnimeDetailView(item: RecommendingItem(id: "1",
+                                   title: "Attack on Titan",
+                                   subtitle: "MAPPA",
+                                   coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
+                                   anilistId: 16498),
+                        subscriptionService: SubscriptionService.shared,
+                        watchProgressService: WatchProgressService.shared)
     }
 }

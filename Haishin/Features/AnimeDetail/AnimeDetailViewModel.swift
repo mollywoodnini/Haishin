@@ -42,7 +42,20 @@ final class AnimeDetailViewModel {
     /// Whether the synopsis is expanded.
     var isSynopsisExpanded = false
 
+    /// Whether the user is subscribed to this anime.
+    private(set) var isSubscribed = false
+
+    /// The currently selected source ID.
+    var selectedSourceId: String? {
+        get { userPreferences.selectedSourceId }
+        set { userPreferences.selectedSourceId = newValue }
+    }
+
+    private let subscriptionService: SubscriptionServiceProtocol
+    private let watchProgressService: WatchProgressServiceProtocol
+    private let sourceManager: SourceManaging?
     private let aniListService: AniListServicing
+    private var userPreferences: UserPreferences
 
 
     //#################################################################################
@@ -55,48 +68,99 @@ final class AnimeDetailViewModel {
     ///   - previewTitle: The title to display while loading.
     ///   - previewCoverURL: The cover URL to display while loading.
     ///   - aniListService: The service to fetch anime details.
+    ///   - subscriptionService: The service for managing subscriptions.
+    ///   - watchProgressService: The service for tracking episode progress.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - userPreferences: The user preferences.
     init(animeId: Int,
          previewTitle: String,
          previewCoverURL: URL?,
-         aniListService: AniListServicing) {
+         aniListService: AniListServicing,
+         subscriptionService: SubscriptionServiceProtocol,
+         watchProgressService: WatchProgressServiceProtocol,
+         sourceManager: SourceManaging?,
+         userPreferences: UserPreferences) {
         self.animeId = animeId
         self.previewTitle = previewTitle
         self.previewCoverURL = previewCoverURL
         self.aniListService = aniListService
+        self.subscriptionService = subscriptionService
+        self.watchProgressService = watchProgressService
+        self.sourceManager = sourceManager
+        self.userPreferences = userPreferences
+        self.isSubscribed = subscriptionService.isSubscribed(id: animeId)
     }
 
     /// Creates a new view model from a recommending item.
     /// - Parameters:
     ///   - item: The recommending item to display details for.
     ///   - aniListService: The service to fetch anime details.
+    ///   - subscriptionService: The service for managing subscriptions.
+    ///   - watchProgressService: The service for tracking episode progress.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - userPreferences: The user preferences.
     convenience init(item: RecommendingItem,
-                     aniListService: AniListServicing) {
+                     aniListService: AniListServicing,
+                     subscriptionService: SubscriptionServiceProtocol,
+                     watchProgressService: WatchProgressServiceProtocol,
+                     sourceManager: SourceManaging?,
+                     userPreferences: UserPreferences) {
         self.init(animeId: item.anilistId,
                   previewTitle: item.title,
                   previewCoverURL: item.coverURL,
-                  aniListService: aniListService)
+                  aniListService: aniListService,
+                  subscriptionService: subscriptionService,
+                  watchProgressService: watchProgressService,
+                  sourceManager: sourceManager,
+                  userPreferences: userPreferences)
     }
-    
-    /// Creates a new view model from a recommending item with default service.
-    /// - Parameter item: The recommending item to display details for.
+
+    /// Creates a new view model from a recommending item with default services.
+    /// - Parameters:
+    ///   - item: The recommending item to display details for.
+    ///   - subscriptionService: The service for managing subscriptions.
+    ///   - watchProgressService: The service for tracking episode progress.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - userPreferences: The user preferences.
     @MainActor
-    convenience init(item: RecommendingItem) {
-        self.init(item: item, aniListService: AniListService())
+    convenience init(item: RecommendingItem,
+                     subscriptionService: SubscriptionServiceProtocol,
+                     watchProgressService: WatchProgressServiceProtocol,
+                     sourceManager: SourceManaging?,
+                     userPreferences: UserPreferences = UserPreferences()) {
+        self.init(item: item,
+                  aniListService: AniListService(),
+                  subscriptionService: subscriptionService,
+                  watchProgressService: watchProgressService,
+                  sourceManager: sourceManager,
+                  userPreferences: userPreferences)
     }
-    
-    /// Creates a new view model with default service.
+
+    /// Creates a new view model with default AniList service.
     /// - Parameters:
     ///   - animeId: The AniList ID of the anime.
     ///   - previewTitle: The title to display while loading.
     ///   - previewCoverURL: The cover URL to display while loading.
+    ///   - subscriptionService: The service for managing subscriptions.
+    ///   - watchProgressService: The service for tracking episode progress.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - userPreferences: The user preferences.
     @MainActor
     convenience init(animeId: Int,
                      previewTitle: String,
-                     previewCoverURL: URL?) {
+                     previewCoverURL: URL?,
+                     subscriptionService: SubscriptionServiceProtocol,
+                     watchProgressService: WatchProgressServiceProtocol,
+                     sourceManager: SourceManaging?,
+                     userPreferences: UserPreferences = UserPreferences()) {
         self.init(animeId: animeId,
                   previewTitle: previewTitle,
                   previewCoverURL: previewCoverURL,
-                  aniListService: AniListService())
+                  aniListService: AniListService(),
+                  subscriptionService: subscriptionService,
+                  watchProgressService: watchProgressService,
+                  sourceManager: sourceManager,
+                  userPreferences: userPreferences)
     }
 
 
@@ -115,7 +179,6 @@ final class AnimeDetailViewModel {
             anime = try await aniListService.fetchAnimeDetails(id: animeId)
         } catch {
             self.error = error
-            print("[AnimeDetailViewModel] Failed to load details: \(error)")
         }
 
         isLoading = false
@@ -126,6 +189,95 @@ final class AnimeDetailViewModel {
         error = nil
         anime = nil
         await loadDetails()
+    }
+
+    /// Toggles the subscription status for this anime.
+    func toggleSubscription() {
+        if isSubscribed {
+            subscriptionService.unsubscribe(id: animeId)
+        } else {
+            subscriptionService.subscribe(id: animeId,
+                                          title: displayTitle,
+                                          coverURL: displayCoverURL)
+        }
+        isSubscribed.toggle()
+    }
+
+    /// Validates the selected source and returns whether it's valid for navigation.
+    /// - Returns: `true` if source is valid and navigation can proceed, `false` if source picker should be shown.
+    func validateSourceSelection() -> Bool {
+        guard let selectedId = selectedSourceId,
+              let sourceManager else {
+            return false
+        }
+
+        let sourceExists = sourceManager.installedSources.contains { $0.id == selectedId }
+
+        if !sourceExists {
+            selectedSourceId = nil
+        }
+
+        return sourceExists
+    }
+
+    /// Clears the selected source.
+    func clearSelectedSource() {
+        selectedSourceId = nil
+    }
+
+
+    //#################################################################################
+    // MARK: - Child ViewModel Factory Methods
+    //#################################################################################
+
+    /// Creates an EpisodeListViewModel for the loaded anime.
+    /// - Returns: A new `EpisodeListViewModel` if anime and source are available, `nil` otherwise.
+    func makeEpisodeListViewModel() -> EpisodeListViewModel? {
+        guard let anime,
+              let sourceId = selectedSourceId,
+              let sourceManager else {
+            return nil
+        }
+
+        return EpisodeListViewModel(aniListAnime: anime,
+                                    sourceId: sourceId,
+                                    sourceManager: sourceManager,
+                                    watchProgressService: watchProgressService,
+                                    subscriptionService: subscriptionService,
+                                    userPreferences: userPreferences)
+    }
+
+    /// Creates an AnimeDetailViewModel for a related anime.
+    /// - Parameter relation: The related anime to show details for.
+    /// - Returns: A new `AnimeDetailViewModel` for the related anime.
+    func makeRelatedAnimeDetailViewModel(relation: AniListRelation) -> AnimeDetailViewModel {
+        AnimeDetailViewModel(animeId: relation.id,
+                             previewTitle: relation.title,
+                             previewCoverURL: relation.coverURL,
+                             aniListService: aniListService,
+                             subscriptionService: subscriptionService,
+                             watchProgressService: watchProgressService,
+                             sourceManager: sourceManager,
+                             userPreferences: userPreferences)
+    }
+
+    /// Creates an AnimeDetailViewModel for a recommended anime.
+    /// - Parameter recommendation: The recommended anime to show details for.
+    /// - Returns: A new `AnimeDetailViewModel` for the recommended anime.
+    func makeRecommendationDetailViewModel(recommendation: AniListRecommendation) -> AnimeDetailViewModel {
+        AnimeDetailViewModel(animeId: recommendation.id,
+                             previewTitle: recommendation.title,
+                             previewCoverURL: recommendation.coverURL,
+                             aniListService: aniListService,
+                             subscriptionService: subscriptionService,
+                             watchProgressService: watchProgressService,
+                             sourceManager: sourceManager,
+                             userPreferences: userPreferences)
+    }
+
+    /// Returns the list of installed sources for the source picker.
+    var installedSources: [InstalledSource] {
+        sourceManager?.installedSources ?? []
     }
 }
 
@@ -148,7 +300,7 @@ extension AnimeDetailViewModel {
 
     /// Alternative titles formatted for display.
     var alternativeTitles: String? {
-        guard let anime = anime else { return nil }
+        guard let anime else { return nil }
 
         let titles = [anime.englishTitle, anime.romajiTitle, anime.nativeTitle]
             .compactMap { $0 }
@@ -174,7 +326,7 @@ extension AnimeDetailViewModel {
 
     /// The formatted season and year string.
     var seasonYearString: String? {
-        guard let anime = anime else { return nil }
+        guard let anime else { return nil }
 
         if let season = anime.season, let year = anime.seasonYear {
             return "\(season.displayString) \(year)"
@@ -215,7 +367,7 @@ extension AnimeDetailViewModel {
 
     /// Information items for the Information section (key-value pairs).
     var informationItems: [(key: String, value: String)] {
-        guard let anime = anime else { return [] }
+        guard let anime else { return [] }
 
         var items: [(key: String, value: String)] = []
 
@@ -263,7 +415,6 @@ extension AnimeDetailViewModel {
     /// Formatted score for display in ratings section (0-100 scale as decimal).
     var formattedScore: String? {
         guard let score = anime?.averageScore else { return nil }
-        // Convert from 0-100 to 0.0-10.0 scale for display
         let decimalScore = Double(score) / 10.0
         return String(format: "%.1f", decimalScore)
     }

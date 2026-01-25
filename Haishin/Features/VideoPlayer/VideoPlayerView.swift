@@ -26,6 +26,14 @@ struct VideoPlayerView: View {
     // MARK: - Initialization
     //#################################################################################
 
+    /// Creates a new video player view with an existing view model.
+    /// - Parameter viewModel: The view model to use.
+    init(viewModel: VideoPlayerViewModel) {
+        self.animeTitle = viewModel.animeTitle
+        self.animeCoverURL = viewModel.animeCoverURL
+        self._viewModel = State(initialValue: viewModel)
+    }
+
     /// Creates a new video player view.
     /// - Parameters:
     ///   - episode: The episode to play.
@@ -34,20 +42,23 @@ struct VideoPlayerView: View {
     ///   - animeCoverURL: The cover URL of the anime.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources.
+    ///   - watchProgressService: The service for tracking watch progress.
     init(episode: Episode,
          animeId: Int,
          animeTitle: String,
          animeCoverURL: URL?,
          sourceId: String,
-         sourceManager: SourceManaging) {
+         sourceManager: SourceManaging,
+         watchProgressService: WatchProgressServiceProtocol) {
         self.animeTitle = animeTitle
         self.animeCoverURL = animeCoverURL
         self._viewModel = State(initialValue: VideoPlayerViewModel(episode: episode,
-                                                                    animeId: animeId,
-                                                                    animeTitle: animeTitle,
-                                                                    animeCoverURL: animeCoverURL,
-                                                                    sourceId: sourceId,
-                                                                    sourceManager: sourceManager))
+                                                                   animeId: animeId,
+                                                                   animeTitle: animeTitle,
+                                                                   animeCoverURL: animeCoverURL,
+                                                                   sourceId: sourceId,
+                                                                   sourceManager: sourceManager,
+                                                                   watchProgressService: watchProgressService))
     }
 
 

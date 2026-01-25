@@ -96,7 +96,7 @@ final class VideoPlayerViewModel {
          animeCoverURL: URL?,
          sourceId: String,
          sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared) {
+         watchProgressService: WatchProgressServiceProtocol) {
         self.episode = episode
         self.animeId = animeId
         self.animeTitle = animeTitle

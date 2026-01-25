@@ -21,7 +21,6 @@ struct BrowseView: View {
 
     @State private var viewModel: BrowseViewModel
     @AppStorage("showNSFW") private var showNSFW = false
-    private let sourceManager: SourceManaging
 
 
     //#################################################################################
@@ -31,7 +30,6 @@ struct BrowseView: View {
     /// Creates a new browse view.
     /// - Parameter sourceManager: The source manager to use.
     init(sourceManager: SourceManaging) {
-        self.sourceManager = sourceManager
         self._viewModel = State(initialValue: BrowseViewModel(sourceManager: sourceManager))
     }
 

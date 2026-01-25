@@ -7,7 +7,12 @@
 
 import Foundation
 
-/// ViewModel for managing episode fetching from JavaScript sources.
+
+//#################################################################################
+// MARK: - EpisodeListViewModel
+//#################################################################################
+
+/// ViewModel for managing episode fetching and playback state.
 @Observable
 @MainActor
 final class EpisodeListViewModel {
@@ -31,7 +36,22 @@ final class EpisodeListViewModel {
     /// The last error that occurred.
     private(set) var error: Error?
 
+    /// Whether the user is subscribed to this anime.
+    private(set) var isSubscribed = false
+
+    /// Watch progress for each episode, keyed by episode ID.
+    private(set) var watchProgressMap: [String: WatchProgress] = [:]
+
+    /// The currently selected source ID from user preferences.
+    var selectedSourceId: String? {
+        get { userPreferences.selectedSourceId }
+        set { userPreferences.selectedSourceId = newValue }
+    }
+
     private let sourceManager: SourceManaging
+    private let watchProgressService: WatchProgressServiceProtocol
+    private let subscriptionService: SubscriptionServiceProtocol
+    private var userPreferences: UserPreferences
 
 
     //#################################################################################
@@ -43,24 +63,22 @@ final class EpisodeListViewModel {
     ///   - aniListAnime: The AniList anime details.
     ///   - sourceId: The selected source ID.
     ///   - sourceManager: The source manager for fetching episodes.
+    ///   - watchProgressService: The service for accessing watch progress.
+    ///   - subscriptionService: The service for managing subscriptions.
+    ///   - userPreferences: The user preferences for source selection.
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
-         sourceManager: SourceManaging) {
-        print("[EpisodeListViewModel] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
+         sourceManager: SourceManaging,
+         watchProgressService: WatchProgressServiceProtocol,
+         subscriptionService: SubscriptionServiceProtocol,
+         userPreferences: UserPreferences) {
         self.aniListAnime = aniListAnime
         self.sourceId = sourceId
         self.sourceManager = sourceManager
-        print("[EpisodeListViewModel] init complete. SourceManager has \(sourceManager.installedSources.count) sources")
-    }
-
-    /// Convenience initializer with default source manager.
-    convenience init(aniListAnime: AniListAnimeDetail,
-                     sourceId: String) {
-        // Note: This will create a new SourceManager which won't have loaded sources.
-        // The view should inject the shared SourceManager from the environment.
-        self.init(aniListAnime: aniListAnime,
-                  sourceId: sourceId,
-                  sourceManager: SourceManager())
+        self.watchProgressService = watchProgressService
+        self.subscriptionService = subscriptionService
+        self.userPreferences = userPreferences
+        self.isSubscribed = subscriptionService.isSubscribed(id: aniListAnime.id)
     }
 
 
@@ -72,17 +90,9 @@ final class EpisodeListViewModel {
     func loadEpisodes() async {
         isLoading = true
         error = nil
-        
-        print("[EpisodeListViewModel] Loading episodes for '\(aniListAnime.title)' from source '\(sourceId)'")
-        print("[EpisodeListViewModel] SourceManager installed sources: \(sourceManager.installedSources.count)")
-        
-        // Log all installed source IDs for debugging
-        let installedIds = sourceManager.installedSources.map { $0.id }.joined(separator: ", ")
-        print("[EpisodeListViewModel] Installed source IDs: [\(installedIds)]")
-        
+
         // Validate that the selected source exists
         guard sourceManager.installedSources.contains(where: { $0.id == sourceId }) else {
-            print("[EpisodeListViewModel] ERROR: Selected source '\(sourceId)' not found in installed sources")
             error = EpisodesError.sourceNotFoundHint
             isLoading = false
             return
@@ -91,46 +101,35 @@ final class EpisodeListViewModel {
         do {
             // Generate search queries with fallbacks
             let searchQueries = generateSearchQueries()
-            print("[EpisodeListViewModel] Generated \(searchQueries.count) search queries: \(searchQueries)")
-            
+
             // Try each query until we find results
             var searchResults: [AnimePreview] = []
-            var successfulQuery: String?
-            
+
             for query in searchQueries {
-                print("[EpisodeListViewModel] Trying search query: '\(query)'")
                 let results = try await sourceManager.search(sourceId: sourceId,
                                                              query: query,
                                                              page: 1)
-                print("[EpisodeListViewModel] Search for '\(query)' returned \(results.count) results")
-                
+
                 if !results.isEmpty {
                     searchResults = results
-                    successfulQuery = query
                     break
                 }
             }
 
             // Check if we found any results
             guard let firstResult = searchResults.first else {
-                print("[EpisodeListViewModel] No search results found after trying all queries")
                 error = EpisodesError.animeNotFound
                 isLoading = false
                 return
             }
-            
-            print("[EpisodeListViewModel] Found match with query '\(successfulQuery ?? "unknown")'")
-            print("[EpisodeListViewModel] Using first result: '\(firstResult.title)'")
 
             // Fetch full anime details with episodes
-            print("[EpisodeListViewModel] Fetching anime details...")
             let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
                                                                 url: firstResult.detailsURL)
-            print("[EpisodeListViewModel] Got anime with \(anime.episodes.count) episodes")
             sourceAnime = anime
+            loadWatchProgress()
             isLoading = false
         } catch {
-            print("[EpisodeListViewModel] Error loading episodes: \(error)")
             self.error = error
             isLoading = false
         }
@@ -139,6 +138,100 @@ final class EpisodeListViewModel {
     /// Retries loading episodes.
     func retry() async {
         await loadEpisodes()
+    }
+
+    /// Reloads watch progress from the service.
+    func loadWatchProgress() {
+        let allProgress = watchProgressService.getAllProgress(animeId: aniListAnime.id)
+        var progressMap: [String: WatchProgress] = [:]
+        for progress in allProgress {
+            progressMap[progress.episodeId] = progress
+        }
+        watchProgressMap = progressMap
+    }
+
+    /// Toggles the subscription status for this anime.
+    func toggleSubscription() {
+        if isSubscribed {
+            subscriptionService.unsubscribe(id: aniListAnime.id)
+        } else {
+            subscriptionService.subscribe(id: aniListAnime.id,
+                                          title: aniListAnime.title,
+                                          coverURL: aniListAnime.coverURL)
+        }
+        isSubscribed.toggle()
+    }
+
+    /// Clears the selected source when it's invalid.
+    func clearSelectedSource() {
+        userPreferences.selectedSourceId = nil
+    }
+
+    /// Returns the episode to continue watching, or nil if no progress exists.
+    /// - Parameter episodes: The list of episodes to check.
+    /// - Returns: The episode to continue watching, or nil.
+    func getContinueWatchingEpisode(from episodes: [Episode]) -> Episode? {
+        // Sort episodes by number to find the latest watched
+        let sortedEpisodes = episodes.sorted { ep1, ep2 in
+            (Int(ep1.number) ?? 0) < (Int(ep2.number) ?? 0)
+        }
+
+        // Find the last episode that has progress
+        var lastWatchedIndex: Int?
+        var lastWatchedProgress: WatchProgress?
+
+        for (index, episode) in sortedEpisodes.enumerated() {
+            if let progress = watchProgressMap[episode.id] {
+                lastWatchedIndex = index
+                lastWatchedProgress = progress
+            }
+        }
+
+        // No progress at all - no continue watching button
+        guard let lastIndex = lastWatchedIndex, let progress = lastWatchedProgress else {
+            return nil
+        }
+
+        // If the last watched episode is completed (>= 90%), return the next episode
+        if progress.isCompleted {
+            let nextIndex = lastIndex + 1
+            if nextIndex < sortedEpisodes.count {
+                return sortedEpisodes[nextIndex]
+            }
+            // All episodes completed - no continue watching
+            return nil
+        }
+
+        // Return the episode that's in progress
+        return sortedEpisodes[lastIndex]
+    }
+
+
+    //#################################################################################
+    // MARK: - Child ViewModel Factory Methods
+    //#################################################################################
+
+    /// Creates a VideoPlayerViewModel for the given episode.
+    /// - Parameter episode: The episode to play.
+    /// - Returns: A new `VideoPlayerViewModel` for the episode.
+    func makeVideoPlayerViewModel(episode: Episode) -> VideoPlayerViewModel {
+        VideoPlayerViewModel(episode: episode,
+                             animeId: aniListAnime.id,
+                             animeTitle: aniListAnime.title,
+                             animeCoverURL: aniListAnime.coverURL,
+                             sourceId: sourceId,
+                             sourceManager: sourceManager,
+                             watchProgressService: watchProgressService)
+    }
+
+    /// Returns the list of installed sources for the source picker.
+    var installedSources: [InstalledSource] {
+        sourceManager.installedSources
+    }
+
+    /// Returns the anime title for display in source picker.
+    var animeTitle: String {
+        aniListAnime.title
     }
 
 
@@ -150,30 +243,29 @@ final class EpisodeListViewModel {
     /// - Returns: Array of search query strings ordered by priority.
     private func generateSearchQueries() -> [String] {
         var queries: [String] = []
-        
+
         // 1. Primary title (English or Romaji)
         queries.append(aniListAnime.title)
-        
+
         // 2. Alternative titles (Romaji, Native, English)
         if let romaji = aniListAnime.romajiTitle, romaji != aniListAnime.title {
             queries.append(romaji)
         }
-        
+
         if let english = aniListAnime.englishTitle, english != aniListAnime.title {
             queries.append(english)
         }
-        
+
         if let native = aniListAnime.nativeTitle, native != aniListAnime.title {
             queries.append(native)
         }
-        
+
         // 3. Remove "Season X" and replace with just the number
-        // Example: "To Your Eternity Season 3" -> "To Your Eternity 3"
         let seasonVariation = removeSeasonKeyword(from: aniListAnime.title)
         if seasonVariation != aniListAnime.title {
             queries.append(seasonVariation)
         }
-        
+
         // Try season variation on alternative titles too
         if let romaji = aniListAnime.romajiTitle {
             let romajiSeasonVariation = removeSeasonKeyword(from: romaji)
@@ -181,34 +273,31 @@ final class EpisodeListViewModel {
                 queries.append(romajiSeasonVariation)
             }
         }
-        
+
         if let english = aniListAnime.englishTitle {
             let englishSeasonVariation = removeSeasonKeyword(from: english)
             if englishSeasonVariation != english && !queries.contains(englishSeasonVariation) {
                 queries.append(englishSeasonVariation)
             }
         }
-        
+
         // 4. Remove "Part X" variations
-        // Example: "Attack on Titan Final Season Part 2" -> "Attack on Titan Final Season 2"
         let partVariation = removePartKeyword(from: aniListAnime.title)
         if partVariation != aniListAnime.title && !queries.contains(partVariation) {
             queries.append(partVariation)
         }
-        
+
         return queries
     }
-    
+
     /// Removes "Season X" and replaces with just "X".
-    /// Example: "To Your Eternity Season 3" -> "To Your Eternity 3"
     private func removeSeasonKeyword(from title: String) -> String {
-        // Pattern matches: "Season 3", "Season 2", etc.
         let pattern = #"\s+Season\s+(\d+)"#
         guard let regex = try? NSRegularExpression(pattern: pattern,
                                                    options: .caseInsensitive) else {
             return title
         }
-        
+
         let range = NSRange(title.startIndex..<title.endIndex, in: title)
         let modifiedTitle = regex.stringByReplacingMatches(in: title,
                                                            options: [],
@@ -216,17 +305,15 @@ final class EpisodeListViewModel {
                                                            withTemplate: " $1")
         return modifiedTitle
     }
-    
+
     /// Removes "Part X" and replaces with just "X".
-    /// Example: "Attack on Titan Part 2" -> "Attack on Titan 2"
     private func removePartKeyword(from title: String) -> String {
-        // Pattern matches: "Part 2", "Part 3", etc.
         let pattern = #"\s+Part\s+(\d+)"#
         guard let regex = try? NSRegularExpression(pattern: pattern,
                                                    options: .caseInsensitive) else {
             return title
         }
-        
+
         let range = NSRange(title.startIndex..<title.endIndex, in: title)
         let modifiedTitle = regex.stringByReplacingMatches(in: title,
                                                            options: [],
