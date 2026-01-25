@@ -16,7 +16,7 @@ struct SettingsView: View {
 
     @AppStorage("appearance") private var appearance: AppearanceMode = .system
     @AppStorage("autoPlay") private var autoPlay = true
-    @AppStorage("showNSFW") private var showNSFW = false
+    @State private var userPreferences = UserPreferences()
 
 
     //#################################################################################
@@ -62,11 +62,11 @@ struct SettingsView: View {
 
     private var contentSection: some View {
         Section {
-            Toggle("Show NSFW sources", isOn: $showNSFW)
+            Toggle("Show NSFW sources", isOn: $userPreferences.showNSFW)
         } header: {
             Text("Content")
         } footer: {
-            Text("NSFW sources will be hidden from the sources list when disabled.")
+            Text("NSFW (adult) content will be hidden when disabled.")
         }
     }
 

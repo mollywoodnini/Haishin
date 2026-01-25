@@ -30,6 +30,7 @@ final class ScheduleViewModel {
     private(set) var error: Error?
 
     private let aniListService: AniListServicing
+    private let userPreferences: UserPreferences
 
 
     //#################################################################################
@@ -37,15 +38,20 @@ final class ScheduleViewModel {
     //#################################################################################
 
     /// Creates a new schedule view model.
-    /// - Parameter aniListService: The AniList service for fetching schedule data.
-    init(aniListService: AniListServicing) {
+    /// - Parameters:
+    ///   - aniListService: The AniList service for fetching schedule data.
+    ///   - userPreferences: The user preferences for settings like NSFW.
+    init(aniListService: AniListServicing,
+         userPreferences: UserPreferences) {
         self.aniListService = aniListService
+        self.userPreferences = userPreferences
     }
     
     /// Creates a new schedule view model.
     @MainActor
     convenience init() {
-        self.init(aniListService: AniListService())
+        self.init(aniListService: AniListService(),
+                  userPreferences: UserPreferences())
     }
 
 
@@ -61,7 +67,7 @@ final class ScheduleViewModel {
         error = nil
 
         do {
-            let items = try await aniListService.fetchThisWeek()
+            let items = try await aniListService.fetchThisWeek(showNSFW: userPreferences.showNSFW)
             let grouped = groupByDay(items)
             await MainActor.run {
                 scheduleDays = grouped

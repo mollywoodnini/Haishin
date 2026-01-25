@@ -54,6 +54,7 @@ struct MainTabView: View {
                 }
                 .tag(Tab.settings)
         }
+        .environment(\.sourceManager, sourceManager)
         .task {
             await sourceManager.loadInstalledSources()
         }

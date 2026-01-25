@@ -21,6 +21,10 @@ struct EpisodesView: View {
 
     @State private var viewModel: EpisodesViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showingSourcePicker = false
+    @State private var userPreferences = UserPreferences()
+    
+    private let sourceManager: SourceManager
 
 
     //#################################################################################
@@ -31,9 +35,14 @@ struct EpisodesView: View {
     /// - Parameters:
     ///   - aniListAnime: The AniList anime details.
     ///   - sourceId: The selected source ID.
-    init(aniListAnime: AniListAnimeDetail, sourceId: String) {
+    ///   - sourceManager: The shared source manager.
+    init(aniListAnime: AniListAnimeDetail, sourceId: String, sourceManager: SourceManager) {
+        print("[EpisodesView] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
+        self.sourceManager = sourceManager
         self._viewModel = State(initialValue: EpisodesViewModel(aniListAnime: aniListAnime,
-                                                                  sourceId: sourceId))
+                                                                sourceId: sourceId,
+                                                                sourceManager: sourceManager))
+        print("[EpisodesView] init complete. ViewModel isLoading: \(self._viewModel.wrappedValue.isLoading)")
     }
 
 
@@ -42,18 +51,41 @@ struct EpisodesView: View {
     //#################################################################################
 
     var body: some View {
-        Group {
+        let _ = print("[EpisodesView] body evaluated. isLoading: \(viewModel.isLoading), sourceAnime: \(viewModel.sourceAnime != nil ? "exists" : "nil"), error: \(viewModel.error != nil ? "exists" : "nil")")
+        
+        ZStack {
             if viewModel.isLoading && viewModel.sourceAnime == nil {
                 loadingView
             } else if let error = viewModel.error {
                 errorView(error: error)
             } else if let anime = viewModel.sourceAnime {
                 episodesListView(anime: anime)
+            } else {
+                // Empty state - should never reach here but ensures view is rendered
+                Color.clear
             }
         }
         .navigationTitle("Episodes")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Change Source") {
+                    showingSourcePicker = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingSourcePicker) {
+            SourcePickerView(animeTitle: viewModel.aniListAnime.title,
+                             selectedSourceId: $userPreferences.selectedSourceId,
+                             onSourceSelected: {
+                                 showingSourcePicker = false
+                                 // Dismiss and let the anime detail view handle navigation
+                                 dismiss()
+                             },
+                             sourceManager: sourceManager)
+        }
         .task {
+            print("[EpisodesView] .task modifier fired")
             await viewModel.loadEpisodes()
         }
     }

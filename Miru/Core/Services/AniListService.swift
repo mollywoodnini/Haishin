@@ -39,8 +39,9 @@ final class AniListService: AniListServicing {
     //#################################################################################
 
     /// Fetches the weekly airing schedule for the current week.
+    /// - Parameter showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: An array of recommending items for anime airing this week.
-    func fetchThisWeek() async throws -> [RecommendingItem] {
+    func fetchThisWeek(showNSFW: Bool = false) async throws -> [RecommendingItem] {
         let calendar = Calendar.current
         let now = Date()
 
@@ -86,7 +87,7 @@ final class AniListService: AniListServicing {
         let response: AiringScheduleResponse = try await executeQuery(query, variables: variables)
 
         return response.data.page.airingSchedules
-            .filter { !$0.media.isAdult }
+            .filter { showNSFW || !$0.media.isAdult }
             .map { schedule in
                 let title = schedule.media.title.english ?? schedule.media.title.romaji
                 let airDate = Date(timeIntervalSince1970: TimeInterval(schedule.airingAt))
@@ -106,17 +107,19 @@ final class AniListService: AniListServicing {
     }
 
     /// Fetches trending anime.
-    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Parameters:
+    ///   - page: The page number to fetch (1-indexed).
+    ///   - showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: A paginated response containing trending anime.
-    func fetchTrending(page: Int = 1) async throws -> PaginatedResponse {
+    func fetchTrending(page: Int = 1, showNSFW: Bool = false) async throws -> PaginatedResponse {
         let query = """
-        query($page: Int, $perPage: Int) {
+        query($page: Int, $perPage: Int, $isAdult: Boolean) {
             Page(page: $page, perPage: $perPage) {
                 pageInfo {
                     hasNextPage
                     currentPage
                 }
-                media(type: ANIME, sort: [TRENDING_DESC], isAdult: false) {
+                media(type: ANIME, sort: [TRENDING_DESC, POPULARITY_DESC], isAdult: $isAdult) {
                     id
                     episodes
                     description(asHtml: false)
@@ -140,7 +143,8 @@ final class AniListService: AniListServicing {
 
         let variables: [String: Any] = [
             "page": page,
-            "perPage": Constants.pageSize
+            "perPage": Constants.pageSize,
+            "isAdult": showNSFW ? nil : false
         ]
 
         let response: MediaPageResponse = try await executeQuery(query, variables: variables)
@@ -168,19 +172,21 @@ final class AniListService: AniListServicing {
     }
 
     /// Fetches seasonal anime for the current season.
-    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Parameters:
+    ///   - page: The page number to fetch (1-indexed).
+    ///   - showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: A paginated response containing seasonal anime.
-    func fetchSeasonal(page: Int = 1) async throws -> PaginatedResponse {
+    func fetchSeasonal(page: Int = 1, showNSFW: Bool = false) async throws -> PaginatedResponse {
         let (season, year) = currentSeason()
 
         let query = """
-        query($page: Int, $perPage: Int, $season: MediaSeason, $seasonYear: Int) {
+        query($page: Int, $perPage: Int, $season: MediaSeason, $seasonYear: Int, $isAdult: Boolean) {
             Page(page: $page, perPage: $perPage) {
                 pageInfo {
                     hasNextPage
                     currentPage
                 }
-                media(type: ANIME, season: $season, seasonYear: $seasonYear, sort: [POPULARITY_DESC], isAdult: false) {
+                media(type: ANIME, season: $season, seasonYear: $seasonYear, sort: [POPULARITY_DESC], isAdult: $isAdult) {
                     id
                     episodes
                     description(asHtml: false)
@@ -206,7 +212,8 @@ final class AniListService: AniListServicing {
             "page": page,
             "perPage": Constants.pageSize,
             "season": season,
-            "seasonYear": year
+            "seasonYear": year,
+            "isAdult": showNSFW
         ]
 
         let response: MediaPageResponse = try await executeQuery(query, variables: variables)

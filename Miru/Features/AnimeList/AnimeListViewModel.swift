@@ -43,6 +43,7 @@ final class AnimeListViewModel {
     private(set) var error: Error?
 
     private let aniListService: AniListServicing
+    private let userPreferences: UserPreferences
     private var currentPage = 0
 
 
@@ -55,12 +56,15 @@ final class AnimeListViewModel {
     ///   - title: The title of the list.
     ///   - listType: The type of anime list to display.
     ///   - aniListService: The AniList service for fetching anime.
+    ///   - userPreferences: The user preferences for settings like NSFW.
     init(title: String,
          listType: AnimeListType,
-         aniListService: AniListServicing) {
+         aniListService: AniListServicing,
+         userPreferences: UserPreferences) {
         self.title = title
         self.listType = listType
         self.aniListService = aniListService
+        self.userPreferences = userPreferences
     }
     
     /// Creates a new anime list view model with default service.
@@ -72,7 +76,8 @@ final class AnimeListViewModel {
                      listType: AnimeListType) {
         self.init(title: title,
                   listType: listType,
-                  aniListService: AniListService())
+                  aniListService: AniListService(),
+                  userPreferences: UserPreferences())
     }
 
 
@@ -147,9 +152,9 @@ final class AnimeListViewModel {
     private func fetchPage(_ page: Int) async throws -> PaginatedResponse {
         switch listType {
         case .trending:
-            return try await aniListService.fetchTrending(page: page)
+            return try await aniListService.fetchTrending(page: page, showNSFW: userPreferences.showNSFW)
         case .seasonal:
-            return try await aniListService.fetchSeasonal(page: page)
+            return try await aniListService.fetchSeasonal(page: page, showNSFW: userPreferences.showNSFW)
         }
     }
 }

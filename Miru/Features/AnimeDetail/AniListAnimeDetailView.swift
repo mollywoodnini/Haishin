@@ -22,10 +22,11 @@ struct AniListAnimeDetailView: View {
 
     @State private var viewModel: AniListAnimeDetailViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sourceManager) private var sourceManager
     @State private var isSynopsisTruncated = false
     @State private var showingSourcePicker = false
-    @State private var selectedSourceId: String?
     @State private var navigateToEpisodes = false
+    @State private var userPreferences = UserPreferences()
 
 
     //#################################################################################
@@ -74,8 +75,17 @@ struct AniListAnimeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $navigateToEpisodes) {
-            if let anime = viewModel.anime, let sourceId = selectedSourceId {
-                EpisodesView(aniListAnime: anime, sourceId: sourceId)
+            if let anime = viewModel.anime, 
+               let sourceId = userPreferences.selectedSourceId,
+               let sourceManager = sourceManager {
+                let _ = print("[AniListAnimeDetailView] Navigation destination triggered. Creating EpisodesView")
+                EpisodesView(aniListAnime: anime, sourceId: sourceId, sourceManager: sourceManager)
+            } else {
+                let _ = print("[AniListAnimeDetailView] Navigation destination triggered but conditions not met:")
+                let _ = print("  anime: \(viewModel.anime != nil ? "exists" : "nil")")
+                let _ = print("  sourceId: \(userPreferences.selectedSourceId ?? "nil")")
+                let _ = print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
+                Text("Error: Missing required data for episodes view")
             }
         }
         .task {
@@ -654,11 +664,17 @@ struct AniListAnimeDetailView: View {
 
     private var viewEpisodesButton: some View {
         Button {
-            if selectedSourceId != nil {
+            print("[AniListAnimeDetailView] VIEW EPISODES button tapped")
+            print("  selectedSourceId: \(userPreferences.selectedSourceId ?? "nil")")
+            print("  sourceManager: \(sourceManager != nil ? "exists" : "nil")")
+            
+            if userPreferences.selectedSourceId != nil {
                 // Source already selected, navigate directly
+                print("[AniListAnimeDetailView] Source already selected, setting navigateToEpisodes = true")
                 navigateToEpisodes = true
             } else {
                 // No source selected, show picker
+                print("[AniListAnimeDetailView] No source selected, showing picker")
                 showingSourcePicker = true
             }
         } label: {
@@ -667,17 +683,20 @@ struct AniListAnimeDetailView: View {
         }
         .buttonStyle(.borderedProminent)
         .sheet(isPresented: $showingSourcePicker) {
-            SourcePickerView(
-                animeTitle: viewModel.displayTitle,
-                selectedSourceId: $selectedSourceId,
-                onSourceSelected: {
-                    showingSourcePicker = false
-                    // Navigate to episodes view after sheet dismisses
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        navigateToEpisodes = true
-                    }
-                }
-            )
+            if let sourceManager {
+                SourcePickerView(animeTitle: viewModel.displayTitle,
+                                 selectedSourceId: $userPreferences.selectedSourceId,
+                                 onSourceSelected: {
+                                     print("[AniListAnimeDetailView] Source selected from picker, dismissing sheet")
+                                     showingSourcePicker = false
+                                     // Navigate to episodes view after sheet dismisses
+                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                         print("[AniListAnimeDetailView] Setting navigateToEpisodes = true after delay")
+                                         navigateToEpisodes = true
+                                     }
+                                 },
+                                 sourceManager: sourceManager)
+            }
         }
     }
 }

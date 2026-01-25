@@ -43,12 +43,29 @@ final class ExploreViewModelTests {
 
     @Test("On initialization, title is set")
     func onInitialization_titleIsSet() {
-        
+
     }
 }
 ```
 
 ## Code Style
+
+### Swift Optional Binding
+- **Prefer shorthand optional binding**: Use `if let variable {}` instead of `if let variable = variable {}` for shadowing existing optionals.
+- **Scope**: Apply this to `if let`, `guard let`, and `while let` statements.
+
+#### Avoid (Verbose)
+
+```swift
+if let sourceManager = sourceManager { ... }
+guard let user = user else { return }
+```
+
+#### Prefer (Shorthand)
+```swift
+if let sourceManager { ... }
+guard let user else { return }
+```
 
 ### Swift Formatting: Function & Initializer Calls
 Follow these specific rules for object creation and function calls:

@@ -47,6 +47,7 @@ final class BrowseViewModel {
 
     private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
+    private let userPreferences: UserPreferences
 
 
     //#################################################################################
@@ -57,10 +58,13 @@ final class BrowseViewModel {
     /// - Parameters:
     ///   - sourceManager: The source manager to use.
     ///   - aniListService: The AniList service for fetching recommendations.
+    ///   - userPreferences: The user preferences for settings like NSFW.
     init(sourceManager: SourceManaging,
-         aniListService: AniListServicing) {
+         aniListService: AniListServicing,
+         userPreferences: UserPreferences) {
         self.sourceManager = sourceManager
         self.aniListService = aniListService
+        self.userPreferences = userPreferences
         initializeSections()
     }
     
@@ -70,7 +74,8 @@ final class BrowseViewModel {
     @MainActor
     convenience init(sourceManager: SourceManaging) {
         self.init(sourceManager: sourceManager,
-                  aniListService: AniListService())
+                  aniListService: AniListService(),
+                  userPreferences: UserPreferences())
     }
 
 
@@ -143,7 +148,7 @@ final class BrowseViewModel {
         updateSectionState(id: SectionId.thisWeek, state: .loading)
 
         do {
-            let items = try await aniListService.fetchThisWeek()
+            let items = try await aniListService.fetchThisWeek(showNSFW: userPreferences.showNSFW)
             await MainActor.run {
                 if let index = sections.firstIndex(where: { $0.id == SectionId.thisWeek }) {
                     sections[index].items = items
@@ -160,7 +165,7 @@ final class BrowseViewModel {
         updateSectionState(id: SectionId.trending, state: .loading)
 
         do {
-            let response = try await aniListService.fetchTrending(page: 1)
+            let response = try await aniListService.fetchTrending(page: 1, showNSFW: userPreferences.showNSFW)
             await MainActor.run {
                 if let index = sections.firstIndex(where: { $0.id == SectionId.trending }) {
                     sections[index].items = response.items
@@ -177,7 +182,7 @@ final class BrowseViewModel {
         updateSectionState(id: SectionId.seasonal, state: .loading)
 
         do {
-            let response = try await aniListService.fetchSeasonal(page: 1)
+            let response = try await aniListService.fetchSeasonal(page: 1, showNSFW: userPreferences.showNSFW)
             await MainActor.run {
                 if let index = sections.firstIndex(where: { $0.id == SectionId.seasonal }) {
                     sections[index].items = response.items

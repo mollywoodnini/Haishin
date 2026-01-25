@@ -18,8 +18,41 @@ struct SourcePickerView: View {
     @Binding var selectedSourceId: String?
     let onSourceSelected: () -> Void
     
+    private let sourceManager: SourceManager
+    
     @Environment(\.dismiss) private var dismiss
-    @State private var sourceManager = SourceManager()
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new source picker view.
+    /// - Parameters:
+    ///   - animeTitle: The anime title being selected for.
+    ///   - selectedSourceId: Binding to the selected source ID.
+    ///   - onSourceSelected: Callback when a source is selected.
+    ///   - sourceManager: The source manager for fetching sources.
+    init(animeTitle: String,
+         selectedSourceId: Binding<String?>,
+         onSourceSelected: @escaping () -> Void,
+         sourceManager: SourceManager) {
+        self.animeTitle = animeTitle
+        self._selectedSourceId = selectedSourceId
+        self.onSourceSelected = onSourceSelected
+        self.sourceManager = sourceManager
+    }
+
+    /// Convenience initializer with default source manager.
+    @MainActor
+    init(animeTitle: String,
+         selectedSourceId: Binding<String?>,
+         onSourceSelected: @escaping () -> Void) {
+        self.init(animeTitle: animeTitle,
+                  selectedSourceId: selectedSourceId,
+                  onSourceSelected: onSourceSelected,
+                  sourceManager: SourceManager())
+    }
     
     
     //#################################################################################
@@ -43,9 +76,6 @@ struct SourcePickerView: View {
                         dismiss()
                     }
                 }
-            }
-            .task {
-                await sourceManager.loadInstalledSources()
             }
         }
     }

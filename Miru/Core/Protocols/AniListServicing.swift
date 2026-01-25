@@ -16,18 +16,23 @@ import Foundation
 protocol AniListServicing: Sendable {
 
     /// Fetches the weekly airing schedule for the current week.
+    /// - Parameter showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: An array of recommending items for anime airing this week.
-    func fetchThisWeek() async throws -> [RecommendingItem]
+    func fetchThisWeek(showNSFW: Bool) async throws -> [RecommendingItem]
 
     /// Fetches trending anime.
-    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Parameters:
+    ///   - page: The page number to fetch (1-indexed).
+    ///   - showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: A paginated response containing trending anime.
-    func fetchTrending(page: Int) async throws -> PaginatedResponse
+    func fetchTrending(page: Int, showNSFW: Bool) async throws -> PaginatedResponse
 
     /// Fetches seasonal anime for the current season.
-    /// - Parameter page: The page number to fetch (1-indexed).
+    /// - Parameters:
+    ///   - page: The page number to fetch (1-indexed).
+    ///   - showNSFW: Whether to include NSFW (adult) content.
     /// - Returns: A paginated response containing seasonal anime.
-    func fetchSeasonal(page: Int) async throws -> PaginatedResponse
+    func fetchSeasonal(page: Int, showNSFW: Bool) async throws -> PaginatedResponse
 
     /// Fetches detailed information for a specific anime.
     /// - Parameter id: The AniList ID of the anime.

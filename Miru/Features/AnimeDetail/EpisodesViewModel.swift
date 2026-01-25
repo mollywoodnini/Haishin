@@ -46,14 +46,18 @@ final class EpisodesViewModel {
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
          sourceManager: SourceManaging) {
+        print("[EpisodesViewModel] init called for anime: '\(aniListAnime.title)', sourceId: '\(sourceId)'")
         self.aniListAnime = aniListAnime
         self.sourceId = sourceId
         self.sourceManager = sourceManager
+        print("[EpisodesViewModel] init complete. SourceManager has \(sourceManager.installedSources.count) sources")
     }
 
     /// Convenience initializer with default source manager.
     convenience init(aniListAnime: AniListAnimeDetail,
                      sourceId: String) {
+        // Note: This will create a new SourceManager which won't have loaded sources.
+        // The view should inject the shared SourceManager from the environment.
         self.init(aniListAnime: aniListAnime,
                   sourceId: sourceId,
                   sourceManager: SourceManager())
@@ -68,27 +72,39 @@ final class EpisodesViewModel {
     func loadEpisodes() async {
         isLoading = true
         error = nil
+        
+        print("[EpisodesViewModel] Loading episodes for '\(aniListAnime.title)' from source '\(sourceId)'")
+        print("[EpisodesViewModel] SourceManager installed sources: \(sourceManager.installedSources.count)")
 
         do {
             // Search for the anime on the selected source
+            print("[EpisodesViewModel] Searching for anime...")
             let searchResults = try await sourceManager.search(sourceId: sourceId,
                                                                query: aniListAnime.title,
                                                                page: 1)
+            
+            print("[EpisodesViewModel] Search returned \(searchResults.count) results")
 
             // Find the best match (for now, take the first result)
             // TODO: Implement fuzzy matching or let user select
             guard let firstResult = searchResults.first else {
+                print("[EpisodesViewModel] No search results found")
                 error = EpisodesError.animeNotFound
                 isLoading = false
                 return
             }
+            
+            print("[EpisodesViewModel] Using first result: '\(firstResult.title)'")
 
             // Fetch full anime details with episodes
+            print("[EpisodesViewModel] Fetching anime details...")
             let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
                                                                 url: firstResult.detailsURL)
+            print("[EpisodesViewModel] Got anime with \(anime.episodes.count) episodes")
             sourceAnime = anime
             isLoading = false
         } catch {
+            print("[EpisodesViewModel] Error loading episodes: \(error)")
             self.error = error
             isLoading = false
         }
