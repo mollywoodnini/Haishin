@@ -170,10 +170,8 @@ final class SourceManager: SourceManaging {
         installedSources.append(installedSource)
         
         // Automatically select the newly installed source
-        UserPreferences.shared.selectedSourceId = installedSource.id
+        selectSource(sourceId: installedSource.id)
     }
-    
-    /// Installs a source from a URL string.
     /// - Parameter urlString: The URL to the source JavaScript file (can be HTTP/HTTPS or file:// URL).
     func installSource(fromURL urlString: String) async throws {
         print("[SourceManager] Installing source from: \(urlString)")
@@ -238,7 +236,7 @@ final class SourceManager: SourceManaging {
         installedSources.append(installedSource)
         
         // Automatically select the newly installed source
-        UserPreferences.shared.selectedSourceId = installedSource.id
+        selectSource(sourceId: installedSource.id)
         
         print("[SourceManager] Installation complete!")
     }
@@ -261,13 +259,15 @@ final class SourceManager: SourceManaging {
             print("[SourceManager] Deleted file: \(actualPath.lastPathComponent)")
         }
 
+        // Check if we're removing the selected source
+        let wasSelected = UserPreferences.shared.selectedSourceId == sourceId
+        
         installedSources.removeAll { $0.id == sourceId }
         
-        // If the uninstalled source was selected, update selection
-        if UserPreferences.shared.selectedSourceId == sourceId {
-            // Auto-select if there's exactly one source remaining, otherwise clear
-            if installedSources.count == 1 {
-                UserPreferences.shared.selectedSourceId = installedSources.first?.id
+        // If the uninstalled source was selected, auto-select the first remaining source
+        if wasSelected {
+            if let firstSource = installedSources.first {
+                selectSource(sourceId: firstSource.id)
             } else {
                 UserPreferences.shared.selectedSourceId = nil
             }
@@ -278,6 +278,24 @@ final class SourceManager: SourceManaging {
             await jsSources[sourceId]?.unload()
             jsSources.removeValue(forKey: sourceId)
         }
+    }
+
+    /// Selects a source as the active source.
+    /// - Parameter sourceId: The source ID to select.
+    func selectSource(sourceId: String) {
+        guard installedSources.contains(where: { $0.id == sourceId }) else {
+            print("[SourceManager] Source '\(sourceId)' not found")
+            return
+        }
+        
+        UserPreferences.shared.selectedSourceId = sourceId
+        
+        // Update isEnabled on all sources
+        for index in installedSources.indices {
+            installedSources[index].isEnabled = (installedSources[index].id == sourceId)
+        }
+        
+        print("[SourceManager] Selected source: \(sourceId)")
     }
 
     /// Gets the popular anime from a source.
@@ -402,10 +420,13 @@ final class SourceManager: SourceManaging {
         
         let attributes = try fileManager.attributesOfItem(atPath: path.path)
         let installedAt = attributes[.creationDate] as? Date ?? Date()
+        
+        // Check if this source is the currently selected one
+        let isSelected = UserPreferences.shared.selectedSourceId == jsSource.info.id
 
         return InstalledSource(info: jsSource.info,
                                scriptPath: path,
-                               isEnabled: await jsSource.isEnabled,
+                               isEnabled: isSelected,
                                installedAt: installedAt)
     }
 

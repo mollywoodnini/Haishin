@@ -191,11 +191,11 @@ struct SourcesViewModelTests {
 
 
     //#################################################################################
-    // MARK: - toggleSource Tests
+    // MARK: - selectSource Tests
     //#################################################################################
 
-    @Test("toggleSource with installed source toggles enabled")
-    func toggleSource_withInstalledSource_togglesEnabled() {
+    @Test("selectSource calls source manager with correct id")
+    func selectSource_callsSourceManagerWithCorrectId() {
         let mockSourceManager = MockSourceManager()
         let sut = SourcesViewModel(sourceManager: mockSourceManager)
 
@@ -204,9 +204,10 @@ struct SourcesViewModelTests {
         mockSourceManager.installedSources = [source]
 
         // When
-        sut.toggleSource(source)
+        sut.selectSource(source)
 
-        // Then - Currently just prints, verify no crash
-        #expect(mockSourceManager.installedSources.count == 1)
+        // Then
+        #expect(mockSourceManager.selectSourceCallCount == 1)
+        #expect(mockSourceManager.selectedSourceIds.first == source.id)
     }
 }

@@ -53,6 +53,10 @@ protocol SourceManaging: AnyObject {
     /// - Parameter sourceId: The source ID to uninstall.
     func uninstallSource(sourceId: String) throws
 
+    /// Selects a source as the active source.
+    /// - Parameter sourceId: The source ID to select.
+    func selectSource(sourceId: String)
+
     /// Gets the popular anime from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.

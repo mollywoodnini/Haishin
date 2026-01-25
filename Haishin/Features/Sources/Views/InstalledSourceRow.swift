@@ -16,7 +16,7 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     private let source: InstalledSource
-    private let onToggle: () -> Void
+    private let onSelect: () -> Void
     private let onDelete: () -> Void
 
 
@@ -26,11 +26,11 @@ struct InstalledSourceRow: View {
 
     /// Creates a new installed source row.
     /// - Parameter source: The installed source to display.
-    /// - Parameter onToggle: Closure called when the toggle is tapped.
+    /// - Parameter onSelect: Closure called when the row is tapped to select this source.
     /// - Parameter onDelete: Closure called when the delete action is triggered.
-    init(source: InstalledSource, onToggle: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(source: InstalledSource, onSelect: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.source = source
-        self.onToggle = onToggle
+        self.onSelect = onSelect
         self.onDelete = onDelete
     }
 
@@ -40,12 +40,18 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     var body: some View {
-        HStack(spacing: .spacingS) {
-            iconView
-            infoView
-            Spacer()
-            toggleView
+        Button {
+            onSelect()
+        } label: {
+            HStack(spacing: .spacingS) {
+                iconView
+                infoView
+                Spacer()
+                checkmarkView
+            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 onDelete()
@@ -87,11 +93,12 @@ struct InstalledSourceRow: View {
         }
     }
 
-    private var toggleView: some View {
-        Toggle("", isOn: Binding(
-            get: { source.isEnabled },
-            set: { _ in onToggle() }
-        ))
-        .labelsHidden()
+    @ViewBuilder
+    private var checkmarkView: some View {
+        if source.isEnabled {
+            Image(systemName: "checkmark")
+                .foregroundStyle(.tint)
+                .fontWeight(.semibold)
+        }
     }
 }

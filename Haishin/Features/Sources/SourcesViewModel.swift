@@ -135,14 +135,10 @@ final class SourcesViewModel {
         }
     }
 
-    /// Toggles whether a source is enabled.
-    /// - Parameter source: The source to toggle.
-    func toggleSource(_ source: InstalledSource) {
-        if sourceManager.installedSources.contains(where: { $0.id == source.id }) {
-            // Note: This would need to be updated to properly mutate the source manager
-            // For now, this is a simplified implementation
-            print("[SourcesViewModel] Toggle source: \(source.info.name)")
-        }
+    /// Selects a source as the active source.
+    /// - Parameter source: The source to select.
+    func selectSource(_ source: InstalledSource) {
+        sourceManager.selectSource(sourceId: source.id)
     }
 
     /// Checks if a source is already installed.

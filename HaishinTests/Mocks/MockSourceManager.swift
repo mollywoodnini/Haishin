@@ -66,6 +66,12 @@ final class MockSourceManager: SourceManaging {
     /// Source IDs passed to uninstallSource.
     var uninstalledSourceIds: [String] = []
 
+    /// Number of times selectSource was called.
+    var selectSourceCallCount = 0
+
+    /// Source IDs passed to selectSource.
+    var selectedSourceIds: [String] = []
+
     /// Number of times getPopular was called.
     var getPopularCallCount = 0
 
@@ -111,6 +117,15 @@ final class MockSourceManager: SourceManaging {
         uninstallSourceCallCount += 1
         uninstalledSourceIds.append(sourceId)
         installedSources.removeAll { $0.id == sourceId }
+    }
+
+    func selectSource(sourceId: String) {
+        selectSourceCallCount += 1
+        selectedSourceIds.append(sourceId)
+        // Update isEnabled on all sources
+        for index in installedSources.indices {
+            installedSources[index].isEnabled = (installedSources[index].id == sourceId)
+        }
     }
 
     func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
