@@ -118,13 +118,14 @@ struct AnimeDetailViewModelTests {
                          aniListService: MockAniListService? = nil,
                          subscriptionService: MockSubscriptionService? = nil,
                          watchProgressService: MockWatchProgressService? = nil,
-                         sourceManager: MockSourceManager? = nil) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(item: item ?? TestFixtures.makeRecommendingItem(),
+                         sourceManager: MockSourceManager? = nil,
+                         userPreferences: MockUserPreferences? = nil) -> AnimeDetailViewModel {
+        AnimeDetailViewModel(mode: .item(item ?? TestFixtures.makeRecommendingItem()),
                              aniListService: aniListService ?? MockAniListService(),
                              subscriptionService: subscriptionService ?? MockSubscriptionService(),
                              watchProgressService: watchProgressService ?? MockWatchProgressService(),
                              sourceManager: sourceManager ?? MockSourceManager(),
-                             userPreferences: UserPreferences())
+                             userPreferences: userPreferences ?? MockUserPreferences())
     }
 
 

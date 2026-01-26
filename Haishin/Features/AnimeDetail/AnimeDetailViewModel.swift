@@ -18,6 +18,19 @@ import Foundation
 final class AnimeDetailViewModel {
 
     //#################################################################################
+    // MARK: - Types
+    //#################################################################################
+
+    /// The display mode with associated anime data.
+    enum Mode {
+        /// Display from a recommending item (e.g., from browse, search, or list).
+        case item(RecommendingItem)
+        /// Display from raw anime data (e.g., from relations or recommendations).
+        case raw(animeId: Int, title: String, coverURL: URL?)
+    }
+
+
+    //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
@@ -55,7 +68,7 @@ final class AnimeDetailViewModel {
     private let watchProgressService: WatchProgressServiceProtocol
     private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
-    private var userPreferences: UserPreferences
+    private var userPreferences: UserPreferencesProtocol
 
 
     //#################################################################################
@@ -64,103 +77,35 @@ final class AnimeDetailViewModel {
 
     /// Creates a new view model.
     /// - Parameters:
-    ///   - animeId: The AniList ID of the anime.
-    ///   - previewTitle: The title to display while loading.
-    ///   - previewCoverURL: The cover URL to display while loading.
+    ///   - mode: The display mode containing anime preview data.
     ///   - aniListService: The service to fetch anime details.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - watchProgressService: The service for tracking episode progress.
     ///   - sourceManager: The source manager for fetching episodes.
     ///   - userPreferences: The user preferences.
-    init(animeId: Int,
-         previewTitle: String,
-         previewCoverURL: URL?,
+    init(mode: Mode,
          aniListService: AniListServicing,
          subscriptionService: SubscriptionServiceProtocol,
          watchProgressService: WatchProgressServiceProtocol,
          sourceManager: SourceManaging,
-         userPreferences: UserPreferences) {
-        self.animeId = animeId
-        self.previewTitle = previewTitle
-        self.previewCoverURL = previewCoverURL
+         userPreferences: UserPreferencesProtocol) {
+        switch mode {
+        case .item(let item):
+            self.animeId = item.anilistId
+            self.previewTitle = item.title
+            self.previewCoverURL = item.coverURL
+        case .raw(let animeId, let title, let coverURL):
+            self.animeId = animeId
+            self.previewTitle = title
+            self.previewCoverURL = coverURL
+        }
+
         self.aniListService = aniListService
         self.subscriptionService = subscriptionService
         self.watchProgressService = watchProgressService
         self.sourceManager = sourceManager
         self.userPreferences = userPreferences
         self.isSubscribed = subscriptionService.isSubscribed(id: animeId)
-    }
-
-    /// Creates a new view model from a recommending item.
-    /// - Parameters:
-    ///   - item: The recommending item to display details for.
-    ///   - aniListService: The service to fetch anime details.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - watchProgressService: The service for tracking episode progress.
-    ///   - sourceManager: The source manager for fetching episodes.
-    ///   - userPreferences: The user preferences.
-    convenience init(item: RecommendingItem,
-                     aniListService: AniListServicing,
-                     subscriptionService: SubscriptionServiceProtocol,
-                     watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging,
-                     userPreferences: UserPreferences) {
-        self.init(animeId: item.anilistId,
-                  previewTitle: item.title,
-                  previewCoverURL: item.coverURL,
-                  aniListService: aniListService,
-                  subscriptionService: subscriptionService,
-                  watchProgressService: watchProgressService,
-                  sourceManager: sourceManager,
-                  userPreferences: userPreferences)
-    }
-
-    /// Creates a new view model from a recommending item with default services.
-    /// - Parameters:
-    ///   - item: The recommending item to display details for.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - watchProgressService: The service for tracking episode progress.
-    ///   - sourceManager: The source manager for fetching episodes.
-    ///   - userPreferences: The user preferences.
-    @MainActor
-    convenience init(item: RecommendingItem,
-                     subscriptionService: SubscriptionServiceProtocol,
-                     watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging,
-                     userPreferences: UserPreferences = UserPreferences()) {
-        self.init(item: item,
-                  aniListService: AniListService(),
-                  subscriptionService: subscriptionService,
-                  watchProgressService: watchProgressService,
-                  sourceManager: sourceManager,
-                  userPreferences: userPreferences)
-    }
-
-    /// Creates a new view model with default AniList service.
-    /// - Parameters:
-    ///   - animeId: The AniList ID of the anime.
-    ///   - previewTitle: The title to display while loading.
-    ///   - previewCoverURL: The cover URL to display while loading.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - watchProgressService: The service for tracking episode progress.
-    ///   - sourceManager: The source manager for fetching episodes.
-    ///   - userPreferences: The user preferences.
-    @MainActor
-    convenience init(animeId: Int,
-                     previewTitle: String,
-                     previewCoverURL: URL?,
-                     subscriptionService: SubscriptionServiceProtocol,
-                     watchProgressService: WatchProgressServiceProtocol,
-                     sourceManager: SourceManaging,
-                     userPreferences: UserPreferences = UserPreferences()) {
-        self.init(animeId: animeId,
-                  previewTitle: previewTitle,
-                  previewCoverURL: previewCoverURL,
-                  aniListService: AniListService(),
-                  subscriptionService: subscriptionService,
-                  watchProgressService: watchProgressService,
-                  sourceManager: sourceManager,
-                  userPreferences: userPreferences)
     }
 
 
@@ -242,6 +187,7 @@ final class AnimeDetailViewModel {
                                     sourceManager: sourceManager,
                                     watchProgressService: watchProgressService,
                                     subscriptionService: subscriptionService,
+                                    downloadService: DownloadService.shared,
                                     userPreferences: userPreferences)
     }
 
@@ -249,9 +195,9 @@ final class AnimeDetailViewModel {
     /// - Parameter relation: The related anime to show details for.
     /// - Returns: A new `AnimeDetailViewModel` for the related anime.
     func makeRelatedAnimeDetailViewModel(relation: AniListRelation) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(animeId: relation.id,
-                             previewTitle: relation.title,
-                             previewCoverURL: relation.coverURL,
+        AnimeDetailViewModel(mode: .raw(animeId: relation.id,
+                                        title: relation.title,
+                                        coverURL: relation.coverURL),
                              aniListService: aniListService,
                              subscriptionService: subscriptionService,
                              watchProgressService: watchProgressService,
@@ -263,9 +209,9 @@ final class AnimeDetailViewModel {
     /// - Parameter recommendation: The recommended anime to show details for.
     /// - Returns: A new `AnimeDetailViewModel` for the recommended anime.
     func makeRecommendationDetailViewModel(recommendation: AniListRecommendation) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(animeId: recommendation.id,
-                             previewTitle: recommendation.title,
-                             previewCoverURL: recommendation.coverURL,
+        AnimeDetailViewModel(mode: .raw(animeId: recommendation.id,
+                                        title: recommendation.title,
+                                        coverURL: recommendation.coverURL),
                              aniListService: aniListService,
                              subscriptionService: subscriptionService,
                              watchProgressService: watchProgressService,

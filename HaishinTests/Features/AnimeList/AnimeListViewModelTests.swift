@@ -20,11 +20,12 @@ struct AnimeListViewModelTests {
     /// Creates a fresh AnimeListViewModel with mocks.
     private func makeSUT(title: String = "Trending",
                          listType: AnimeListType = .trending,
-                         mockService: MockAniListService = MockAniListService()) -> AnimeListViewModel {
+                         mockService: MockAniListService? = nil,
+                         mockUserPreferences: MockUserPreferences? = nil) -> AnimeListViewModel {
         AnimeListViewModel(title: title,
                            listType: listType,
-                           aniListService: mockService,
-                           userPreferences: UserPreferences())
+                           aniListService: mockService ?? MockAniListService(),
+                           userPreferences: mockUserPreferences ?? MockUserPreferences())
     }
 
 

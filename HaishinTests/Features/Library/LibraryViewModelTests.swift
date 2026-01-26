@@ -113,10 +113,16 @@ struct LibraryViewModelTests {
     /// Creates a fresh LibraryViewModel with mock services.
     private func makeSUT(watchProgressService: MockWatchProgressService? = nil,
                          subscriptionService: MockSubscriptionService? = nil,
-                         sourceManager: MockSourceManager? = nil) -> LibraryViewModel {
+                         sourceManager: MockSourceManager? = nil,
+                         downloadService: MockDownloadService? = nil,
+                         userPreferences: MockUserPreferences? = nil,
+                         aniListService: MockAniListService? = nil) -> LibraryViewModel {
         LibraryViewModel(watchProgressService: watchProgressService ?? MockWatchProgressService(),
                          subscriptionService: subscriptionService ?? MockSubscriptionService(),
-                         sourceManager: sourceManager ?? MockSourceManager())
+                         sourceManager: sourceManager ?? MockSourceManager(),
+                         downloadService: downloadService ?? MockDownloadService(),
+                         userPreferences: userPreferences ?? MockUserPreferences(),
+                         aniListService: aniListService ?? MockAniListService())
     }
 
 

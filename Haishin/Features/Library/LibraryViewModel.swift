@@ -40,6 +40,8 @@ final class LibraryViewModel {
     private let subscriptionService: SubscriptionServiceProtocol
     private let sourceManager: SourceManaging
     private let downloadService: DownloadServiceProtocol
+    private let userPreferences: UserPreferencesProtocol
+    private let aniListService: AniListServicing
 
 
     //#################################################################################
@@ -52,14 +54,20 @@ final class LibraryViewModel {
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - sourceManager: The source manager for episode fetching.
     ///   - downloadService: The service for managing downloads.
+    ///   - userPreferences: The user preferences.
+    ///   - aniListService: The service to fetch anime details.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
-         downloadService: DownloadServiceProtocol) {
+         downloadService: DownloadServiceProtocol,
+         userPreferences: UserPreferencesProtocol,
+         aniListService: AniListServicing) {
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.sourceManager = sourceManager
         self.downloadService = downloadService
+        self.userPreferences = userPreferences
+        self.aniListService = aniListService
         refresh()
     }
 
@@ -97,23 +105,27 @@ final class LibraryViewModel {
     /// - Parameter anime: The recent anime to show details for.
     /// - Returns: A new `AnimeDetailViewModel` for the anime.
     func makeAnimeDetailViewModel(recentAnime anime: RecentAnime) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(animeId: anime.id,
-                             previewTitle: anime.title,
-                             previewCoverURL: anime.coverURL,
+        AnimeDetailViewModel(mode: .raw(animeId: anime.id,
+                                        title: anime.title,
+                                        coverURL: anime.coverURL),
+                             aniListService: aniListService,
                              subscriptionService: subscriptionService,
                              watchProgressService: watchProgressService,
-                             sourceManager: sourceManager)
+                             sourceManager: sourceManager,
+                             userPreferences: userPreferences)
     }
 
     /// Creates an AnimeDetailViewModel for a subscribed anime.
     /// - Parameter anime: The subscribed anime to show details for.
     /// - Returns: A new `AnimeDetailViewModel` for the anime.
     func makeAnimeDetailViewModel(subscribedAnime anime: SubscribedAnime) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(animeId: anime.id,
-                             previewTitle: anime.title,
-                             previewCoverURL: anime.coverURL,
+        AnimeDetailViewModel(mode: .raw(animeId: anime.id,
+                                        title: anime.title,
+                                        coverURL: anime.coverURL),
+                             aniListService: aniListService,
                              subscriptionService: subscriptionService,
                              watchProgressService: watchProgressService,
-                             sourceManager: sourceManager)
+                             sourceManager: sourceManager,
+                             userPreferences: userPreferences)
     }
 }

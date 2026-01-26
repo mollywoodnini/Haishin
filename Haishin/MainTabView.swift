@@ -32,7 +32,10 @@ struct MainTabView: View {
 
             LibraryView(watchProgressService: WatchProgressService.shared,
                         subscriptionService: SubscriptionService.shared,
-                        sourceManager: sourceManager)
+                        sourceManager: sourceManager,
+                        downloadService: DownloadService.shared,
+                        userPreferences: UserPreferences.shared,
+                        aniListService: AniListService())
                 .tabItem {
                     Label(Tab.library.title, systemImage: Tab.library.icon)
                 }

@@ -47,7 +47,7 @@ final class BrowseViewModel {
 
     private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
-    private var userPreferences: UserPreferences
+    private let userPreferences: UserPreferencesProtocol
 
 
     //#################################################################################
@@ -61,7 +61,7 @@ final class BrowseViewModel {
     ///   - userPreferences: The user preferences for settings like NSFW.
     init(sourceManager: SourceManaging,
          aniListService: AniListServicing,
-         userPreferences: UserPreferences) {
+         userPreferences: UserPreferencesProtocol) {
         self.sourceManager = sourceManager
         self.aniListService = aniListService
         self.userPreferences = userPreferences
@@ -75,7 +75,7 @@ final class BrowseViewModel {
     convenience init(sourceManager: SourceManaging) {
         self.init(sourceManager: sourceManager,
                   aniListService: AniListService(),
-                  userPreferences: UserPreferences())
+                  userPreferences: UserPreferences.shared)
     }
 
 
@@ -103,8 +103,6 @@ final class BrowseViewModel {
 
     /// Refreshes all content.
     func refresh() async {
-        // Re-read user preferences to get latest NSFW setting
-        reloadUserPreferences()
         resetSections()
         // Reset loading state to allow fresh load
         isLoading = false
@@ -146,10 +144,6 @@ final class BrowseViewModel {
             sections[index].items = []
             sections[index].loadingState = .idle
         }
-    }
-
-    private func reloadUserPreferences() {
-        userPreferences = UserPreferences()
     }
 
     private func loadThisWeek() async {

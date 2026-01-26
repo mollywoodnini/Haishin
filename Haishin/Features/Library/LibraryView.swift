@@ -27,18 +27,25 @@ struct LibraryView: View {
     //#################################################################################
 
     /// Creates a new library view.
-    /// - Parameter watchProgressService: The watch progress service to use.
-    /// - Parameter subscriptionService: The subscription service to use.
-    /// - Parameter sourceManager: The source manager to use.
-    /// - Parameter downloadService: The download service to use.
+    /// - Parameters:
+    ///   - watchProgressService: The watch progress service to use.
+    ///   - subscriptionService: The subscription service to use.
+    ///   - sourceManager: The source manager to use.
+    ///   - downloadService: The download service to use.
+    ///   - userPreferences: The user preferences.
+    ///   - aniListService: The AniList service to use.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
-         downloadService: DownloadServiceProtocol) {
+         downloadService: DownloadServiceProtocol,
+         userPreferences: UserPreferencesProtocol,
+         aniListService: AniListServicing) {
         self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
                                                                subscriptionService: subscriptionService,
                                                                sourceManager: sourceManager,
-                                                               downloadService: downloadService))
+                                                               downloadService: downloadService,
+                                                               userPreferences: userPreferences,
+                                                               aniListService: aniListService))
     }
 
 
@@ -105,5 +112,7 @@ struct LibraryView: View {
     LibraryView(watchProgressService: WatchProgressService.shared,
                 subscriptionService: SubscriptionService.shared,
                 sourceManager: SourceManager.shared,
-                downloadService: DownloadService.shared)
+                downloadService: DownloadService.shared,
+                userPreferences: UserPreferences.shared,
+                aniListService: AniListService())
 }

@@ -168,6 +168,112 @@ enum MockError: Error {
 
 
 //#################################################################################
+// MARK: - MockUserPreferences
+//#################################################################################
+
+/// Mock implementation of UserPreferencesProtocol for testing.
+@MainActor
+final class MockUserPreferences: UserPreferencesProtocol {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    var appearance: AppearanceMode = .system
+    var selectedSourceId: String?
+    var showNSFW: Bool = false
+
+
+    //#################################################################################
+    // MARK: - Call Tracking
+    //#################################################################################
+
+    var clearAllCallCount = 0
+
+
+    //#################################################################################
+    // MARK: - Methods
+    //#################################################################################
+
+    func clearAll() {
+        clearAllCallCount += 1
+        appearance = .system
+        selectedSourceId = nil
+        showNSFW = false
+    }
+}
+
+
+//#################################################################################
+// MARK: - MockDownloadService
+//#################################################################################
+
+/// Mock implementation of DownloadServiceProtocol for testing.
+@MainActor
+final class MockDownloadService: DownloadServiceProtocol {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    var downloadedAnime: [DownloadedAnime] = []
+    var activeDownloads: [DownloadedEpisode] = []
+    var totalDownloadsCount: Int { downloadedAnime.flatMap(\.episodes).count }
+
+
+    //#################################################################################
+    // MARK: - Call Tracking
+    //#################################################################################
+
+    var setSourceManagerCallCount = 0
+    var startDownloadCallCount = 0
+    var cancelDownloadCallCount = 0
+    var removeDownloadCallCount = 0
+
+
+    //#################################################################################
+    // MARK: - Methods
+    //#################################################################################
+
+    func setSourceManager(_ sourceManager: SourceManaging) {
+        setSourceManagerCallCount += 1
+    }
+
+    func startDownload(animeId: Int,
+                       animeTitle: String,
+                       animeCoverURL: URL?,
+                       episodeId: String,
+                       episodeNumber: String,
+                       episodeTitle: String?,
+                       sourceId: String,
+                       sourceName: String,
+                       sourceURL: String) {
+        startDownloadCallCount += 1
+    }
+
+    func cancelDownload(episodeId: String) {
+        cancelDownloadCallCount += 1
+    }
+
+    func removeDownload(episodeId: String) {
+        removeDownloadCallCount += 1
+    }
+
+    func getDownloadState(episodeId: String) -> DownloadState? {
+        nil
+    }
+
+    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode] {
+        downloadedAnime.first { $0.id == animeId }?.episodes ?? []
+    }
+
+    func removeAllDownloads(forAnimeId animeId: Int) {
+        downloadedAnime.removeAll { $0.id == animeId }
+    }
+}
+
+
+//#################################################################################
 // MARK: - MockAniListService
 //#################################################################################
 

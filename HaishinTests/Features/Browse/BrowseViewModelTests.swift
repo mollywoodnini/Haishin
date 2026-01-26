@@ -22,11 +22,12 @@ struct BrowseViewModelTests {
     //#################################################################################
 
     /// Creates a fresh BrowseViewModel with mocks.
-    private func makeSUT(mockSourceManager: MockSourceManager = MockSourceManager(),
-                         mockAniListService: MockAniListService = MockAniListService()) -> BrowseViewModel {
-        BrowseViewModel(sourceManager: mockSourceManager,
-                        aniListService: mockAniListService,
-                        userPreferences: UserPreferences())
+    private func makeSUT(mockSourceManager: MockSourceManager? = nil,
+                         mockAniListService: MockAniListService? = nil,
+                         mockUserPreferences: MockUserPreferences? = nil) -> BrowseViewModel {
+        BrowseViewModel(sourceManager: mockSourceManager ?? MockSourceManager(),
+                        aniListService: mockAniListService ?? MockAniListService(),
+                        userPreferences: mockUserPreferences ?? MockUserPreferences())
     }
 
 

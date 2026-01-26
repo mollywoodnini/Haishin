@@ -79,7 +79,9 @@ final class SearchViewModel {
     @MainActor
     func makeEpisodeListViewModel(for animePreview: AnimePreview) -> EpisodeListViewModel {
         EpisodeListViewModel(animePreview: animePreview,
-                             sourceManager: sourceManager)
+                             sourceManager: sourceManager,
+                             watchProgressService: WatchProgressService.shared,
+                             downloadService: DownloadService.shared)
     }
 
 

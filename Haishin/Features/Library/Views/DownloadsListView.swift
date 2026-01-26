@@ -49,7 +49,9 @@ struct DownloadsListView: View {
                     }
                 }
                 .navigationDestination(item: $tappedAnime) { anime in
-                    EpisodeListView(downloadedAnime: anime)
+                    EpisodeListView(downloadedAnime: anime,
+                                    watchProgressService: WatchProgressService.shared,
+                                    downloadService: DownloadService.shared)
                 }
                 .listStyle(.plain)
             }

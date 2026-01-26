@@ -43,7 +43,7 @@ final class AnimeListViewModel {
     private(set) var error: Error?
 
     private let aniListService: AniListServicing
-    private let userPreferences: UserPreferences
+    private let userPreferences: UserPreferencesProtocol
     private var currentPage = 0
 
 
@@ -60,7 +60,7 @@ final class AnimeListViewModel {
     init(title: String,
          listType: AnimeListType,
          aniListService: AniListServicing,
-         userPreferences: UserPreferences) {
+         userPreferences: UserPreferencesProtocol) {
         self.title = title
         self.listType = listType
         self.aniListService = aniListService
@@ -77,7 +77,7 @@ final class AnimeListViewModel {
         self.init(title: title,
                   listType: listType,
                   aniListService: AniListService(),
-                  userPreferences: UserPreferences())
+                  userPreferences: UserPreferences.shared)
     }
 
 

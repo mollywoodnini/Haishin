@@ -83,7 +83,7 @@ final class EpisodeListViewModel {
     private let watchProgressService: WatchProgressServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol?
     private let downloadService: DownloadServiceProtocol
-    private var userPreferences: UserPreferences?
+    private var userPreferences: UserPreferencesProtocol?
 
 
     //#################################################################################
@@ -104,8 +104,8 @@ final class EpisodeListViewModel {
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol = DownloadService.shared,
-         userPreferences: UserPreferences) {
+         downloadService: DownloadServiceProtocol,
+         userPreferences: UserPreferencesProtocol) {
         self.mode = .online
         self.animeId = aniListAnime.id
         self.animeTitle = aniListAnime.title
@@ -127,8 +127,8 @@ final class EpisodeListViewModel {
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - downloadService: The service for managing downloads.
     init(downloadedAnime: DownloadedAnime,
-         watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared,
-         downloadService: DownloadServiceProtocol = DownloadService.shared) {
+         watchProgressService: WatchProgressServiceProtocol,
+         downloadService: DownloadServiceProtocol) {
         self.mode = .offline
         self.animeId = downloadedAnime.id
         self.animeTitle = downloadedAnime.title
@@ -165,8 +165,8 @@ final class EpisodeListViewModel {
     ///   - downloadService: The service for managing downloads.
     init(animePreview: AnimePreview,
          sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol = WatchProgressService.shared,
-         downloadService: DownloadServiceProtocol = DownloadService.shared) {
+         watchProgressService: WatchProgressServiceProtocol,
+         downloadService: DownloadServiceProtocol) {
         self.mode = .online
         self.animeId = animePreview.id.hashValue
         self.animeTitle = animePreview.title

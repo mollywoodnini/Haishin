@@ -42,25 +42,34 @@ struct EpisodeListView: View {
     ///   - sourceManager: The shared source manager.
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
+    ///   - downloadService: The download service.
     ///   - userPreferences: The user preferences.
     init(aniListAnime: AniListAnimeDetail,
          sourceId: String,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         userPreferences: UserPreferences = UserPreferences()) {
+         downloadService: DownloadServiceProtocol,
+         userPreferences: UserPreferencesProtocol) {
         self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
                                                                    sourceId: sourceId,
                                                                    sourceManager: sourceManager,
                                                                    watchProgressService: watchProgressService,
                                                                    subscriptionService: subscriptionService,
+                                                                   downloadService: downloadService,
                                                                    userPreferences: userPreferences))
     }
 
     /// Creates a new episodes view for offline mode (downloaded episodes).
     /// - Parameter downloadedAnime: The downloaded anime to display.
-    init(downloadedAnime: DownloadedAnime) {
-        self._viewModel = State(initialValue: EpisodeListViewModel(downloadedAnime: downloadedAnime))
+    /// - Parameter watchProgressService: The service for accessing watch progress.
+    /// - Parameter downloadService: The download service.
+    init(downloadedAnime: DownloadedAnime,
+         watchProgressService: WatchProgressServiceProtocol,
+         downloadService: DownloadServiceProtocol) {
+        self._viewModel = State(initialValue: EpisodeListViewModel(downloadedAnime: downloadedAnime,
+                                                                   watchProgressService: watchProgressService,
+                                                                   downloadService: downloadService))
     }
 
 

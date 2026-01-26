@@ -30,7 +30,7 @@ final class ScheduleViewModel {
     private(set) var error: Error?
 
     private let aniListService: AniListServicing
-    private let userPreferences: UserPreferences
+    private let userPreferences: UserPreferencesProtocol
 
 
     //#################################################################################
@@ -42,16 +42,16 @@ final class ScheduleViewModel {
     ///   - aniListService: The AniList service for fetching schedule data.
     ///   - userPreferences: The user preferences for settings like NSFW.
     init(aniListService: AniListServicing,
-         userPreferences: UserPreferences) {
+         userPreferences: UserPreferencesProtocol) {
         self.aniListService = aniListService
         self.userPreferences = userPreferences
     }
-    
-    /// Creates a new schedule view model.
+
+    /// Creates a new schedule view model with default services.
     @MainActor
     convenience init() {
         self.init(aniListService: AniListService(),
-                  userPreferences: UserPreferences())
+                  userPreferences: UserPreferences.shared)
     }
 
 

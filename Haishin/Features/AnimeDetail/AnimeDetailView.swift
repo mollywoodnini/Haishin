@@ -37,40 +37,24 @@ struct AnimeDetailView: View {
 
     /// Creates a new detail view.
     /// - Parameters:
-    ///   - item: The recommending item to show details for.
+    ///   - mode: The display mode containing anime preview data.
+    ///   - aniListService: The service to fetch anime details.
     ///   - subscriptionService: The subscription service for managing subscriptions.
     ///   - watchProgressService: The watch progress service.
     ///   - sourceManager: The source manager for fetching episodes.
-    init(item: RecommendingItem,
+    ///   - userPreferences: The user preferences.
+    init(mode: AnimeDetailViewModel.Mode,
+         aniListService: AniListServicing,
          subscriptionService: SubscriptionServiceProtocol,
          watchProgressService: WatchProgressServiceProtocol,
-         sourceManager: SourceManaging) {
-        self._viewModel = State(initialValue: AnimeDetailViewModel(item: item,
+         sourceManager: SourceManaging,
+         userPreferences: UserPreferencesProtocol) {
+        self._viewModel = State(initialValue: AnimeDetailViewModel(mode: mode,
+                                                                   aniListService: aniListService,
                                                                    subscriptionService: subscriptionService,
                                                                    watchProgressService: watchProgressService,
-                                                                   sourceManager: sourceManager))
-    }
-
-    /// Creates a new detail view with explicit parameters.
-    /// - Parameters:
-    ///   - animeId: The AniList ID.
-    ///   - title: The preview title.
-    ///   - coverURL: The preview cover URL.
-    ///   - subscriptionService: The subscription service for managing subscriptions.
-    ///   - watchProgressService: The watch progress service.
-    ///   - sourceManager: The source manager for fetching episodes.
-    init(animeId: Int,
-         title: String,
-         coverURL: URL?,
-         subscriptionService: SubscriptionServiceProtocol,
-         watchProgressService: WatchProgressServiceProtocol,
-         sourceManager: SourceManaging) {
-        self._viewModel = State(initialValue: AnimeDetailViewModel(animeId: animeId,
-                                                                   previewTitle: title,
-                                                                   previewCoverURL: coverURL,
-                                                                   subscriptionService: subscriptionService,
-                                                                   watchProgressService: watchProgressService,
-                                                                   sourceManager: sourceManager))
+                                                                   sourceManager: sourceManager,
+                                                                   userPreferences: userPreferences))
     }
 
 
@@ -224,13 +208,15 @@ struct AnimeDetailView: View {
 
 #Preview {
     NavigationStack {
-        AnimeDetailView(item: RecommendingItem(id: "1",
-                                   title: "Attack on Titan",
-                                   subtitle: "MAPPA",
-                                   coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
-                                   anilistId: 16498),
+        AnimeDetailView(mode: .item(RecommendingItem(id: "1",
+                                                     title: "Attack on Titan",
+                                                     subtitle: "MAPPA",
+                                                     coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
+                                                     anilistId: 16498)),
+                        aniListService: AniListService(),
                         subscriptionService: SubscriptionService.shared,
                         watchProgressService: WatchProgressService.shared,
-                        sourceManager: SourceManager())
+                        sourceManager: SourceManager(),
+                        userPreferences: UserPreferences.shared)
     }
 }

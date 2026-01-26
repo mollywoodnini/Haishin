@@ -42,22 +42,6 @@ struct SourcePickerView: View {
         self.onSourceSelected = onSourceSelected
         self.sources = sources
     }
-
-    /// Creates a new source picker view with a source manager.
-    /// - Parameters:
-    ///   - animeTitle: The anime title being selected for.
-    ///   - selectedSourceId: Binding to the selected source ID.
-    ///   - onSourceSelected: Callback when a source is selected.
-    ///   - sourceManager: The source manager for fetching sources.
-    init(animeTitle: String,
-         selectedSourceId: Binding<String?>,
-         onSourceSelected: @escaping () -> Void,
-         sourceManager: SourceManaging) {
-        self.init(animeTitle: animeTitle,
-                  selectedSourceId: selectedSourceId,
-                  onSourceSelected: onSourceSelected,
-                  sources: sourceManager.installedSources)
-    }
     
     
     //#################################################################################
