@@ -367,12 +367,33 @@ final class EpisodeListViewModel {
                              isOfflineMode: mode == .offline)
     }
 
+    /// Returns the next episode after the given episode, if available.
+    /// - Parameter currentEpisode: The current episode.
+    /// - Returns: The next episode, or nil if there is no next episode.
+    func getNextEpisode(after currentEpisode: Episode) -> Episode? {
+        let sortedEpisodes = episodes.sorted { $0.number < $1.number }
+
+        guard let currentIndex = sortedEpisodes.firstIndex(where: { $0.id == currentEpisode.id }),
+              currentIndex + 1 < sortedEpisodes.count else {
+            return nil
+        }
+
+        return sortedEpisodes[currentIndex + 1]
+    }
+
 
     //#################################################################################
     // MARK: - Private Methods
     //#################################################################################
 
     private func loadOnlineEpisodes() async {
+        // Skip if already loaded
+        guard sourceAnime == nil else {
+            // Just reload watch progress in case it changed
+            loadWatchProgress()
+            return
+        }
+
         guard let sourceManager, let sourceId else { return }
 
         isLoading = true

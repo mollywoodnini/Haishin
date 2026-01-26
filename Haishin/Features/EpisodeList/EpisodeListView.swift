@@ -23,7 +23,6 @@ struct EpisodeListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSourcePicker = false
     @State private var expandedRanges: Set<String> = []
-    @State private var selectedEpisode: Episode?
 
 
     //#################################################################################
@@ -102,17 +101,40 @@ struct EpisodeListView: View {
         .task {
             await viewModel.loadEpisodes()
         }
-        .fullScreenCover(item: $selectedEpisode, onDismiss: {
-            viewModel.loadWatchProgress()
-        }) { episode in
-            VideoPlayerView(viewModel: viewModel.makeVideoPlayerViewModel(episode: episode))
-        }
         .onChange(of: viewModel.hasDownloadedEpisodes) { _, hasEpisodes in
             // Dismiss if all episodes have been deleted in offline mode
             if viewModel.mode == .offline && !hasEpisodes {
                 dismiss()
             }
         }
+    }
+
+
+    //#################################################################################
+    // MARK: - Private Methods
+    //#################################################################################
+
+    private func playEpisode(_ episode: Episode) {
+        let playerViewModel = viewModel.makeVideoPlayerViewModel(episode: episode)
+
+        VideoPlayerPresenter.shared.present(
+            viewModel: playerViewModel,
+            onDismiss: { [viewModel] in
+                viewModel.loadWatchProgress()
+            },
+            onEpisodeFinished: { [viewModel] finishedEpisode in
+                // Check if there's a next episode to play
+                if let nextEpisode = viewModel.getNextEpisode(after: finishedEpisode) {
+                    // Dismiss current and play next
+                    VideoPlayerPresenter.shared.dismiss(animated: false)
+                    Task { @MainActor in
+                        // Small delay to allow dismissal to complete
+                        try? await Task.sleep(for: .milliseconds(100))
+                        playEpisode(nextEpisode)
+                    }
+                }
+            }
+        )
     }
 
 
@@ -214,7 +236,7 @@ struct EpisodeListView: View {
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: anime.episodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
-                        selectedEpisode = continueEpisode
+                        playEpisode(continueEpisode)
                     }
                 }
 
@@ -239,7 +261,7 @@ struct EpisodeListView: View {
                 EpisodeRowView(episode: episode,
                                progress: viewModel.watchProgressMap[episode.id],
                                downloadState: viewModel.getDownloadState(for: episode.id),
-                               onTap: { selectedEpisode = episode },
+                               onTap: { playEpisode(episode) },
                                onDownload: { viewModel.startDownload(episode: episode) },
                                onCancelDownload: { viewModel.cancelDownload(episodeId: episode.id) })
 
@@ -267,7 +289,7 @@ struct EpisodeListView: View {
                                             }
                                         },
                                         getDownloadState: { viewModel.getDownloadState(for: $0) },
-                                        onEpisodeTap: { selectedEpisode = $0 },
+                                        onEpisodeTap: { playEpisode($0) },
                                         onDownload: { viewModel.startDownload(episode: $0) },
                                         onCancelDownload: { viewModel.cancelDownload(episodeId: $0) })
             }
@@ -302,7 +324,7 @@ struct EpisodeListView: View {
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
-                        selectedEpisode = continueEpisode
+                        playEpisode(continueEpisode)
                     }
                 }
 
@@ -317,7 +339,7 @@ struct EpisodeListView: View {
             ForEach(viewModel.offlineEpisodes) { episode in
                 EpisodeRowView(episode: episode,
                                progress: viewModel.watchProgressMap[episode.id],
-                               onTap: { selectedEpisode = episode },
+                               onTap: { playEpisode(episode) },
                                onDelete: { viewModel.deleteDownload(episodeId: episode.id) })
 
                 if episode.id != viewModel.offlineEpisodes.last?.id {
