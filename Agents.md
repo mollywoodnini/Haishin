@@ -285,3 +285,32 @@ When generating SwiftUI code, strictly follow the Swift 5.9+ Observation framewo
            TextField("Edit", text: $viewModel.title) // Requires @Bindable if used here
        }
    }
+
+### Logging
+Always use the project's `Log` wrapper instead of `print()` statements. The `Log` enum is defined in `Haishin/Core/Extensions/Logger+Categories.swift` and automatically captures file and function context.
+
+**Never use:**
+```swift
+print("Loading video...")
+```
+
+**Always use:**
+```swift
+Log.debug(.playback, "Loading video...")
+```
+
+#### Available Log Levels
+- `Log.debug(.category, "message")` - Detailed debugging information
+- `Log.info(.category, "message")` - General informational messages
+- `Log.notice(.category, "message")` - Notable events
+- `Log.warning(.category, "message")` - Warning conditions
+- `Log.error(.category, "message")` - Error conditions
+- `Log.fault(.category, "message")` - Critical failures
+
+#### Available Categories
+- `.general` - General app logging
+- `.network` - Network requests and responses
+- `.sources` - Source/plugin related operations
+- `.downloads` - Download operations
+- `.playback` - Video playback
+- `.sync` - Cloud sync operations
