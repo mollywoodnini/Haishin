@@ -123,6 +123,9 @@ final class VideoPlayerViewModel {
         error = nil
         currentSourceIndex = 0
 
+        // Configure audio session to play sound even when device is muted
+        configureAudioSession()
+
         print("[VideoPlayerViewModel] Loading streams for episode \(episode.number)")
 
         // Restore previous progress if available
@@ -166,6 +169,19 @@ final class VideoPlayerViewModel {
     //#################################################################################
     // MARK: - Private Methods
     //#################################################################################
+
+    private func configureAudioSession() {
+        #if os(iOS)
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .moviePlayback)
+            try audioSession.setActive(true)
+            print("[VideoPlayerViewModel] Audio session configured for playback")
+        } catch {
+            print("[VideoPlayerViewModel] Failed to configure audio session: \(error)")
+        }
+        #endif
+    }
 
     private func loadOnlineVideo() async {
         guard let sourceManager else {
