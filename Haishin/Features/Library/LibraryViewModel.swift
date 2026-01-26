@@ -27,13 +27,16 @@ final class LibraryViewModel {
     /// All subscribed anime.
     private(set) var subscribedAnime: [SubscribedAnime] = []
 
+    /// All downloaded anime.
+    private(set) var downloadedAnime: [DownloadedAnime] = []
+
     /// Count of recent anime.
     var recentsCount: Int { recentAnime.count }
 
     /// Count of subscribed anime.
     var subscribedCount: Int { subscribedAnime.count }
 
-    /// Count of downloaded items (placeholder for now).
+    /// Count of downloaded items.
     var downloadsCount: Int { downloadService.totalDownloadsCount }
 
     private let watchProgressService: WatchProgressServiceProtocol
@@ -80,6 +83,7 @@ final class LibraryViewModel {
     func refresh() {
         recentAnime = watchProgressService.getRecentAnime()
         subscribedAnime = subscriptionService.getSubscribedAnime()
+        downloadedAnime = downloadService.downloadedAnime
     }
 
     /// Removes a recent anime from the list.
@@ -94,6 +98,13 @@ final class LibraryViewModel {
     func unsubscribe(id: Int) {
         subscriptionService.unsubscribe(id: id)
         subscribedAnime.removeAll { $0.id == id }
+    }
+
+    /// Removes all downloads for an anime.
+    /// - Parameter animeId: The anime ID to remove downloads for.
+    func removeAllDownloads(forAnimeId animeId: Int) {
+        downloadService.removeAllDownloads(forAnimeId: animeId)
+        downloadedAnime.removeAll { $0.id == animeId }
     }
 
 
@@ -127,5 +138,14 @@ final class LibraryViewModel {
                              watchProgressService: watchProgressService,
                              sourceManager: sourceManager,
                              userPreferences: userPreferences)
+    }
+
+    /// Creates an EpisodeListViewModel for a downloaded anime.
+    /// - Parameter anime: The downloaded anime to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the downloaded anime.
+    func makeEpisodeListViewModel(downloadedAnime anime: DownloadedAnime) -> EpisodeListViewModel {
+        EpisodeListViewModel(downloadedAnime: anime,
+                             watchProgressService: watchProgressService,
+                             downloadService: downloadService)
     }
 }

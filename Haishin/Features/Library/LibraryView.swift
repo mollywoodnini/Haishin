@@ -82,7 +82,7 @@ struct LibraryView: View {
 
                     // Bottom row: Downloads
                     NavigationLink {
-                        DownloadsListView()
+                        DownloadsListView(viewModel: viewModel)
                     } label: {
                         LibraryWideCard(icon: "arrow.down.circle.fill",
                                         title: "Downloads",

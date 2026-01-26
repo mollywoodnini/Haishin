@@ -161,6 +161,23 @@ struct LibraryViewModelTests {
         #expect(sut.subscribedAnime.first?.title == "Subscribed Anime")
     }
 
+    @Test("On initialization, downloadedAnime is loaded from service")
+    func initialization_downloadedAnimeIsLoaded() {
+        let mockDownload = MockDownloadService()
+        mockDownload.downloadedAnime = [
+            DownloadedAnime(id: 1,
+                            title: "Downloaded Anime",
+                            coverURL: nil,
+                            sourceId: "test-source",
+                            sourceName: "Test Source",
+                            episodes: [])
+        ]
+        let sut = makeSUT(downloadService: mockDownload)
+
+        #expect(sut.downloadedAnime.count == 1)
+        #expect(sut.downloadedAnime.first?.title == "Downloaded Anime")
+    }
+
 
     //#################################################################################
     // MARK: - recentsCount Tests
@@ -263,5 +280,80 @@ struct LibraryViewModelTests {
 
         #expect(sut.subscribedAnime.count == 1)
         #expect(sut.subscribedAnime.first?.title == "New Subscription")
+    }
+
+    @Test("refresh updates downloadedAnime from service")
+    func refresh_updatesDownloadedAnime() {
+        let mockDownload = MockDownloadService()
+        let sut = makeSUT(downloadService: mockDownload)
+
+        #expect(sut.downloadedAnime.isEmpty)
+
+        // Add anime to mock service
+        mockDownload.downloadedAnime = [
+            DownloadedAnime(id: 1,
+                            title: "New Download",
+                            coverURL: nil,
+                            sourceId: "test-source",
+                            sourceName: "Test Source",
+                            episodes: [])
+        ]
+
+        // Refresh
+        sut.refresh()
+
+        #expect(sut.downloadedAnime.count == 1)
+        #expect(sut.downloadedAnime.first?.title == "New Download")
+    }
+
+
+    //#################################################################################
+    // MARK: - removeAllDownloads Tests
+    //#################################################################################
+
+    @Test("removeAllDownloads removes anime from downloadedAnime")
+    func removeAllDownloads_removesAnimeFromList() {
+        let mockDownload = MockDownloadService()
+        mockDownload.downloadedAnime = [
+            DownloadedAnime(id: 1,
+                            title: "Anime 1",
+                            coverURL: nil,
+                            sourceId: "test-source",
+                            sourceName: "Test Source",
+                            episodes: []),
+            DownloadedAnime(id: 2,
+                            title: "Anime 2",
+                            coverURL: nil,
+                            sourceId: "test-source",
+                            sourceName: "Test Source",
+                            episodes: [])
+        ]
+        let sut = makeSUT(downloadService: mockDownload)
+
+        #expect(sut.downloadedAnime.count == 2)
+
+        sut.removeAllDownloads(forAnimeId: 1)
+
+        #expect(sut.downloadedAnime.count == 1)
+        #expect(sut.downloadedAnime.first?.id == 2)
+    }
+
+    @Test("removeAllDownloads calls download service")
+    func removeAllDownloads_callsDownloadService() {
+        let mockDownload = MockDownloadService()
+        mockDownload.downloadedAnime = [
+            DownloadedAnime(id: 1,
+                            title: "Anime 1",
+                            coverURL: nil,
+                            sourceId: "test-source",
+                            sourceName: "Test Source",
+                            episodes: [])
+        ]
+        let sut = makeSUT(downloadService: mockDownload)
+
+        sut.removeAllDownloads(forAnimeId: 1)
+
+        // Verify service was called (mock removes from its own list)
+        #expect(mockDownload.downloadedAnime.isEmpty)
     }
 }

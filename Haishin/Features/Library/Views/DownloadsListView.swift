@@ -19,8 +19,19 @@ struct DownloadsListView: View {
     // MARK: - Properties
     //#################################################################################
 
-    @State private var downloadService = DownloadService.shared
-    @State private var tappedAnime: DownloadedAnime? = nil
+    @Bindable private var viewModel: LibraryViewModel
+    @State private var tappedAnime: DownloadedAnime?
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new downloads list view.
+    /// - Parameter viewModel: The library view model.
+    init(viewModel: LibraryViewModel) {
+        self.viewModel = viewModel
+    }
 
 
     //#################################################################################
@@ -29,7 +40,7 @@ struct DownloadsListView: View {
 
     var body: some View {
         Group {
-            if downloadService.downloadedAnime.isEmpty {
+            if viewModel.downloadedAnime.isEmpty {
                 ContentUnavailableView {
                     Label("No Downloads", systemImage: "arrow.down.circle")
                 } description: {
@@ -37,26 +48,27 @@ struct DownloadsListView: View {
                 }
             } else {
                 List {
-                    ForEach(downloadService.downloadedAnime) { anime in
+                    ForEach(viewModel.downloadedAnime) { anime in
                         AnimeListRowButton(mode: .downloaded(anime),
                                            item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let anime = downloadService.downloadedAnime[index]
-                            downloadService.removeAllDownloads(forAnimeId: anime.id)
+                            let anime = viewModel.downloadedAnime[index]
+                            viewModel.removeAllDownloads(forAnimeId: anime.id)
                         }
                     }
                 }
                 .navigationDestination(item: $tappedAnime) { anime in
-                    EpisodeListView(downloadedAnime: anime,
-                                    watchProgressService: WatchProgressService.shared,
-                                    downloadService: DownloadService.shared)
+                    EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(downloadedAnime: anime))
                 }
                 .listStyle(.plain)
             }
         }
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.large)
+        .onAppear {
+            viewModel.refresh()
+        }
     }
 }
