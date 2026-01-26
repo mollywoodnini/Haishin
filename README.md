@@ -12,7 +12,9 @@ A free anime streaming application for iOS and iPadOS.
 - [x] Watch progress tracking
 - [x] Light and dark mode support
 - [x] iCloud sync
-- [o] Subscription notifications
+- [x] Picture in Picture mode
+- [] Subscription notifications
+- [] tvOS support
 
 ## Requirements
 
