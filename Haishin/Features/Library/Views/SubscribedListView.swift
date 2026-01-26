@@ -20,6 +20,7 @@ struct SubscribedListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
+    @State private var tappedAnime: SubscribedAnime?
 
 
     //#################################################################################
@@ -46,19 +47,22 @@ struct SubscribedListView: View {
                     Text("Anime you subscribe to will appear here.")
                 }
             } else {
-                ScrollView {
-                    LazyVStack(spacing: .spacingS) {
-                        ForEach(viewModel.subscribedAnime) { anime in
-                            NavigationLink {
-                                AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
-                            } label: {
-                                AnimeListRow(mode: .subscribed(anime))
-                            }
-                            .buttonStyle(.plain)
+                List {
+                    ForEach(viewModel.subscribedAnime) { anime in
+                        AnimeListRowButton(mode: .subscribed(anime),
+                                           item: anime) { tappedAnime = $0 }
+                    }
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            let anime = viewModel.subscribedAnime[index]
+                            viewModel.unsubscribe(id: anime.id)
                         }
                     }
-                    .padding(.spacingS)
                 }
+                .navigationDestination(item: $tappedAnime) { anime in
+                    AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
+                }
+                .listStyle(.plain)
             }
         }
         .navigationTitle("Subscribed")

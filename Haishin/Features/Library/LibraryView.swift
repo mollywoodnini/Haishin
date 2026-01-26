@@ -30,12 +30,15 @@ struct LibraryView: View {
     /// - Parameter watchProgressService: The watch progress service to use.
     /// - Parameter subscriptionService: The subscription service to use.
     /// - Parameter sourceManager: The source manager to use.
+    /// - Parameter downloadService: The download service to use.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         sourceManager: SourceManaging) {
+         sourceManager: SourceManaging,
+         downloadService: DownloadServiceProtocol) {
         self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
                                                                subscriptionService: subscriptionService,
-                                                               sourceManager: sourceManager))
+                                                               sourceManager: sourceManager,
+                                                               downloadService: downloadService))
     }
 
 
@@ -101,5 +104,6 @@ struct LibraryView: View {
 #Preview {
     LibraryView(watchProgressService: WatchProgressService.shared,
                 subscriptionService: SubscriptionService.shared,
-                sourceManager: SourceManager.shared)
+                sourceManager: SourceManager.shared,
+                downloadService: DownloadService.shared)
 }

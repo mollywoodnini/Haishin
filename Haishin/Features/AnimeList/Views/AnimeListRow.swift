@@ -10,6 +10,59 @@ import SwiftUI
 
 
 //#################################################################################
+// MARK: - AnimeListRowButton
+//#################################################################################
+
+/// A button wrapper for `AnimeListRow` with list row styling for swipe-to-delete lists.
+struct AnimeListRowButton<T>: View {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    private let mode: AnimeListRow.Mode
+    private let item: T
+    private let onTap: (T) -> Void
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new `AnimeListRowButton`.
+    /// - Parameters:
+    ///   - mode: The display mode for the row.
+    ///   - item: The item associated with this row.
+    ///   - onTap: Action to perform when tapped.
+    init(mode: AnimeListRow.Mode, item: T, onTap: @escaping (T) -> Void) {
+        self.mode = mode
+        self.item = item
+        self.onTap = onTap
+    }
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        Button {
+            onTap(item)
+        } label: {
+            AnimeListRow(mode: mode)
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: .spacingXS,
+                                  leading: .spacingS,
+                                  bottom: .spacingXS,
+                                  trailing: .spacingS))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    }
+}
+
+
+//#################################################################################
 // MARK: - AnimeListRow
 //#################################################################################
 

@@ -20,6 +20,7 @@ struct RecentsListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
+    @State private var tappedAnime: RecentAnime?
 
 
     //#################################################################################
@@ -46,19 +47,22 @@ struct RecentsListView: View {
                     Text("Anime you've started watching will appear here.")
                 }
             } else {
-                ScrollView {
-                    LazyVStack(spacing: .spacingS) {
-                        ForEach(viewModel.recentAnime) { anime in
-                            NavigationLink {
-                                AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
-                            } label: {
-                                AnimeListRow(mode: .recent(anime))
-                            }
-                            .buttonStyle(.plain)
+                List {
+                    ForEach(viewModel.recentAnime) { anime in
+                        AnimeListRowButton(mode: .recent(anime),
+                                           item: anime) { tappedAnime = $0 }
+                    }
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            let anime = viewModel.recentAnime[index]
+                            viewModel.removeRecentAnime(id: anime.id)
                         }
                     }
-                    .padding(.spacingS)
                 }
+                .navigationDestination(item: $tappedAnime) { anime in
+                    AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
+                }
+                .listStyle(.plain)
             }
         }
         .navigationTitle("Recents")

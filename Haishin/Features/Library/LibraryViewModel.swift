@@ -55,7 +55,7 @@ final class LibraryViewModel {
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
-         downloadService: DownloadServiceProtocol = DownloadService.shared) {
+         downloadService: DownloadServiceProtocol) {
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.sourceManager = sourceManager
@@ -72,6 +72,20 @@ final class LibraryViewModel {
     func refresh() {
         recentAnime = watchProgressService.getRecentAnime()
         subscribedAnime = subscriptionService.getSubscribedAnime()
+    }
+
+    /// Removes a recent anime from the list.
+    /// - Parameter id: The anime ID to remove.
+    func removeRecentAnime(id: Int) {
+        watchProgressService.removeRecentAnime(id: id)
+        recentAnime.removeAll { $0.id == id }
+    }
+
+    /// Unsubscribes from an anime.
+    /// - Parameter id: The anime ID to unsubscribe from.
+    func unsubscribe(id: Int) {
+        subscriptionService.unsubscribe(id: id)
+        subscribedAnime.removeAll { $0.id == id }
     }
 
 

@@ -39,7 +39,7 @@ enum DownloadError: LocalizedError {
 //#################################################################################
 
 /// Represents the current state of a download.
-enum DownloadState: Codable, Equatable {
+enum DownloadState: Codable, Equatable, Hashable {
     case pending
     case downloading(progress: Double)
     case completed
@@ -78,7 +78,7 @@ enum DownloadState: Codable, Equatable {
 //#################################################################################
 
 /// Represents a downloaded or downloading episode.
-struct DownloadedEpisode: Identifiable, Codable, Equatable {
+struct DownloadedEpisode: Identifiable, Codable, Equatable, Hashable {
 
     /// Unique identifier for the download.
     let id: String
@@ -123,7 +123,7 @@ struct DownloadedEpisode: Identifiable, Codable, Equatable {
 //#################################################################################
 
 /// Represents an anime with downloaded episodes.
-struct DownloadedAnime: Identifiable, Codable, Equatable {
+struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
 
     /// The anime ID (from AniList).
     let id: Int

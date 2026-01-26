@@ -70,6 +70,10 @@ struct LibraryViewModelTests {
         func getRecentAnimeCount() -> Int {
             recentAnime.count
         }
+
+        func removeRecentAnime(id: Int) {
+            recentAnime.removeAll { $0.id == id }
+        }
     }
 
     @MainActor

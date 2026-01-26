@@ -51,7 +51,7 @@ struct WatchProgress: Codable, Equatable {
 //#################################################################################
 
 /// Represents a recently watched anime with minimal info for display.
-struct RecentAnime: Codable, Identifiable, Equatable {
+struct RecentAnime: Codable, Identifiable, Equatable, Hashable {
 
     /// The anime ID (from AniList).
     let id: Int
@@ -100,6 +100,9 @@ protocol WatchProgressServiceProtocol {
 
     /// Gets the count of recent anime.
     func getRecentAnimeCount() -> Int
+
+    /// Removes a recent anime entry.
+    func removeRecentAnime(id: Int)
 }
 
 
@@ -206,6 +209,13 @@ final class WatchProgressService: WatchProgressServiceProtocol {
 
     func getRecentAnimeCount() -> Int {
         loadAllRecentAnime().count
+    }
+
+    func removeRecentAnime(id: Int) {
+        var allRecent = loadAllRecentAnime()
+        allRecent.removeAll { $0.id == id }
+        persistAllRecentAnime(allRecent)
+        triggerCloudSync()
     }
 
 

@@ -20,7 +20,7 @@ struct DownloadsListView: View {
     //#################################################################################
 
     @State private var downloadService = DownloadService.shared
-    @State private var isManaging = false
+    @State private var tappedAnime: DownloadedAnime? = nil
 
 
     //#################################################################################
@@ -36,31 +36,25 @@ struct DownloadsListView: View {
                     Text("Downloaded episodes will appear here.")
                 }
             } else {
-                ScrollView {
-                    LazyVStack(spacing: .spacingM) {
-                        ForEach(downloadService.downloadedAnime) { anime in
-                            NavigationLink {
-                                EpisodeListView(downloadedAnime: anime)
-                            } label: {
-                                AnimeListRow(mode: .downloaded(anime))
-                            }
-                            .buttonStyle(.plain)
+                List {
+                    ForEach(downloadService.downloadedAnime) { anime in
+                        AnimeListRowButton(mode: .downloaded(anime),
+                                           item: anime) { tappedAnime = $0 }
+                    }
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            let anime = downloadService.downloadedAnime[index]
+                            downloadService.removeAllDownloads(forAnimeId: anime.id)
                         }
                     }
-                    .padding(.spacingS)
                 }
+                .navigationDestination(item: $tappedAnime) { anime in
+                    EpisodeListView(downloadedAnime: anime)
+                }
+                .listStyle(.plain)
             }
         }
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if !downloadService.downloadedAnime.isEmpty {
-                    Button("Manage") {
-                        isManaging.toggle()
-                    }
-                }
-            }
-        }
     }
 }

@@ -13,7 +13,7 @@ import Foundation
 //#################################################################################
 
 /// Represents an anime the user has subscribed to for updates.
-struct SubscribedAnime: Codable, Identifiable, Equatable {
+struct SubscribedAnime: Codable, Identifiable, Equatable, Hashable {
 
     /// The anime ID (from AniList).
     let id: Int
