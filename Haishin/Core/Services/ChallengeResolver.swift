@@ -68,7 +68,7 @@ final class ChallengeResolver: NSObject {
     init(cookieStorage: HTTPCookieStorage = .shared) {
         self.cookieStorage = cookieStorage
         super.init()
-        print("[ChallengeResolver] Initialized with cookie storage: \(cookieStorage)")
+        Log.debug(.network, "ChallengeResolver initialized with cookie storage: \(String(describing: cookieStorage))")
     }
 
 
@@ -83,26 +83,21 @@ final class ChallengeResolver: NSObject {
     /// - Returns: The cookies obtained after solving the challenge.
     func resolveChallenge(for url: URL, timeout: TimeInterval = Constants.defaultTimeout) async throws -> [HTTPCookie] {
         guard let host = url.host else {
-            print("[ChallengeResolver] ERROR: Invalid URL - no host: \(url)")
+            Log.error(.network, "ChallengeResolver: Invalid URL - no host: \(url)")
             throw ChallengeError.navigationFailed("Invalid URL: no host")
         }
 
         targetHost = host
         checkCount = 0
         
-        print("[ChallengeResolver] ========================================")
-        print("[ChallengeResolver] Starting challenge resolution")
-        print("[ChallengeResolver] URL: \(url.absoluteString)")
-        print("[ChallengeResolver] Host: \(host)")
-        print("[ChallengeResolver] Timeout: \(timeout)s")
-        print("[ChallengeResolver] ========================================")
+        Log.info(.network, "ChallengeResolver: Starting challenge resolution for \(url.absoluteString)")
+        Log.debug(.network, "ChallengeResolver: Host: \(host), Timeout: \(timeout)s")
 
         // Create WebView configuration
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         
-        print("[ChallengeResolver] Created WebView configuration")
-        print("[ChallengeResolver] Using default data store (persistent)")
+        Log.debug(.network, "ChallengeResolver: Created WebView configuration with default data store")
 
         // Create WebView
         let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 390, height: 844),
@@ -111,7 +106,7 @@ final class ChallengeResolver: NSObject {
         webView.customUserAgent = Constants.userAgent
         self.webView = webView
 
-        print("[ChallengeResolver] Created WebView with user agent: \(Constants.userAgent)")
+        Log.debug(.network, "ChallengeResolver: Created WebView with user agent")
 
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
@@ -126,7 +121,7 @@ final class ChallengeResolver: NSObject {
 
             // Load the URL
             let request = URLRequest(url: url)
-            print("[ChallengeResolver] Loading request...")
+            Log.debug(.network, "ChallengeResolver: Loading request...")
             webView.load(request)
         }
     }
@@ -154,7 +149,7 @@ final class ChallengeResolver: NSObject {
         if isChallenge {
             for indicator in challengeIndicators {
                 if lowercased.contains(indicator.lowercased()) {
-                    print("[ChallengeResolver] Detected challenge indicator: '\(indicator)'")
+                    Log.debug(.network, "ChallengeResolver: Detected challenge indicator: '\(indicator)'")
                 }
             }
         }
@@ -168,10 +163,7 @@ final class ChallengeResolver: NSObject {
     //#################################################################################
 
     private func handleTimeout() {
-        print("[ChallengeResolver] ========================================")
-        print("[ChallengeResolver] TIMEOUT after \(Constants.defaultTimeout)s")
-        print("[ChallengeResolver] Check count was: \(checkCount)")
-        print("[ChallengeResolver] ========================================")
+        Log.warning(.network, "ChallengeResolver: TIMEOUT after \(Constants.defaultTimeout)s, check count was: \(self.checkCount)")
         
         // Before timing out, let's try to get whatever cookies we have
         Task { @MainActor in
@@ -180,7 +172,7 @@ final class ChallengeResolver: NSObject {
     }
 
     private func cleanup() {
-        print("[ChallengeResolver] Cleaning up...")
+        Log.debug(.network, "ChallengeResolver: Cleaning up...")
         timeoutTask?.cancel()
         timeoutTask = nil
         webView?.stopLoading()
@@ -190,7 +182,7 @@ final class ChallengeResolver: NSObject {
 
     private func extractAndSyncCookies(forceComplete: Bool = false) async {
         guard let webView = webView else {
-            print("[ChallengeResolver] ERROR: WebView is nil during cookie extraction")
+            Log.error(.network, "ChallengeResolver: WebView is nil during cookie extraction")
             if forceComplete {
                 cleanup()
                 continuation?.resume(throwing: ChallengeError.timeout)
@@ -199,18 +191,12 @@ final class ChallengeResolver: NSObject {
             return
         }
 
-        print("[ChallengeResolver] ----------------------------------------")
-        print("[ChallengeResolver] Extracting cookies...")
+        Log.debug(.network, "ChallengeResolver: Extracting cookies...")
         
         let dataStore = webView.configuration.websiteDataStore
         let cookies = await dataStore.httpCookieStore.allCookies()
         
-        print("[ChallengeResolver] Total cookies in WebView: \(cookies.count)")
-        
-        // Log all cookies
-        for cookie in cookies {
-            print("[ChallengeResolver]   Cookie: \(cookie.name)=\(cookie.value.prefix(30))... (domain: \(cookie.domain), path: \(cookie.path))")
-        }
+        Log.debug(.network, "ChallengeResolver: Total cookies in WebView: \(cookies.count)")
 
         // Filter cookies for our target host and sync to HTTPCookieStorage
         let relevantCookies = cookies.filter { cookie in
@@ -219,24 +205,18 @@ final class ChallengeResolver: NSObject {
             return domainMatch
         }
 
-        print("[ChallengeResolver] Relevant cookies for '\(targetHost)': \(relevantCookies.count)")
+        Log.info(.network, "ChallengeResolver: Found \(relevantCookies.count) relevant cookies for '\(self.targetHost)'")
 
         for cookie in relevantCookies {
             cookieStorage.setCookie(cookie)
-            print("[ChallengeResolver] SYNCED: \(cookie.name)=\(cookie.value)")
+            Log.debug(.network, "ChallengeResolver: SYNCED: \(cookie.name)=\(cookie.value)")
         }
         
         // Also check existing cookies in storage
         if let existingCookies = cookieStorage.cookies {
-            print("[ChallengeResolver] HTTPCookieStorage now has \(existingCookies.count) total cookies")
             let hostCookies = existingCookies.filter { $0.domain.contains(targetHost) || targetHost.contains($0.domain.replacingOccurrences(of: ".", with: "")) }
-            print("[ChallengeResolver] Cookies for \(targetHost) in storage: \(hostCookies.count)")
-            for cookie in hostCookies {
-                print("[ChallengeResolver]   Storage: \(cookie.name)=\(cookie.value)")
-            }
+            Log.debug(.network, "ChallengeResolver: HTTPCookieStorage now has \(existingCookies.count) total, \(hostCookies.count) for \(self.targetHost)")
         }
-        
-        print("[ChallengeResolver] ----------------------------------------")
 
         cleanup()
         
@@ -250,27 +230,27 @@ final class ChallengeResolver: NSObject {
 
     private func checkForChallengeCompletion() {
         guard let webView = webView else {
-            print("[ChallengeResolver] ERROR: WebView is nil during challenge check")
+            Log.error(.network, "ChallengeResolver: WebView is nil during challenge check")
             return
         }
         
         checkCount += 1
-        print("[ChallengeResolver] Challenge check #\(checkCount)")
+        Log.debug(.network, "ChallengeResolver: Challenge check #\(self.checkCount)")
 
         // Check if we're still on a challenge page
         webView.evaluateJavaScript("document.title") { [weak self] result, error in
             guard let self = self else { return }
 
             if let error = error {
-                print("[ChallengeResolver] Error getting title: \(error.localizedDescription)")
+                Log.debug(.network, "ChallengeResolver: Error getting title: \(error.localizedDescription)")
             }
             
             let title = result as? String ?? ""
-            print("[ChallengeResolver] Current page title: '\(title)'")
+            Log.debug(.network, "ChallengeResolver: Current page title: '\(title)'")
 
             // If the title is still "DDoS-Guard" or similar, we're still solving
             if title.lowercased().contains("ddos") || title.lowercased().contains("checking") {
-                print("[ChallengeResolver] Still on challenge page, scheduling next check...")
+                Log.debug(.network, "ChallengeResolver: Still on challenge page, scheduling next check...")
                 // Schedule another check
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: UInt64(Constants.challengeCheckInterval * 1_000_000_000))
@@ -278,7 +258,7 @@ final class ChallengeResolver: NSObject {
                 }
             } else {
                 // Challenge appears to be solved, extract cookies
-                print("[ChallengeResolver] Title changed - challenge may be solved!")
+                Log.info(.network, "ChallengeResolver: Title changed - challenge may be solved!")
                 Task { @MainActor in
                     await self.extractAndSyncCookies()
                 }
@@ -288,7 +268,7 @@ final class ChallengeResolver: NSObject {
     
     private func logCurrentURL() {
         guard let webView = webView else { return }
-        print("[ChallengeResolver] Current WebView URL: \(webView.url?.absoluteString ?? "nil")")
+        Log.debug(.network, "ChallengeResolver: Current WebView URL: \(webView.url?.absoluteString ?? "nil")")
     }
 }
 
@@ -300,17 +280,15 @@ final class ChallengeResolver: NSObject {
 extension ChallengeResolver: WKNavigationDelegate {
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        print("[ChallengeResolver] Started provisional navigation to: \(webView.url?.absoluteString ?? "unknown")")
+        Log.debug(.network, "ChallengeResolver: Started provisional navigation to: \(webView.url?.absoluteString ?? "unknown")")
     }
     
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        print("[ChallengeResolver] Navigation committed: \(webView.url?.absoluteString ?? "unknown")")
+        Log.debug(.network, "ChallengeResolver: Navigation committed: \(webView.url?.absoluteString ?? "unknown")")
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("[ChallengeResolver] ========================================")
-        print("[ChallengeResolver] Navigation FINISHED")
-        print("[ChallengeResolver] Final URL: \(webView.url?.absoluteString ?? "unknown")")
+        Log.info(.network, "ChallengeResolver: Navigation FINISHED - URL: \(webView.url?.absoluteString ?? "unknown")")
         logCurrentURL()
 
         // Check the page content to see if we're past the challenge
@@ -318,13 +296,10 @@ extension ChallengeResolver: WKNavigationDelegate {
             guard let self = self else { return }
 
             if let html = result as? String {
-                let previewLength = min(500, html.count)
-                let preview = String(html.prefix(previewLength))
-                print("[ChallengeResolver] Page HTML preview: \(preview)...")
-                print("[ChallengeResolver] Total HTML length: \(html.count) chars")
+                Log.debug(.network, "ChallengeResolver: Page HTML length: \(html.count) chars")
                 
                 if ChallengeResolver.isChallengePage(html) {
-                    print("[ChallengeResolver] Still on challenge page, waiting for JS to complete...")
+                    Log.debug(.network, "ChallengeResolver: Still on challenge page, waiting for JS to complete...")
                     // Continue checking periodically
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: UInt64(Constants.challengeCheckInterval * 1_000_000_000))
@@ -332,13 +307,13 @@ extension ChallengeResolver: WKNavigationDelegate {
                     }
                 } else {
                     // Challenge solved!
-                    print("[ChallengeResolver] SUCCESS: Challenge appears solved!")
+                    Log.notice(.network, "ChallengeResolver: SUCCESS - Challenge appears solved!")
                     Task { @MainActor in
                         await self.extractAndSyncCookies()
                     }
                 }
             } else if let error = error {
-                print("[ChallengeResolver] ERROR getting page content: \(error)")
+                Log.error(.network, "ChallengeResolver: Error getting page content: \(error)")
                 self.cleanup()
                 self.continuation?.resume(throwing: ChallengeError.navigationFailed(error.localizedDescription))
                 self.continuation = nil
@@ -349,8 +324,7 @@ extension ChallengeResolver: WKNavigationDelegate {
     func webView(_ webView: WKWebView,
                  didFail navigation: WKNavigation!,
                  withError error: Error) {
-        print("[ChallengeResolver] ERROR: Navigation failed: \(error.localizedDescription)")
-        print("[ChallengeResolver] Error details: \(error)")
+        Log.error(.network, "ChallengeResolver: Navigation failed: \(error.localizedDescription)")
         cleanup()
         continuation?.resume(throwing: ChallengeError.navigationFailed(error.localizedDescription))
         continuation = nil
@@ -359,8 +333,7 @@ extension ChallengeResolver: WKNavigationDelegate {
     func webView(_ webView: WKWebView,
                  didFailProvisionalNavigation navigation: WKNavigation!,
                  withError error: Error) {
-        print("[ChallengeResolver] ERROR: Provisional navigation failed: \(error.localizedDescription)")
-        print("[ChallengeResolver] Error details: \(error)")
+        Log.error(.network, "ChallengeResolver: Provisional navigation failed: \(error.localizedDescription)")
         cleanup()
         continuation?.resume(throwing: ChallengeError.navigationFailed(error.localizedDescription))
         continuation = nil
@@ -368,22 +341,14 @@ extension ChallengeResolver: WKNavigationDelegate {
     
     func webView(_ webView: WKWebView,
                  didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
-        print("[ChallengeResolver] Server redirect to: \(webView.url?.absoluteString ?? "unknown")")
+        Log.debug(.network, "ChallengeResolver: Server redirect to: \(webView.url?.absoluteString ?? "unknown")")
     }
     
     func webView(_ webView: WKWebView,
                  decidePolicyFor navigationResponse: WKNavigationResponse,
                  decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         if let httpResponse = navigationResponse.response as? HTTPURLResponse {
-            print("[ChallengeResolver] Response status: \(httpResponse.statusCode)")
-            print("[ChallengeResolver] Response URL: \(httpResponse.url?.absoluteString ?? "unknown")")
-            
-            // Log response headers
-            for (key, value) in httpResponse.allHeaderFields {
-                if let keyString = key as? String {
-                    print("[ChallengeResolver]   Header: \(keyString): \(value)")
-                }
-            }
+            Log.debug(.network, "ChallengeResolver: Response status: \(httpResponse.statusCode) for \(httpResponse.url?.absoluteString ?? "unknown")")
         }
         decisionHandler(.allow)
     }

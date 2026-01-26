@@ -141,14 +141,14 @@ final class VideoPlayerViewModel {
         // Configure audio session to play sound even when device is muted
         configureAudioSession()
 
-        print("[VideoPlayerViewModel] Loading streams for episode \(episode.number)")
+        Log.debug(.playback, "Loading streams for episode \(self.episode.number)")
 
         // Restore previous progress if available
         if let savedProgress = watchProgressService.getProgress(animeId: animeId, episodeId: episode.id) {
             currentTime = savedProgress.currentTime
             duration = savedProgress.duration
             currentProgress = savedProgress.progress
-            print("[VideoPlayerViewModel] Restored progress: \(Int(savedProgress.progress * 100))%")
+            Log.debug(.playback, "Restored progress: \(Int(savedProgress.progress * 100))%")
         }
 
         if isOfflineMode {
@@ -174,10 +174,10 @@ final class VideoPlayerViewModel {
         selectedSubtitle = subtitle
 
         if let subtitle {
-            print("[VideoPlayerViewModel] Selected subtitle: \(subtitle.label)")
+            Log.debug(.playback, "Selected subtitle: \(subtitle.label)")
             subtitleRenderer.load(from: subtitle.url)
         } else {
-            print("[VideoPlayerViewModel] Subtitles turned off")
+            Log.debug(.playback, "Subtitles turned off")
             subtitleRenderer.clear()
         }
     }
@@ -209,9 +209,9 @@ final class VideoPlayerViewModel {
             let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.playback, mode: .moviePlayback)
             try audioSession.setActive(true)
-            print("[VideoPlayerViewModel] Audio session configured for playback")
+            Log.debug(.playback, "Audio session configured for playback")
         } catch {
-            print("[VideoPlayerViewModel] Failed to configure audio session: \(error)")
+            Log.error(.playback, "Failed to configure audio session: \(error)")
         }
         #endif
     }
@@ -232,7 +232,7 @@ final class VideoPlayerViewModel {
             allSources = info.sources
             availableSubtitles = info.subtitles
 
-            print("[VideoPlayerViewModel] Got \(info.sources.count) video source(s) and \(info.subtitles.count) subtitle(s)")
+            Log.info(.playback, "Got \(info.sources.count) video source(s) and \(info.subtitles.count) subtitle(s)")
 
             // Select the first available source
             guard let firstSource = info.sources.first else {
@@ -242,7 +242,7 @@ final class VideoPlayerViewModel {
             selectSource(firstSource)
             isLoading = false
         } catch {
-            print("[VideoPlayerViewModel] Error loading streams: \(error)")
+            Log.error(.playback, "Error loading streams: \(error)")
             self.error = error
             isLoading = false
         }
@@ -257,7 +257,7 @@ final class VideoPlayerViewModel {
         } else if let url = URL(string: episode.url), url.isFileURL {
             fileURL = url
         } else {
-            print("[VideoPlayerViewModel] Invalid offline file path: \(episode.url)")
+            Log.error(.playback, "Invalid offline file path: \(self.episode.url)")
             error = VideoPlayerError.noSourcesAvailable
             isLoading = false
             return
@@ -265,13 +265,13 @@ final class VideoPlayerViewModel {
 
         // Verify the file exists
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            print("[VideoPlayerViewModel] Offline file not found: \(fileURL.path)")
+            Log.error(.playback, "Offline file not found: \(fileURL.path)")
             error = VideoPlayerError.noSourcesAvailable
             isLoading = false
             return
         }
 
-        print("[VideoPlayerViewModel] Playing offline file: \(fileURL.path)")
+        Log.info(.playback, "Playing offline file: \(fileURL.path)")
 
         // Create a VideoSource for the local file
         let localSource = VideoSource(id: "local-\(episode.id)",
@@ -287,7 +287,7 @@ final class VideoPlayerViewModel {
 
     private func selectSource(_ source: VideoSource) {
         selectedSource = source
-        print("[VideoPlayerViewModel] Selected source: \(source.serverName) - \(source.quality ?? "default")")
+        Log.debug(.playback, "Selected source: \(source.serverName) - \(source.quality ?? "default")")
 
         let asset = AVURLAsset(url: source.url,
                                options: source.headers.map { ["AVURLAssetHTTPHeaderFieldsKey": $0] })
@@ -318,13 +318,13 @@ final class VideoPlayerViewModel {
             let seekTime = CMTime(seconds: currentTime, preferredTimescale: 600)
             player?.seek(to: seekTime) { [weak self] _ in
                 self?.player?.play()
-                print("[VideoPlayerViewModel] Resumed playback at \(Int(self?.currentTime ?? 0))s")
+                Log.debug(.playback, "Resumed playback at \(Int(self?.currentTime ?? 0))s")
             }
         } else {
             player?.play()
         }
 
-        print("[VideoPlayerViewModel] Playback started")
+        Log.info(.playback, "Playback started")
     }
 
     private func setupTimeObserver() {
@@ -375,7 +375,7 @@ final class VideoPlayerViewModel {
 
     private func saveProgress() {
         guard duration > 0 else {
-            print("[VideoPlayerViewModel] Skipping progress save - duration is 0")
+            Log.debug(.playback, "Skipping progress save - duration is 0")
             return
         }
 
@@ -394,7 +394,7 @@ final class VideoPlayerViewModel {
                                                coverURL: animeCoverURL,
                                                episodeNumber: episode.number)
 
-        print("[VideoPlayerViewModel] Saved progress: \(Int(currentProgress * 100))% and updated recents for '\(animeTitle)'")
+        Log.debug(.playback, "Saved progress: \(Int(self.currentProgress * 100))% for '\(self.animeTitle)'")
     }
 
     private func observePlayerItem(_ playerItem: AVPlayerItem) {
@@ -456,7 +456,7 @@ final class VideoPlayerViewModel {
     }
 
     private func handlePlaybackEnd() {
-        print("[VideoPlayerViewModel] Episode \(episode.number) finished playing")
+        Log.info(.playback, "Episode \(self.episode.number) finished playing")
 
         // Save final progress
         saveProgress()
@@ -466,7 +466,7 @@ final class VideoPlayerViewModel {
     }
 
     private func handlePlaybackFailure(_ playbackError: Error?) {
-        print("[VideoPlayerViewModel] Playback failed: \(playbackError?.localizedDescription ?? "Unknown error")")
+        Log.error(.playback, "Playback failed: \(playbackError?.localizedDescription ?? "Unknown error")")
         tryNextSource()
     }
 
@@ -474,13 +474,13 @@ final class VideoPlayerViewModel {
         currentSourceIndex += 1
 
         guard currentSourceIndex < allSources.count else {
-            print("[VideoPlayerViewModel] All sources exhausted, no more fallbacks available")
+            Log.warning(.playback, "All sources exhausted, no more fallbacks available")
             error = VideoPlayerError.allSourcesFailed
             return
         }
 
         let nextSource = allSources[currentSourceIndex]
-        print("[VideoPlayerViewModel] Trying fallback source \(currentSourceIndex + 1)/\(allSources.count): \(nextSource.serverName)")
+        Log.info(.playback, "Trying fallback source \(self.currentSourceIndex + 1)/\(self.allSources.count): \(nextSource.serverName)")
         selectSource(nextSource)
     }
 
@@ -551,7 +551,7 @@ final class VideoPlayerViewModel {
             return .success
         }
 
-        print("[VideoPlayerViewModel] Remote command center configured")
+        Log.debug(.playback, "Remote command center configured")
         #endif
     }
 
@@ -564,7 +564,7 @@ final class VideoPlayerViewModel {
         commandCenter.skipForwardCommand.removeTarget(nil)
         commandCenter.skipBackwardCommand.removeTarget(nil)
         commandCenter.changePlaybackPositionCommand.removeTarget(nil)
-        print("[VideoPlayerViewModel] Remote command center cleared")
+        Log.debug(.playback, "Remote command center cleared")
         #endif
     }
 
@@ -593,7 +593,7 @@ final class VideoPlayerViewModel {
         // Load artwork asynchronously
         loadNowPlayingArtwork()
 
-        print("[VideoPlayerViewModel] Now Playing info set: \(animeTitle) - \(episodeTitle)")
+        Log.debug(.playback, "Now Playing info set: \(self.animeTitle) - \(episodeTitle)")
         #endif
     }
 
@@ -616,11 +616,11 @@ final class VideoPlayerViewModel {
                         var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
                         nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
                         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-                        print("[VideoPlayerViewModel] Now Playing artwork loaded")
+                        Log.debug(.playback, "Now Playing artwork loaded")
                     }
                 }
             } catch {
-                print("[VideoPlayerViewModel] Failed to load artwork: \(error)")
+                Log.error(.playback, "Failed to load artwork: \(error)")
             }
         }
         #endif
@@ -641,7 +641,7 @@ final class VideoPlayerViewModel {
     private func clearNowPlayingInfo() {
         #if os(iOS)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        print("[VideoPlayerViewModel] Now Playing info cleared")
+        Log.debug(.playback, "Now Playing info cleared")
         #endif
     }
 }

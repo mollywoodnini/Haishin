@@ -93,14 +93,14 @@ final class SourceManager: SourceManaging {
                         // Prefer the file with the correct name
                         if file.lastPathComponent == expectedFilename {
                             // Current file has correct name, mark existing as duplicate
-                            print("[SourceManager] Found correctly named file for '\(source.id)', replacing previous")
+                            Log.debug(.sources, "Found correctly named file for '\(source.id)', replacing previous")
                             duplicateFiles.append(existingFile)
                             sources.removeAll { $0.id == source.id }
                             seenIds[source.id] = file
                             sources.append(source)
                         } else {
                             // Current file has wrong name, mark it as duplicate
-                            print("[SourceManager] Duplicate source ID '\(source.id)' at \(file.lastPathComponent), skipping")
+                            Log.debug(.sources, "Duplicate source ID '\(source.id)' at \(file.lastPathComponent), skipping")
                             duplicateFiles.append(file)
                         }
                         continue
@@ -109,13 +109,13 @@ final class SourceManager: SourceManaging {
                     seenIds[source.id] = file
                     sources.append(source)
                 } catch {
-                    print("[SourceManager] Failed to load source at \(file): \(error)")
+                    Log.error(.sources, "Failed to load source at \(file): \(error)")
                 }
             }
             
             // Clean up duplicate files
             for duplicateFile in duplicateFiles {
-                print("[SourceManager] Removing duplicate source file: \(duplicateFile.lastPathComponent)")
+                Log.debug(.sources, "Removing duplicate source file: \(duplicateFile.lastPathComponent)")
                 try? fileManager.removeItem(at: duplicateFile)
             }
 
@@ -127,7 +127,7 @@ final class SourceManager: SourceManaging {
             }
         } catch {
             lastError = error
-            print("[SourceManager] Failed to load sources: \(error)")
+            Log.error(.sources, "Failed to load sources: \(error)")
         }
     }
 
@@ -174,17 +174,17 @@ final class SourceManager: SourceManaging {
     }
     /// - Parameter urlString: The URL to the source JavaScript file (can be HTTP/HTTPS or file:// URL).
     func installSource(fromURL urlString: String) async throws {
-        print("[SourceManager] Installing source from: \(urlString)")
+        Log.info(.sources, "Installing source from: \(urlString)")
         
         let script: String
         
         // Handle file:// URLs and local paths
         if urlString.hasPrefix("file://") || urlString.hasPrefix("/") {
-            print("[SourceManager] Handling as local file")
+            Log.debug(.sources, "Handling as local file")
             let fileURL: URL
             if urlString.hasPrefix("file://") {
                 guard let url = URL(string: urlString) else {
-                    print("[SourceManager] Failed to create URL from file:// string")
+                    Log.error(.sources, "Failed to create URL from file:// string")
                     throw SourceError.invalidScript
                 }
                 fileURL = url
@@ -192,11 +192,11 @@ final class SourceManager: SourceManaging {
                 fileURL = URL(fileURLWithPath: urlString)
             }
             
-            print("[SourceManager] Reading file at: \(fileURL.path)")
+            Log.debug(.sources, "Reading file at: \(fileURL.path)")
             script = try String(contentsOf: fileURL, encoding: .utf8)
-            print("[SourceManager] Successfully read \(script.count) characters")
+            Log.debug(.sources, "Successfully read \(script.count) characters")
         } else {
-            print("[SourceManager] Handling as remote URL")
+            Log.debug(.sources, "Handling as remote URL")
             // Handle HTTP/HTTPS URLs
             guard let url = URL(string: urlString) else {
                 throw SourceError.invalidScript
@@ -210,35 +210,35 @@ final class SourceManager: SourceManaging {
             script = scriptString
         }
         
-        print("[SourceManager] Loading script into temporary runtime")
+        Log.debug(.sources, "Loading script into temporary runtime")
         // Extract source ID from the script by creating a temporary runtime
         let tempRuntime = try JSRuntime(networkClient: networkClient)
         let tempId = UUID().uuidString
         try await tempRuntime.loadSource(script: script, sourceId: tempId)
         let info = try await tempRuntime.getSourceInfo(sourceId: tempId)
         
-        print("[SourceManager] Source info: \(info.name) v\(info.version)")
+        Log.debug(.sources, "Source info: \(info.name) v\(info.version)")
         
         // Check if already installed
         if installedSources.contains(where: { $0.id == info.id }) {
-            print("[SourceManager] Source already installed")
+            Log.warning(.sources, "Source already installed")
             throw SourceError.alreadyInstalled
         }
         
         // Save the script
         let localPath = sourcesDirectory.appendingPathComponent("\(info.id).js")
-        print("[SourceManager] Saving to: \(localPath.path)")
+        Log.debug(.sources, "Saving to: \(localPath.path)")
         try script.write(to: localPath, atomically: true, encoding: .utf8)
         
         // Load the source
-        print("[SourceManager] Loading source into runtime")
+        Log.debug(.sources, "Loading source into runtime")
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
         
         // Automatically select the newly installed source
         selectSource(sourceId: installedSource.id)
         
-        print("[SourceManager] Installation complete!")
+        Log.info(.sources, "Installation complete!")
     }
 
     /// Uninstalls a source.
@@ -246,17 +246,17 @@ final class SourceManager: SourceManaging {
     func uninstallSource(sourceId: String) throws {
         // Find the installed source to get the actual file path
         guard let installedSource = installedSources.first(where: { $0.id == sourceId }) else {
-            print("[SourceManager] Source '\(sourceId)' not found in installed sources")
+            Log.warning(.sources, "Source '\(sourceId)' not found in installed sources")
             return
         }
         
         // Delete the actual script file (handles both correctly-named and UUID-named files)
         let actualPath = installedSource.scriptPath
-        print("[SourceManager] Uninstalling source '\(sourceId)' at: \(actualPath.lastPathComponent)")
+        Log.info(.sources, "Uninstalling source '\(sourceId)' at: \(actualPath.lastPathComponent)")
         
         if fileManager.fileExists(atPath: actualPath.path) {
             try fileManager.removeItem(at: actualPath)
-            print("[SourceManager] Deleted file: \(actualPath.lastPathComponent)")
+            Log.debug(.sources, "Deleted file: \(actualPath.lastPathComponent)")
         }
 
         // Check if we're removing the selected source
@@ -284,7 +284,7 @@ final class SourceManager: SourceManaging {
     /// - Parameter sourceId: The source ID to select.
     func selectSource(sourceId: String) {
         guard installedSources.contains(where: { $0.id == sourceId }) else {
-            print("[SourceManager] Source '\(sourceId)' not found")
+            Log.warning(.sources, "Source '\(sourceId)' not found")
             return
         }
         
@@ -295,7 +295,7 @@ final class SourceManager: SourceManaging {
             installedSources[index].isEnabled = (installedSources[index].id == sourceId)
         }
         
-        print("[SourceManager] Selected source: \(sourceId)")
+        Log.info(.sources, "Selected source: \(sourceId)")
     }
 
     /// Gets the popular anime from a source.

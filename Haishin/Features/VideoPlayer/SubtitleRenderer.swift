@@ -89,14 +89,14 @@ final class SubtitleRenderer {
                 await MainActor.run {
                     self?.cues = parsedCues
                     self?.isLoading = false
-                    print("[SubtitleRenderer] Loaded \(parsedCues.count) subtitle cues")
+                    Log.debug(.playback, "Loaded \(parsedCues.count) subtitle cues")
                 }
             } catch {
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
                     self?.error = error
                     self?.isLoading = false
-                    print("[SubtitleRenderer] Failed to load subtitles: \(error)")
+                    Log.error(.playback, "Failed to load subtitles: \(error)")
                 }
             }
         }

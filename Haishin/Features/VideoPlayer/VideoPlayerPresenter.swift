@@ -70,7 +70,7 @@ final class VideoPlayerPresenter: NSObject {
             await viewModel.loadAndPlay()
 
             guard let player = viewModel.player else {
-                print("[VideoPlayerPresenter] No player available after loading")
+                Log.warning(.playback, "No player available after loading")
                 return
             }
 
@@ -149,7 +149,7 @@ final class VideoPlayerPresenter: NSObject {
         // Find the root view controller to present from
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first?.rootViewController else {
-            print("[VideoPlayerPresenter] Could not find root view controller")
+            Log.error(.playback, "Could not find root view controller")
             return
         }
 

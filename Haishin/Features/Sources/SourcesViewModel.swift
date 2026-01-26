@@ -83,8 +83,7 @@ final class SourcesViewModel {
     /// Installs a source from a local file.
     /// - Parameter fileURL: The file URL to the source JavaScript file.
     func installSourceFromFile(fileURL: URL) async {
-        print("[SourcesViewModel] Installing from file: \(fileURL)")
-        print("[SourcesViewModel] File path: \(fileURL.path)")
+        Log.debug(.sources, "Installing from file: \(fileURL)")
         
         isLoading = true
         defer { isLoading = false }
@@ -98,14 +97,14 @@ final class SourcesViewModel {
                 }
             }
             
-            print("[SourcesViewModel] Security scoped access: \(accessing)")
+            Log.debug(.sources, "Security scoped access: \(accessing)")
             
             // Use the file path directly
             try await sourceManager.installSource(fromURL: fileURL.path)
             
-            print("[SourcesViewModel] Installation successful!")
+            Log.info(.sources, "Installation successful!")
         } catch {
-            print("[SourcesViewModel] Installation failed: \(error)")
+            Log.error(.sources, "Installation failed: \(error)")
             self.error = error
         }
     }

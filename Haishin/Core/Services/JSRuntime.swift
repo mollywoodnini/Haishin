@@ -84,28 +84,28 @@ actor JSRuntime {
     ///   - script: The JavaScript source code.
     ///   - sourceId: Unique identifier for the source.
     func loadSource(script: String, sourceId: String) throws {
-        print("[JSRuntime] Loading source with ID: \(sourceId)")
-        print("[JSRuntime] Script length: \(script.count) characters")
+        Log.debug(.sources, "Loading source with ID: \(sourceId)")
+        Log.debug(.sources, "Script length: \(script.count) characters")
         
         context.evaluateScript(script)
         
-        print("[JSRuntime] Script evaluated")
+        Log.debug(.sources, "Script evaluated")
 
         if let exception = context.exception {
-            print("[JSRuntime] JavaScript exception: \(exception.toString() ?? "unknown")")
+            Log.error(.sources, "JavaScript exception: \(exception.toString() ?? "unknown")")
             throw JSError.scriptLoadFailed(exception.toString() ?? "Unknown error")
         }
 
-        print("[JSRuntime] Checking for 'source' object in global context")
+        Log.debug(.sources, "Checking for 'source' object in global context")
         guard let sourceObject = context.objectForKeyedSubscript("source"),
               !sourceObject.isUndefined else {
-            print("[JSRuntime] ERROR: No 'source' object found!")
+            Log.error(.sources, "No 'source' object found!")
             throw JSError.scriptLoadFailed("No 'source' object exported from script")
         }
         
-        print("[JSRuntime] Found source object: \(sourceObject)")
+        Log.debug(.sources, "Found source object: \(sourceObject)")
         loadedSources[sourceId] = sourceObject
-        print("[JSRuntime] Source loaded successfully")
+        Log.info(.sources, "Source loaded successfully")
     }
 
     /// Calls a function on a loaded source.
@@ -192,22 +192,22 @@ actor JSRuntime {
     /// - Parameter sourceId: The source identifier.
     /// - Returns: The source info.
     func getSourceInfo(sourceId: String) throws -> SourceInfo {
-        print("[JSRuntime] Getting source info for: \(sourceId)")
+        Log.debug(.sources, "Getting source info for: \(sourceId)")
         
         guard let source = loadedSources[sourceId] else {
-            print("[JSRuntime] ERROR: Source not found in loadedSources")
+            Log.error(.sources, "Source not found in loadedSources")
             throw JSError.functionNotFound("Source '\(sourceId)' not loaded")
         }
 
-        print("[JSRuntime] Converting source to dictionary")
+        Log.debug(.sources, "Converting source to dictionary")
         guard let infoDict = source.toDictionary() as? [String: Any] else {
-            print("[JSRuntime] ERROR: Cannot convert source to dictionary")
+            Log.error(.sources, "Cannot convert source to dictionary")
             throw JSError.invalidResult("Cannot read source properties")
         }
 
-        print("[JSRuntime] Dictionary keys: \(infoDict.keys.joined(separator: ", "))")
+        Log.debug(.sources, "Dictionary keys: \(infoDict.keys.joined(separator: ", "))")
         let info = try parseSourceInfo(from: infoDict, sourceId: sourceId)
-        print("[JSRuntime] Successfully parsed source info: \(info.name) v\(info.version)")
+        Log.info(.sources, "Successfully parsed source info: \(info.name) v\(info.version)")
         return info
     }
 
@@ -225,12 +225,12 @@ actor JSRuntime {
     private nonisolated func setupContext() {
         // Set up exception handler
         context.exceptionHandler = { _, exception in
-            print("[JSRuntime] Exception: \(exception?.toString() ?? "unknown")")
+            Log.error(.sources, "Exception: \(exception?.toString() ?? "unknown")")
         }
 
         // Inject console.log
         let consoleLog: @convention(block) (String) -> Void = { message in
-            print("[JSRuntime] console.log: \(message)")
+            Log.debug(.sources, "console.log: \(message)")
         }
         context.setObject(consoleLog,
                           forKeyedSubscript: "_consoleLog" as NSString)
@@ -268,14 +268,14 @@ actor JSRuntime {
     }
 
     private func handleFetch(id: Int, urlString: String, optionsJson: String) async {
-        print("[JSRuntime] ========================================")
-        print("[JSRuntime] handleFetch called")
-        print("[JSRuntime] URL: \(urlString)")
-        print("[JSRuntime] Options: \(optionsJson)")
+        Log.debug(.sources, "========================================")
+        Log.debug(.sources, "handleFetch called")
+        Log.debug(.sources, "URL: \(urlString)")
+        Log.debug(.sources, "Options: \(optionsJson)")
         
         do {
             guard let url = URL(string: urlString) else {
-                print("[JSRuntime] ERROR: Invalid URL")
+                Log.error(.sources, "Invalid URL")
                 resolveFetch(id: id, error: "Invalid URL: \(urlString)")
                 return
             }
@@ -286,7 +286,7 @@ actor JSRuntime {
                let options = try? JSONSerialization.jsonObject(with: optionsData) as? [String: Any],
                let headerDict = options["headers"] as? [String: String] {
                 headers = headerDict
-                print("[JSRuntime] Parsed headers: \(headerDict)")
+                Log.debug(.sources, "Parsed headers: \(headerDict)")
             }
             
             // Log cookies currently in storage for this host
@@ -294,75 +294,75 @@ actor JSRuntime {
                 let hostCookies = cookieStorage.cookies?.filter { 
                     $0.domain.contains(host) || host.contains($0.domain.replacingOccurrences(of: ".", with: "")) 
                 } ?? []
-                print("[JSRuntime] Cookies in storage for \(host): \(hostCookies.count)")
+                Log.debug(.sources, "Cookies in storage for \(host): \(hostCookies.count)")
                 for cookie in hostCookies {
-                    print("[JSRuntime]   \(cookie.name)=\(cookie.value)")
+                    Log.debug(.sources, "  \(cookie.name)=\(cookie.value)")
                 }
             }
 
             // Check if we need to resolve a challenge for this host first
             if let host = url.host, !resolvedHosts.contains(host) {
-                print("[JSRuntime] Host '\(host)' not yet resolved, making initial request...")
+                Log.debug(.sources, "Host '\(host)' not yet resolved, making initial request...")
                 
                 // Try the request first - use fetchWithStatus to get body even on 403
                 let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
                 let text = String(data: data, encoding: .utf8) ?? ""
                 
-                print("[JSRuntime] Response status: \(statusCode)")
-                print("[JSRuntime] Response length: \(text.count) chars")
-                print("[JSRuntime] Response preview: \(String(text.prefix(300)))...")
+                Log.debug(.sources, "Response status: \(statusCode)")
+                Log.debug(.sources, "Response length: \(text.count) chars")
+                Log.debug(.sources, "Response preview: \(String(text.prefix(300)))...")
 
                 // Check if the response is a challenge page (typically 403 with challenge HTML)
                 if statusCode == 403 || ChallengeResolver.isChallengePage(text) {
-                    print("[JSRuntime] *** CHALLENGE PAGE DETECTED for \(host) (status: \(statusCode)) ***")
-                    print("[JSRuntime] Starting challenge resolution...")
+                    Log.notice(.sources, "*** CHALLENGE PAGE DETECTED for \(host) (status: \(statusCode)) ***")
+                    Log.debug(.sources, "Starting challenge resolution...")
 
                     // Resolve the challenge using WebView (must be on MainActor)
                     try await resolveChallengeOnMainActor(for: url)
 
                     // Mark host as resolved
                     resolvedHosts.insert(host)
-                    print("[JSRuntime] Host '\(host)' marked as resolved")
+                    Log.info(.sources, "Host '\(host)' marked as resolved")
                     
                     // Log cookies after resolution
                     let hostCookies = cookieStorage.cookies?.filter { 
                         $0.domain.contains(host) || host.contains($0.domain.replacingOccurrences(of: ".", with: "")) 
                     } ?? []
-                    print("[JSRuntime] Cookies after resolution for \(host): \(hostCookies.count)")
+                    Log.debug(.sources, "Cookies after resolution for \(host): \(hostCookies.count)")
                     for cookie in hostCookies {
-                        print("[JSRuntime]   \(cookie.name)=\(cookie.value)")
+                        Log.debug(.sources, "  \(cookie.name)=\(cookie.value)")
                     }
 
                     // Retry the original request with the new cookies
-                    print("[JSRuntime] Retrying original request...")
+                    Log.debug(.sources, "Retrying original request...")
                     let (retryData, retryStatus) = try await networkClient.fetchWithStatus(url: url, headers: headers)
                     let retryText = String(data: retryData, encoding: .utf8) ?? ""
-                    print("[JSRuntime] Retry response status: \(retryStatus)")
-                    print("[JSRuntime] Retry response length: \(retryText.count) chars")
-                    print("[JSRuntime] Retry response preview: \(String(retryText.prefix(300)))...")
+                    Log.debug(.sources, "Retry response status: \(retryStatus)")
+                    Log.debug(.sources, "Retry response length: \(retryText.count) chars")
+                    Log.debug(.sources, "Retry response preview: \(String(retryText.prefix(300)))...")
                     
                     // Check if retry also got a challenge
                     if retryStatus == 403 || ChallengeResolver.isChallengePage(retryText) {
-                        print("[JSRuntime] WARNING: Retry still got challenge page!")
+                        Log.warning(.sources, "Retry still got challenge page!")
                     }
                     
                     resolveFetch(id: id, result: retryText)
                 } else if statusCode >= 200 && statusCode < 300 {
                     // Success, not a challenge page
-                    print("[JSRuntime] Not a challenge page, returning result")
+                    Log.debug(.sources, "Not a challenge page, returning result")
                     resolveFetch(id: id, result: text)
                 } else {
                     // Other error
-                    print("[JSRuntime] HTTP error: \(statusCode)")
+                    Log.error(.sources, "HTTP error: \(statusCode)")
                     resolveFetch(id: id, error: "HTTP error with status code: \(statusCode)")
                 }
             } else {
                 // Host already resolved or no host, just fetch
-                print("[JSRuntime] Host already resolved or no host, fetching directly...")
+                Log.debug(.sources, "Host already resolved or no host, fetching directly...")
                 let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
                 let text = String(data: data, encoding: .utf8) ?? ""
-                print("[JSRuntime] Response status: \(statusCode)")
-                print("[JSRuntime] Response length: \(text.count) chars")
+                Log.debug(.sources, "Response status: \(statusCode)")
+                Log.debug(.sources, "Response length: \(text.count) chars")
                 
                 if statusCode >= 200 && statusCode < 300 {
                     resolveFetch(id: id, result: text)
@@ -371,10 +371,10 @@ actor JSRuntime {
                 }
             }
         } catch {
-            print("[JSRuntime] ERROR: \(error.localizedDescription)")
+            Log.error(.sources, "Error: \(error.localizedDescription)")
             resolveFetch(id: id, error: error.localizedDescription)
         }
-        print("[JSRuntime] ========================================")
+        Log.debug(.sources, "========================================")
     }
 
     private nonisolated func resolveFetch(id: Int, result: String? = nil, error: String? = nil) {

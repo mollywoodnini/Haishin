@@ -412,7 +412,7 @@ final class DownloadService: DownloadServiceProtocol {
                 throw DownloadError.sourceManagerNotAvailable
             }
 
-            print("[DownloadService] Extracting video URL for episode: \(episodeId)")
+            Log.debug(.downloads, "Extracting video URL for episode: \(episodeId)")
             let playbackInfo = try await sourceManager.getVideoSources(sourceId: episode.sourceId,
                                                                         episodeId: episode.episodeId,
                                                                         url: episode.sourceURL)
@@ -421,7 +421,7 @@ final class DownloadService: DownloadServiceProtocol {
                 throw DownloadError.noVideoSourceFound
             }
 
-            print("[DownloadService] Found video source: \(videoSource.url)")
+            Log.debug(.downloads, "Found video source: \(videoSource.url)")
 
             try Task.checkCancellation()
 
@@ -438,7 +438,7 @@ final class DownloadService: DownloadServiceProtocol {
             }
 
             // Step 3: Download the video file
-            print("[DownloadService] Downloading to: \(destinationURL.path)")
+            Log.debug(.downloads, "Downloading to: \(destinationURL.path)")
             try await downloadFile(from: videoSource.url,
                                    to: destinationURL,
                                    headers: videoSource.headers,
@@ -453,13 +453,13 @@ final class DownloadService: DownloadServiceProtocol {
                 allEpisodes[currentIndex].localFilePath = destinationURL.path
                 refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
                 saveDownloads()
-                print("[DownloadService] Download completed: \(destinationURL.path)")
+                Log.info(.downloads, "Download completed: \(destinationURL.path)")
             }
         } catch is CancellationError {
-            print("[DownloadService] Download cancelled: \(episodeId)")
+            Log.debug(.downloads, "Download cancelled: \(episodeId)")
             // Already handled in cancelDownload
         } catch {
-            print("[DownloadService] Download failed: \(error)")
+            Log.error(.downloads, "Download failed: \(error)")
             if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
                 allEpisodes[currentIndex].state = .failed(error: error.localizedDescription)
                 refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)

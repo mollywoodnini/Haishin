@@ -580,7 +580,7 @@ final class EpisodeListViewModel {
         let bestMatch = scoredResults.max { $0.score < $1.score }
 
         if let best = bestMatch {
-            print("[EpisodeListViewModel] Best match: '\(best.preview.title)' with score \(String(format: "%.2f", best.score))")
+            Log.debug(.sources, "Best match: '\(best.preview.title)' with score \(String(format: "%.2f", best.score))")
         }
 
         return bestMatch?.preview

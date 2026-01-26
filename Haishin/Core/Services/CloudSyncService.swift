@@ -111,43 +111,43 @@ final class CloudSyncService: CloudSyncServiceProtocol {
 
     func syncToCloud() {
         guard isSyncEnabled && isCloudAvailable else {
-            print("[CloudSyncService] syncToCloud skipped - enabled: \(isSyncEnabled), available: \(isCloudAvailable)")
+            Log.debug(.sync, "syncToCloud skipped - enabled: \(self.isSyncEnabled), available: \(self.isCloudAvailable)")
             return
         }
 
         // Sync subscribed anime
         if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
             cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
-            print("[CloudSyncService] Uploaded \(data.count) bytes of subscribed anime to cloud")
+            Log.debug(.sync, "Uploaded \(data.count) bytes of subscribed anime to cloud")
         } else {
-            print("[CloudSyncService] No local subscribed anime data to upload")
+            Log.debug(.sync, "No local subscribed anime data to upload")
         }
 
         // Sync watch progress
         if let data = userDefaults.data(forKey: Constants.localWatchProgressKey) {
             cloudStore.set(data, forKey: Constants.watchProgressKey)
-            print("[CloudSyncService] Uploaded \(data.count) bytes of watch progress to cloud")
+            Log.debug(.sync, "Uploaded \(data.count) bytes of watch progress to cloud")
         }
 
         // Sync recent anime
         if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
             cloudStore.set(data, forKey: Constants.recentAnimeKey)
-            print("[CloudSyncService] Uploaded \(data.count) bytes of recent anime to cloud")
+            Log.debug(.sync, "Uploaded \(data.count) bytes of recent anime to cloud")
         }
 
         let syncResult = cloudStore.synchronize()
-        print("[CloudSyncService] Synced local data to iCloud, synchronize result: \(syncResult)")
+        Log.info(.sync, "Synced local data to iCloud, synchronize result: \(syncResult)")
     }
 
     func syncFromCloud() {
         guard isSyncEnabled && isCloudAvailable else {
-            print("[CloudSyncService] syncFromCloud skipped - enabled: \(isSyncEnabled), available: \(isCloudAvailable)")
+            Log.debug(.sync, "syncFromCloud skipped - enabled: \(self.isSyncEnabled), available: \(self.isCloudAvailable)")
             return
         }
 
         // Force a sync to get latest cloud data
         let syncResult = cloudStore.synchronize()
-        print("[CloudSyncService] cloudStore.synchronize() result: \(syncResult)")
+        Log.debug(.sync, "cloudStore.synchronize() result: \(syncResult)")
 
         // Merge subscribed anime
         mergeSubscribedAnime()
@@ -158,7 +158,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         // Merge recent anime
         mergeRecentAnime()
 
-        print("[CloudSyncService] Synced data from iCloud")
+        Log.info(.sync, "Synced data from iCloud")
     }
 
     func forceUpload() {
@@ -178,7 +178,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
 
         cloudStore.synchronize()
-        print("[CloudSyncService] Force uploaded local data to iCloud")
+        Log.info(.sync, "Force uploaded local data to iCloud")
     }
 
 
@@ -214,7 +214,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
             syncFromCloud()
 
         case NSUbiquitousKeyValueStoreQuotaViolationChange:
-            print("[CloudSyncService] iCloud quota exceeded")
+            Log.warning(.sync, "iCloud quota exceeded")
 
         case NSUbiquitousKeyValueStoreAccountChange:
             // iCloud account changed, re-sync
@@ -227,15 +227,15 @@ final class CloudSyncService: CloudSyncServiceProtocol {
 
     private func mergeSubscribedAnime() {
         let cloudData = cloudStore.data(forKey: Constants.subscribedAnimeKey)
-        print("[CloudSyncService] Cloud subscribed anime data: \(cloudData?.count ?? 0) bytes")
+        Log.debug(.sync, "Cloud subscribed anime data: \(cloudData?.count ?? 0) bytes")
         
         guard let cloudData,
               let cloudItems = try? JSONDecoder().decode([SubscribedAnime].self, from: cloudData) else {
-            print("[CloudSyncService] No cloud subscribed anime data found or decode failed")
+            Log.debug(.sync, "No cloud subscribed anime data found or decode failed")
             return
         }
         
-        print("[CloudSyncService] Found \(cloudItems.count) subscribed anime in cloud")
+        Log.debug(.sync, "Found \(cloudItems.count) subscribed anime in cloud")
 
         var localItems: [SubscribedAnime] = []
         if let localData = userDefaults.data(forKey: Constants.localSubscribedAnimeKey),

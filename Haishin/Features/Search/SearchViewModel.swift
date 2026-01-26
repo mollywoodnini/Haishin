@@ -105,7 +105,7 @@ final class SearchViewModel {
                                                                    query: query,
                                                                    page: 1)
                     } catch {
-                        print("[SearchViewModel] Search failed for \(sourceId): \(error)")
+                        Log.error(.sources, "Search failed for \(sourceId): \(error)")
                         return []
                     }
                 }
