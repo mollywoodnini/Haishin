@@ -85,13 +85,19 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Link(destination: URL(string: "https://github.com/example/miru")!) {
+            Link(destination: URL(string: "https://github.com/mollywoodnini/Haishin")!) {
                 HStack {
                     Text("GitHub")
                     Spacer()
                     Image(systemName: "arrow.up.right")
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            NavigationLink {
+                CreditsView()
+            } label: {
+                Text("Acknowledgments")
             }
         } header: {
             Text("About")
