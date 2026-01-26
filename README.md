@@ -1,6 +1,6 @@
 # Haishin
 
-A free anime streaming application for iOS and iPadOS.
+A free anime streaming application for iOS and iPadOS. Inspired by [NineAnimator](https://github.com/SuperMarcus/NineAnimator).
 
 ## Features
 
@@ -26,7 +26,7 @@ A free anime streaming application for iOS and iPadOS.
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/user/Haishin.git
+   git clone https://github.com/mollywoodnini/Haishin.git
    cd Haishin
    ```
 
