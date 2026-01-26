@@ -62,6 +62,21 @@ struct SettingsView: View {
         }
     }
 
+    private var syncSection: some View {
+        Section {
+            Toggle("iCloud Sync", isOn: $cloudSyncService.isSyncEnabled)
+                .disabled(!cloudSyncService.isCloudAvailable)
+        } header: {
+            Text("Sync")
+        } footer: {
+            if cloudSyncService.isCloudAvailable {
+                Text("Sync your subscriptions, watch progress, and recently watched anime across your devices.")
+            } else {
+                Text("Sign in to iCloud in Settings to enable sync.")
+            }
+        }
+    }
+
     private var aboutSection: some View {
         Section {
             HStack {
