@@ -35,6 +35,17 @@ A free anime streaming application for iOS and iPadOS.
 
 3. Build and run on your device or simulator
 
+## Sources
+
+Haishin uses a JavaScript-based source plugin system that allows adding custom anime providers without modifying the app. Sources are small JavaScript files that implement a standard interface for searching, fetching anime details, and retrieving streaming URLs.
+
+Key features:
+- **Dynamic Loading**: Install and update sources without rebuilding the app
+- **Sandboxed Execution**: Each source runs in an isolated JavaScriptCore environment
+- **Flexible Protocol**: Sources can provide search, browse, anime details, and streaming capabilities
+
+For technical details on creating and integrating sources, see the [Sources Architecture Documentation](Documentation/SOURCES_ARCHITECTURE.md).
+
 ## Architecture
 
 Haishin follows the MVVM (Model-View-ViewModel) architecture pattern:
