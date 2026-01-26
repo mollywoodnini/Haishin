@@ -13,11 +13,16 @@ DerivedData/
 # CocoaPods (if used)
 Pods/
 
-# Fastlane (if used)
+# Fastlane
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
-fastlane/test_output
+fastlane/test_output/
+*.xcresult
+
+# Ruby
+vendor/bundle
+.bundle
 
 # macOS
 .DS_Store
