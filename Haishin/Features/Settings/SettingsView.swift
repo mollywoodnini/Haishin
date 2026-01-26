@@ -14,8 +14,7 @@ struct SettingsView: View {
     // MARK: - Properties
     //#################################################################################
 
-    @AppStorage("appearance") private var appearance: AppearanceMode = .system
-    @State private var userPreferences = UserPreferences()
+    @State private var userPreferences = UserPreferences.shared
     @State private var cloudSyncService = CloudSyncService.shared
 
 
@@ -42,7 +41,7 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         Section {
-            Picker("Appearance", selection: $appearance) {
+            Picker("Appearance", selection: $userPreferences.appearance) {
                 ForEach(AppearanceMode.allCases) { mode in
                     Text(mode.displayName).tag(mode)
                 }
@@ -96,28 +95,6 @@ struct SettingsView: View {
             }
         } header: {
             Text("About")
-        }
-    }
-}
-
-
-//#################################################################################
-// MARK: - AppearanceMode
-//#################################################################################
-
-/// The app appearance mode.
-enum AppearanceMode: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
         }
     }
 }

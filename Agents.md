@@ -228,6 +228,33 @@ Parameter Descriptions: Use the - Parameter name: Description syntax to explain 
 
 Dependency Injection: Prefer injecting protocols (e.g., ServiceProtocol) with default implementations in the initializer to facilitate easier testing.
 
+### Avoid MainActor-Isolated Default Parameters
+Problem: Do not use default parameters in init that involve MainActor-isolated types (e.g., init(manager: MyManager = .shared)). This causes "Call to main actor-isolated initializer in a synchronous nonisolated context" warnings.
+
+Solution: Use Explicit Dependency Injection. Leave the parameter without a default value, or use a factory pattern.
+
+❌ Avoid (Triggers Warning):
+@MainActor
+@Observable
+final class AnimeListViewModel {
+    // This triggers the warning because .shared is MainActor-isolated
+    init(service: DataService = .shared) { 
+        self.service = service
+    }
+}
+
+✅ Prefer (Compiler Safe)
+@MainActor
+@Observable
+class AnimeListViewModel {
+    private let service: DataService
+
+    // Require the caller to pass the dependency explicitly
+    init(service: DataService) {
+        self.service = service
+    }
+}
+
 ### Property Grouping
 Group properties logically under the corresponding MARK Properties section.
 

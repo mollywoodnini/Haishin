@@ -11,12 +11,20 @@ import SwiftUI
 struct HaishinApp: App {
 
     //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    @State private var userPreferences = UserPreferences.shared
+
+
+    //#################################################################################
     // MARK: - Body
     //#################################################################################
 
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .preferredColorScheme(userPreferences.appearance.colorScheme)
         }
     }
 }

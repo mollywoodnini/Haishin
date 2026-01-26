@@ -48,6 +48,7 @@ final class BrowseViewModel {
     private let sourceManager: SourceManaging
     private let aniListService: AniListServicing
     private let userPreferences: UserPreferencesProtocol
+    private var lastShowNSFW: Bool?
 
 
     //#################################################################################
@@ -90,6 +91,7 @@ final class BrowseViewModel {
 
         isLoading = true
         error = nil
+        lastShowNSFW = userPreferences.showNSFW
 
         // Load all sections concurrently
         await withTaskGroup(of: Void.self) { group in
@@ -99,6 +101,15 @@ final class BrowseViewModel {
         }
 
         isLoading = false
+    }
+
+    /// Refreshes content if the NSFW preference has changed since last load.
+    func refreshIfPreferencesChanged() async {
+        let currentShowNSFW = userPreferences.showNSFW
+        if lastShowNSFW != nil && lastShowNSFW != currentShowNSFW {
+            await refresh()
+        }
+        lastShowNSFW = currentShowNSFW
     }
 
     /// Refreshes all content.

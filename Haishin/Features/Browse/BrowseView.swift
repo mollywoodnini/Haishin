@@ -20,7 +20,6 @@ struct BrowseView: View {
     //#################################################################################
 
     @State private var viewModel: BrowseViewModel
-    @AppStorage("showNSFW") private var showNSFW = false
 
 
     //#################################################################################
@@ -55,13 +54,13 @@ struct BrowseView: View {
                     await viewModel.loadContent()
                 }
             }
-            .onChange(of: showNSFW) { _, _ in
-                Task {
-                    await viewModel.refresh()
-                }
-            }
             .refreshable {
                 await viewModel.refresh()
+            }
+            .onAppear {
+                Task {
+                    await viewModel.refreshIfPreferencesChanged()
+                }
             }
             .overlay {
                 if viewModel.isLoading && viewModel.sections.allSatisfy({ $0.items.isEmpty }) {
