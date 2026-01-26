@@ -78,6 +78,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     static let shared = SubscriptionService()
 
     private let userDefaults: UserDefaults
+    private let cloudSyncService: CloudSyncServiceProtocol?
 
 
     //#################################################################################
@@ -85,9 +86,14 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     //#################################################################################
 
     /// Creates a new subscription service.
-    /// - Parameter userDefaults: The UserDefaults instance to use for persistence.
-    init(userDefaults: UserDefaults = .standard) {
+    /// - Parameters:
+    ///   - userDefaults: The UserDefaults instance to use for persistence.
+    ///   - cloudSyncService: The cloud sync service for iCloud sync.
+    init(userDefaults: UserDefaults = .standard,
+         cloudSyncService: CloudSyncServiceProtocol? = nil) {
         self.userDefaults = userDefaults
+        // Use provided service or default to shared instance (lazy to avoid circular init)
+        self.cloudSyncService = cloudSyncService
     }
 
 
@@ -110,12 +116,14 @@ final class SubscriptionService: SubscriptionServiceProtocol {
                                               subscribedAt: Date())
         allSubscribed.append(newSubscription)
         persistAllSubscribed(allSubscribed)
+        triggerCloudSync()
     }
 
     func unsubscribe(id: Int) {
         var allSubscribed = loadAllSubscribed()
         allSubscribed.removeAll { $0.id == id }
         persistAllSubscribed(allSubscribed)
+        triggerCloudSync()
     }
 
     func isSubscribed(id: Int) -> Bool {
@@ -142,5 +150,10 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     private func persistAllSubscribed(_ subscribed: [SubscribedAnime]) {
         guard let encoded = try? JSONEncoder().encode(subscribed) else { return }
         userDefaults.set(encoded, forKey: Constants.storageKey)
+    }
+
+    private func triggerCloudSync() {
+        // Use the shared instance directly to avoid circular initialization
+        CloudSyncService.shared.syncToCloud()
     }
 }

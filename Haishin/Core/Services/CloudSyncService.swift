@@ -1,0 +1,338 @@
+//
+//  CloudSyncService.swift
+//  Haishin
+//
+//  Created by OpenCode on 26.01.26.
+//
+
+import Foundation
+
+/// Protocol for cloud sync functionality.
+@MainActor
+protocol CloudSyncServiceProtocol {
+    /// Whether iCloud sync is enabled.
+    var isSyncEnabled: Bool { get set }
+
+    /// Whether iCloud is available on this device.
+    var isCloudAvailable: Bool { get }
+
+    /// Syncs all local data to iCloud.
+    func syncToCloud()
+
+    /// Pulls data from iCloud and merges with local data.
+    func syncFromCloud()
+
+    /// Forces a full sync (upload local data to iCloud).
+    func forceUpload()
+}
+
+
+//#################################################################################
+// MARK: - CloudSyncService
+//#################################################################################
+
+/// Service for syncing app data to iCloud using NSUbiquitousKeyValueStore.
+/// Syncs subscriptions, watch progress, and recents across devices.
+@Observable
+@MainActor
+final class CloudSyncService: CloudSyncServiceProtocol {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let syncEnabledKey = "iCloudSyncEnabled"
+
+        // iCloud keys (prefixed to avoid conflicts)
+        static let subscribedAnimeKey = "sync_subscribedAnime"
+        static let watchProgressKey = "sync_watchProgress"
+        static let recentAnimeKey = "sync_recentAnime"
+
+        // Local UserDefaults keys (matching existing services)
+        static let localSubscribedAnimeKey = "subscribedAnime"
+        static let localWatchProgressKey = "watchProgress"
+        static let localRecentAnimeKey = "recentAnime"
+    }
+
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    static let shared = CloudSyncService()
+
+    var isSyncEnabled: Bool {
+        didSet {
+            userDefaults.set(isSyncEnabled, forKey: Constants.syncEnabledKey)
+            if isSyncEnabled {
+                // First pull from cloud (in case there's existing data), then push local
+                syncFromCloud()
+                syncToCloud()
+            }
+        }
+    }
+
+    var isCloudAvailable: Bool {
+        FileManager.default.ubiquityIdentityToken != nil
+    }
+
+    private let userDefaults: UserDefaults
+    private let cloudStore: NSUbiquitousKeyValueStore
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new cloud sync service.
+    /// - Parameters:
+    ///   - userDefaults: The UserDefaults instance for local storage.
+    ///   - cloudStore: The iCloud key-value store.
+    init(userDefaults: UserDefaults = .standard,
+         cloudStore: NSUbiquitousKeyValueStore = .default) {
+        self.userDefaults = userDefaults
+        self.cloudStore = cloudStore
+        self.isSyncEnabled = userDefaults.bool(forKey: Constants.syncEnabledKey)
+
+        setupCloudChangeObserver()
+
+        // Initial sync from cloud if enabled
+        if isSyncEnabled && isCloudAvailable {
+            cloudStore.synchronize()
+            syncFromCloud()
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Public Methods
+    //#################################################################################
+
+    func syncToCloud() {
+        guard isSyncEnabled && isCloudAvailable else {
+            print("[CloudSyncService] syncToCloud skipped - enabled: \(isSyncEnabled), available: \(isCloudAvailable)")
+            return
+        }
+
+        // Sync subscribed anime
+        if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
+            cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
+            print("[CloudSyncService] Uploaded \(data.count) bytes of subscribed anime to cloud")
+        } else {
+            print("[CloudSyncService] No local subscribed anime data to upload")
+        }
+
+        // Sync watch progress
+        if let data = userDefaults.data(forKey: Constants.localWatchProgressKey) {
+            cloudStore.set(data, forKey: Constants.watchProgressKey)
+            print("[CloudSyncService] Uploaded \(data.count) bytes of watch progress to cloud")
+        }
+
+        // Sync recent anime
+        if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
+            cloudStore.set(data, forKey: Constants.recentAnimeKey)
+            print("[CloudSyncService] Uploaded \(data.count) bytes of recent anime to cloud")
+        }
+
+        let syncResult = cloudStore.synchronize()
+        print("[CloudSyncService] Synced local data to iCloud, synchronize result: \(syncResult)")
+    }
+
+    func syncFromCloud() {
+        guard isSyncEnabled && isCloudAvailable else {
+            print("[CloudSyncService] syncFromCloud skipped - enabled: \(isSyncEnabled), available: \(isCloudAvailable)")
+            return
+        }
+
+        // Force a sync to get latest cloud data
+        let syncResult = cloudStore.synchronize()
+        print("[CloudSyncService] cloudStore.synchronize() result: \(syncResult)")
+
+        // Merge subscribed anime
+        mergeSubscribedAnime()
+
+        // Merge watch progress
+        mergeWatchProgress()
+
+        // Merge recent anime
+        mergeRecentAnime()
+
+        print("[CloudSyncService] Synced data from iCloud")
+    }
+
+    func forceUpload() {
+        guard isCloudAvailable else { return }
+
+        // Upload all local data to iCloud (overwrite)
+        if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
+            cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
+        }
+
+        if let data = userDefaults.data(forKey: Constants.localWatchProgressKey) {
+            cloudStore.set(data, forKey: Constants.watchProgressKey)
+        }
+
+        if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
+            cloudStore.set(data, forKey: Constants.recentAnimeKey)
+        }
+
+        cloudStore.synchronize()
+        print("[CloudSyncService] Force uploaded local data to iCloud")
+    }
+
+
+    //#################################################################################
+    // MARK: - Private Methods
+    //#################################################################################
+
+    private func setupCloudChangeObserver() {
+        NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: cloudStore,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self else { return }
+            Task { @MainActor [weak self] in
+                self?.handleCloudChange(notification)
+            }
+        }
+    }
+
+    private func handleCloudChange(_ notification: Notification) {
+        guard isSyncEnabled else { return }
+
+        guard let userInfo = notification.userInfo,
+              let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int else {
+            return
+        }
+
+        switch changeReason {
+        case NSUbiquitousKeyValueStoreServerChange,
+             NSUbiquitousKeyValueStoreInitialSyncChange:
+            // Data changed on another device or initial sync
+            syncFromCloud()
+
+        case NSUbiquitousKeyValueStoreQuotaViolationChange:
+            print("[CloudSyncService] iCloud quota exceeded")
+
+        case NSUbiquitousKeyValueStoreAccountChange:
+            // iCloud account changed, re-sync
+            syncFromCloud()
+
+        default:
+            break
+        }
+    }
+
+    private func mergeSubscribedAnime() {
+        let cloudData = cloudStore.data(forKey: Constants.subscribedAnimeKey)
+        print("[CloudSyncService] Cloud subscribed anime data: \(cloudData?.count ?? 0) bytes")
+        
+        guard let cloudData,
+              let cloudItems = try? JSONDecoder().decode([SubscribedAnime].self, from: cloudData) else {
+            print("[CloudSyncService] No cloud subscribed anime data found or decode failed")
+            return
+        }
+        
+        print("[CloudSyncService] Found \(cloudItems.count) subscribed anime in cloud")
+
+        var localItems: [SubscribedAnime] = []
+        if let localData = userDefaults.data(forKey: Constants.localSubscribedAnimeKey),
+           let decoded = try? JSONDecoder().decode([SubscribedAnime].self, from: localData) {
+            localItems = decoded
+        }
+
+        // Merge: combine both lists, keep the one with the latest subscribedAt date for duplicates
+        var mergedDict: [Int: SubscribedAnime] = [:]
+
+        for item in localItems {
+            mergedDict[item.id] = item
+        }
+
+        for cloudItem in cloudItems {
+            if let existing = mergedDict[cloudItem.id] {
+                // Keep the newer one
+                if cloudItem.subscribedAt > existing.subscribedAt {
+                    mergedDict[cloudItem.id] = cloudItem
+                }
+            } else {
+                mergedDict[cloudItem.id] = cloudItem
+            }
+        }
+
+        let merged = Array(mergedDict.values)
+
+        if let encoded = try? JSONEncoder().encode(merged) {
+            userDefaults.set(encoded, forKey: Constants.localSubscribedAnimeKey)
+        }
+    }
+
+    private func mergeWatchProgress() {
+        guard let cloudData = cloudStore.data(forKey: Constants.watchProgressKey),
+              let cloudProgress = try? JSONDecoder().decode([String: WatchProgress].self, from: cloudData) else {
+            return
+        }
+
+        var localProgress: [String: WatchProgress] = [:]
+        if let localData = userDefaults.data(forKey: Constants.localWatchProgressKey),
+           let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: localData) {
+            localProgress = decoded
+        }
+
+        // Merge: for each key, keep the one with the latest lastUpdated date
+        var merged = localProgress
+
+        for (key, cloudItem) in cloudProgress {
+            if let existing = merged[key] {
+                // Keep the newer one
+                if cloudItem.lastUpdated > existing.lastUpdated {
+                    merged[key] = cloudItem
+                }
+            } else {
+                merged[key] = cloudItem
+            }
+        }
+
+        if let encoded = try? JSONEncoder().encode(merged) {
+            userDefaults.set(encoded, forKey: Constants.localWatchProgressKey)
+        }
+    }
+
+    private func mergeRecentAnime() {
+        guard let cloudData = cloudStore.data(forKey: Constants.recentAnimeKey),
+              let cloudItems = try? JSONDecoder().decode([RecentAnime].self, from: cloudData) else {
+            return
+        }
+
+        var localItems: [RecentAnime] = []
+        if let localData = userDefaults.data(forKey: Constants.localRecentAnimeKey),
+           let decoded = try? JSONDecoder().decode([RecentAnime].self, from: localData) {
+            localItems = decoded
+        }
+
+        // Merge: combine both lists, keep the one with the latest lastWatchedAt date for duplicates
+        var mergedDict: [Int: RecentAnime] = [:]
+
+        for item in localItems {
+            mergedDict[item.id] = item
+        }
+
+        for cloudItem in cloudItems {
+            if let existing = mergedDict[cloudItem.id] {
+                // Keep the newer one
+                if cloudItem.lastWatchedAt > existing.lastWatchedAt {
+                    mergedDict[cloudItem.id] = cloudItem
+                }
+            } else {
+                mergedDict[cloudItem.id] = cloudItem
+            }
+        }
+
+        let merged = Array(mergedDict.values)
+
+        if let encoded = try? JSONEncoder().encode(merged) {
+            userDefaults.set(encoded, forKey: Constants.localRecentAnimeKey)
+        }
+    }
+}

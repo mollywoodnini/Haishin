@@ -16,6 +16,7 @@ struct SettingsView: View {
 
     @AppStorage("appearance") private var appearance: AppearanceMode = .system
     @State private var userPreferences = UserPreferences()
+    @State private var cloudSyncService = CloudSyncService.shared
 
 
     //#################################################################################
@@ -27,6 +28,7 @@ struct SettingsView: View {
             List {
                 appearanceSection
                 contentSection
+                syncSection
                 aboutSection
             }
             .navigationTitle("Settings")

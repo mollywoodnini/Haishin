@@ -162,6 +162,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         let key = makeKey(animeId: progress.animeId, episodeId: progress.episodeId)
         allProgress[key] = progress
         persistAllProgress(allProgress)
+        triggerCloudSync()
     }
 
     func removeProgress(animeId: Int, episodeId: String) {
@@ -169,6 +170,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         let key = makeKey(animeId: animeId, episodeId: episodeId)
         allProgress.removeValue(forKey: key)
         persistAllProgress(allProgress)
+        triggerCloudSync()
     }
 
     func clearAllProgress(animeId: Int) {
@@ -176,6 +178,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         let keysToRemove = allProgress.keys.filter { $0.hasPrefix("\(animeId)_") }
         keysToRemove.forEach { allProgress.removeValue(forKey: $0) }
         persistAllProgress(allProgress)
+        triggerCloudSync()
     }
 
     func getRecentAnime() -> [RecentAnime] {
@@ -198,6 +201,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         }
 
         persistAllRecentAnime(allRecent)
+        triggerCloudSync()
     }
 
     func getRecentAnimeCount() -> Int {
@@ -237,5 +241,9 @@ final class WatchProgressService: WatchProgressServiceProtocol {
     private func persistAllRecentAnime(_ recentAnime: [RecentAnime]) {
         guard let encoded = try? JSONEncoder().encode(recentAnime) else { return }
         userDefaults.set(encoded, forKey: Constants.recentAnimeKey)
+    }
+
+    private func triggerCloudSync() {
+        CloudSyncService.shared.syncToCloud()
     }
 }
