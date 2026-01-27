@@ -26,6 +26,8 @@ final class VideoPlayerPresenter: NSObject {
     private(set) var playerViewController: AVPlayerViewController?
     private(set) var viewModel: VideoPlayerViewModel?
     private(set) var isInPictureInPicture = false
+    private(set) var isLoading = false
+    private var loadingTask: Task<Void, Never>?
     private var onDismiss: (() -> Void)?
     private var onEpisodeFinished: ((Episode) -> Void)?
 
@@ -48,17 +50,26 @@ final class VideoPlayerPresenter: NSObject {
     ///   - viewModel: The video player view model.
     ///   - onDismiss: Callback when the player is dismissed.
     ///   - onEpisodeFinished: Callback when the episode finishes playing.
+    ///   - onLoadingStateChanged: Callback when loading state changes (isLoading, error).
     func present(viewModel: VideoPlayerViewModel,
                  onDismiss: (() -> Void)? = nil,
-                 onEpisodeFinished: ((Episode) -> Void)? = nil) {
+                 onEpisodeFinished: ((Episode) -> Void)? = nil,
+                 onLoadingStateChanged: ((_ isLoading: Bool, _ error: Error?) -> Void)? = nil) {
         // If already presenting, dismiss first
         if playerViewController != nil {
             dismiss(animated: false)
         }
 
+        // Cancel any existing loading task
+        loadingTask?.cancel()
+
         self.viewModel = viewModel
         self.onDismiss = onDismiss
         self.onEpisodeFinished = onEpisodeFinished
+        self.isLoading = true
+
+        // Notify that loading started
+        onLoadingStateChanged?(true, nil)
 
         // Set up the episode finished callback on the view model
         viewModel.onEpisodeFinished = { [weak self] episode in
@@ -66,21 +77,55 @@ final class VideoPlayerPresenter: NSObject {
         }
 
         // Start loading the video
-        Task {
+        loadingTask = Task {
             await viewModel.loadAndPlay()
+
+            // Check if cancelled
+            guard !Task.isCancelled else {
+                await MainActor.run {
+                    self.isLoading = false
+                    onLoadingStateChanged?(false, nil)
+                }
+                return
+            }
 
             guard let player = viewModel.player else {
                 Log.warning(.playback, "No player available after loading")
+                await MainActor.run {
+                    self.isLoading = false
+                    onLoadingStateChanged?(false, viewModel.error ?? VideoPlayerError.noSourcesAvailable)
+                }
                 return
             }
 
             // Wait for player to reach readyToPlay status
             await waitForPlayerReady(player)
 
+            // Check if cancelled again after waiting
+            guard !Task.isCancelled else {
+                await MainActor.run {
+                    self.isLoading = false
+                    onLoadingStateChanged?(false, nil)
+                }
+                return
+            }
+
             await MainActor.run {
+                self.isLoading = false
+                onLoadingStateChanged?(false, nil)
                 self.presentPlayerViewController(with: player)
             }
         }
+    }
+
+    /// Cancels the current loading operation.
+    func cancelLoading() {
+        loadingTask?.cancel()
+        loadingTask = nil
+        isLoading = false
+        viewModel?.cleanup()
+        viewModel = nil
+        Log.info(.playback, "Loading cancelled by user")
     }
 
     /// Dismisses the video player.

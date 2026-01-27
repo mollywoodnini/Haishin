@@ -23,6 +23,9 @@ struct EpisodeListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSourcePicker = false
     @State private var expandedRanges: Set<String> = []
+    @State private var isLoadingVideo = false
+    @State private var videoLoadError: Error?
+    @State private var showingVideoError = false
 
 
     //#################################################################################
@@ -116,6 +119,18 @@ struct EpisodeListView: View {
                 dismiss()
             }
         }
+        .overlay {
+            if isLoadingVideo {
+                videoLoadingOverlay
+            }
+        }
+        .alert("Failed to Load Video", isPresented: $showingVideoError) {
+            Button("OK", role: .cancel) {
+                videoLoadError = nil
+            }
+        } message: {
+            Text(videoLoadError?.localizedDescription ?? "An unknown error occurred while loading the video.")
+        }
     }
 
 
@@ -142,8 +157,20 @@ struct EpisodeListView: View {
                         playEpisode(nextEpisode)
                     }
                 }
+            },
+            onLoadingStateChanged: { isLoading, error in
+                isLoadingVideo = isLoading
+                if let error {
+                    videoLoadError = error
+                    showingVideoError = true
+                }
             }
         )
+    }
+
+    private func cancelVideoLoading() {
+        VideoPlayerPresenter.shared.cancelLoading()
+        isLoadingVideo = false
     }
 
 
@@ -195,6 +222,40 @@ struct EpisodeListView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var videoLoadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+
+            VStack(spacing: .spacingS) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+                    .padding(.top, .spacingS)
+
+                Text("Loading video...")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Button {
+                    cancelVideoLoading()
+                } label: {
+                    Text("Cancel")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, .spacingL)
+                        .padding(.vertical, .spacingS)
+                        .background(Color.white.opacity(0.2))
+                        .clipShape(Capsule())
+                }
+                .padding(.top, .spacingS)
+            }
+            .padding(.spacingS)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
+        }
     }
 
     private func errorView(error: Error) -> some View {
