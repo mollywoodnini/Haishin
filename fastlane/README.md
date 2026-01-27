@@ -31,6 +31,22 @@ Run unit tests
 
 Build the app without running tests
 
+### ios release
+
+```sh
+[bundle exec] fastlane ios release
+```
+
+Build and upload to TestFlight
+
+### ios build_ipa
+
+```sh
+[bundle exec] fastlane ios build_ipa
+```
+
+Build IPA only (no upload)
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
