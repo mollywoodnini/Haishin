@@ -42,15 +42,13 @@ platform :ios do
     # Increment build number based on TestFlight
     increment_build_number(build_number: latest_testflight_build_number + 1)
 
-    # Build the app - use codesigning_identity for signing, export_options for IPA export
-    # Note: SPM packages are automatically signed with "-" (ad-hoc), only the main app needs our cert
+    # Build the app - project has manual signing configured in Release config
     build_app(project: "Haishin.xcodeproj",
               scheme: "Haishin",
               export_method: "app-store",
               output_directory: "build",
               output_name: "Haishin.ipa",
               clean: true,
-              codesigning_identity: "Apple Distribution: Tan Nghia La (7P98753C95)",
               export_options: {
                 signingStyle: "manual",
                 provisioningProfiles: {
@@ -84,15 +82,13 @@ platform :ios do
           api_key: api_key,
           git_private_key: ENV["MATCH_GIT_PRIVATE_KEY"])
 
-    # Build the app - use codesigning_identity for signing, export_options for IPA export
-    # Note: SPM packages are automatically signed with "-" (ad-hoc), only the main app needs our cert
+    # Build the app - project has manual signing configured in Release config
     build_app(project: "Haishin.xcodeproj",
               scheme: "Haishin",
               export_method: "app-store",
               output_directory: "build",
               output_name: "Haishin.ipa",
               clean: true,
-              codesigning_identity: "Apple Distribution: Tan Nghia La (7P98753C95)",
               export_options: {
                 signingStyle: "manual",
                 provisioningProfiles: {
