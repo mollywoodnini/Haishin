@@ -11,6 +11,7 @@ jobs:
   build-and-release:
     name: Build and Release to TestFlight
     runs-on: macos-26
+    environment: release
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
     permissions:
       contents: write
