@@ -1,0 +1,110 @@
+name: On Release Merged
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    name: Build and Release to TestFlight
+    runs-on: macos-26
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Extract version from branch name
+        id: version
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION="${BRANCH#release/}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Setup SSH for Match
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_PRIVATE_KEY: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: |
+          bundle exec fastlane release \
+            changelog:"Release ${{ steps.version.outputs.version }}"
+
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Haishin-${{ steps.version.outputs.version }}.ipa
+          path: build/Haishin.ipa
+          retention-days: 90
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git tag -a "$TAG" -m "Release ${{ steps.version.outputs.version }}"
+          git push origin "$TAG"
+          echo "Created and pushed tag: $TAG"
+
+      - name: Create GitHub Release with IPA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          
+          gh release create "$TAG" \
+            --title "Release $VERSION" \
+            --generate-notes \
+            --latest \
+            build/Haishin.ipa
+
+      - name: Merge main back to develop
+        run: |
+          git fetch origin develop
+          git checkout develop
+          git merge main -m "Merge main back to develop after release ${{ steps.version.outputs.version }}"
+          git push origin develop
+          echo "Merged main back to develop"
+
+      - name: Delete release branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$BRANCH" || true
+          echo "Deleted branch: $BRANCH"
