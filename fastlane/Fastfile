@@ -56,19 +56,11 @@ platform :ios do
                 }
               })
 
-    # Upload to TestFlight
-    upload_to_testflight(skip_waiting_for_build_processing: false,
-                         distribute_external: true,
-                         groups: options[:groups] || ["Beta Testers"],
-                         changelog: options[:changelog] || "New release",
-                         notify_external_testers: true,
-                         beta_app_feedback_email: "la.tannghia+haishin@gmail.com",
-                         localized_app_info: {
-                           "en-US" => {
-                             feedback_email: "la.tannghia+haishin@gmail.com",
-                             description: "Haishin is a streaming app for discovering and watching content."
-                           }
-                         })
+    # Upload to TestFlight (internal testing only for now)
+    # To enable external testing, set up beta test info in App Store Connect first
+    upload_to_testflight(skip_waiting_for_build_processing: true,
+                         distribute_external: false,
+                         changelog: options[:changelog] || "New release")
   end
 
   desc "Build IPA only (no upload)"
