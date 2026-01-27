@@ -237,8 +237,31 @@ actor JSRuntime {
                           forKeyedSubscript: "_consoleLog" as NSString)
         context.evaluateScript("var console = { log: _consoleLog, error: _consoleLog, warn: _consoleLog };")
 
+        // Inject atob/btoa for base64 encoding/decoding (not available in JavaScriptCore by default)
+        setupBase64(context)
+
         // Inject fetch function (will be handled via callbacks)
         setupFetch(context, runtime: runtime)
+    }
+
+    nonisolated private static func setupBase64(_ context: JSContext) {
+        // atob: Decodes a base64-encoded string
+        let atobBlock: @convention(block) (String) -> String = { encodedString in
+            guard let data = Data(base64Encoded: encodedString) else {
+                return ""
+            }
+            return String(data: data, encoding: .utf8) ?? ""
+        }
+        context.setObject(atobBlock, forKeyedSubscript: "atob" as NSString)
+
+        // btoa: Encodes a string to base64
+        let btoaBlock: @convention(block) (String) -> String = { stringToEncode in
+            guard let data = stringToEncode.data(using: .utf8) else {
+                return ""
+            }
+            return data.base64EncodedString()
+        }
+        context.setObject(btoaBlock, forKeyedSubscript: "btoa" as NSString)
     }
 
     nonisolated private static func setupFetch(_ context: JSContext, runtime: JSRuntime) {
