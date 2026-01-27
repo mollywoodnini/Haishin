@@ -1,8 +1,8 @@
 //
 //  WatchProgressService.swift
-//  Miru
+//  Haishin
 //
-//  Created by Miru on 25.01.26.
+//  Created by Haishin on 25.01.26.
 //
 
 import Foundation

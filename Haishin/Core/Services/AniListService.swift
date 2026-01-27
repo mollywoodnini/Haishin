@@ -1,6 +1,6 @@
 //
 //  AniListService.swift
-//  Miru
+//  Haishin
 //
 //  Created by Tan Nghia La on 24.01.26.
 //

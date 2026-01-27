@@ -1,8 +1,8 @@
 //
 //  ThisWeekSectionContent.swift
-//  Miru
+//  Haishin
 //
-//  Created by Miru on 24.01.26.
+//  Created by Haishin on 24.01.26.
 //
 
 import SwiftUI
