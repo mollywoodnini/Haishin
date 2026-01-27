@@ -1,4 +1,4 @@
 app_identifier("com.ninila.haishin-app")
-apple_id("")
-itc_team_id("")
-team_id("")
+apple_id(ENV["APPLE_ID"] || "")
+itc_team_id(ENV["TEAM_ID"] || "")
+team_id(ENV["TEAM_ID"] || "")
