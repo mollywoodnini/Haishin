@@ -14,9 +14,35 @@ import Foundation
 
 /// Protocol for network operations, enabling dependency injection and testing.
 protocol NetworkClientProtocol: Sendable {
+    
+    /// Fetches data from a URL.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The raw data from the response.
     func fetch(url: URL, headers: [String: String]?) async throws -> Data
+    
+    /// Fetches and decodes JSON from a URL.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - type: The type to decode.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The decoded object.
     func fetchJSON<T: Decodable & Sendable>(url: URL, type: T.Type, headers: [String: String]?) async throws -> T
+    
+    /// Fetches HTML content from a URL as a string.
+    /// - Parameters:
+    ///   - url: The URL to fetch.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The HTML content as a string.
     func fetchHTML(url: URL, headers: [String: String]?) async throws -> String
+    
+    /// Posts data to a URL.
+    /// - Parameters:
+    ///   - url: The URL to post to.
+    ///   - body: The request body data.
+    ///   - headers: Optional HTTP headers.
+    /// - Returns: The raw data from the response.
     func post(url: URL, body: Data?, headers: [String: String]?) async throws -> Data
 }
 
@@ -71,11 +97,6 @@ actor NetworkClient: NetworkClientProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    /// Fetches data from a URL.
-    /// - Parameters:
-    ///   - url: The URL to fetch.
-    ///   - headers: Optional HTTP headers.
-    /// - Returns: The raw data from the response.
     func fetch(url: URL, headers: [String: String]? = nil) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -120,12 +141,6 @@ actor NetworkClient: NetworkClientProtocol {
         return (data, httpResponse.statusCode)
     }
 
-    /// Fetches and decodes JSON from a URL.
-    /// - Parameters:
-    ///   - url: The URL to fetch.
-    ///   - type: The type to decode.
-    ///   - headers: Optional HTTP headers.
-    /// - Returns: The decoded object.
     func fetchJSON<T: Decodable & Sendable>(url: URL,
                                             type: T.Type,
                                             headers: [String: String]? = nil) async throws -> T {
@@ -133,11 +148,6 @@ actor NetworkClient: NetworkClientProtocol {
         return try decoder.decode(T.self, from: data)
     }
 
-    /// Fetches HTML content from a URL as a string.
-    /// - Parameters:
-    ///   - url: The URL to fetch.
-    ///   - headers: Optional HTTP headers.
-    /// - Returns: The HTML content as a string.
     func fetchHTML(url: URL, headers: [String: String]? = nil) async throws -> String {
         let data = try await fetch(url: url, headers: headers)
 
@@ -148,12 +158,6 @@ actor NetworkClient: NetworkClientProtocol {
         return html
     }
 
-    /// Posts data to a URL.
-    /// - Parameters:
-    ///   - url: The URL to post to.
-    ///   - body: The request body data.
-    ///   - headers: Optional HTTP headers.
-    /// - Returns: The raw data from the response.
     func post(url: URL, body: Data?, headers: [String: String]? = nil) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
