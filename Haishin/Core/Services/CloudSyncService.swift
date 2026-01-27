@@ -187,25 +187,22 @@ final class CloudSyncService: CloudSyncServiceProtocol {
     //#################################################################################
 
     private func setupCloudChangeObserver() {
-        NotificationCenter.default.addObserver(
-            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: cloudStore,
-            queue: .main
-        ) { [weak self] notification in
+        NotificationCenter.default.addObserver(forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+                                               object: cloudStore,
+                                               queue: .main) { [weak self] notification in
             guard let self else { return }
+            // Extract Sendable value from notification before crossing isolation boundary
+            let changeReason = notification.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
             Task { @MainActor [weak self] in
-                self?.handleCloudChange(notification)
+                self?.handleCloudChange(changeReason: changeReason)
             }
         }
     }
 
-    private func handleCloudChange(_ notification: Notification) {
+    private func handleCloudChange(changeReason: Int?) {
         guard isSyncEnabled else { return }
 
-        guard let userInfo = notification.userInfo,
-              let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int else {
-            return
-        }
+        guard let changeReason else { return }
 
         switch changeReason {
         case NSUbiquitousKeyValueStoreServerChange,

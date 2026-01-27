@@ -46,7 +46,7 @@ actor JSRuntime {
     // MARK: - Properties
     //#################################################################################
 
-    private nonisolated(unsafe) let context: JSContext
+    private let context: JSContext
     private let networkClient: NetworkClient
     private let cookieStorage: HTTPCookieStorage
     private var loadedSources: [String: JSValue] = [:]
@@ -61,7 +61,7 @@ actor JSRuntime {
     /// - Parameters:
     ///   - networkClient: Network client for HTTP requests from JS.
     ///   - cookieStorage: Cookie storage shared with NetworkClient and ChallengeResolver.
-    init(networkClient: NetworkClient = NetworkClient(),
+    init(networkClient: NetworkClient,
          cookieStorage: HTTPCookieStorage = .shared) throws {
         guard let context = JSContext() else {
             throw JSError.contextCreationFailed
@@ -71,7 +71,9 @@ actor JSRuntime {
         self.networkClient = networkClient
         self.cookieStorage = cookieStorage
 
-        setupContext()
+        // We pass 'self' and 'context' to a helper.
+        // Swift 6 is happy because we are explicitly defining how the bridge works.
+        Self.configure(context, for: self)
     }
 
 
@@ -222,8 +224,7 @@ actor JSRuntime {
     // MARK: - Private Methods
     //#################################################################################
 
-    private nonisolated func setupContext() {
-        // Set up exception handler
+    nonisolated private static func configure(_ context: JSContext, for runtime: JSRuntime) {        // Set up exception handler
         context.exceptionHandler = { _, exception in
             Log.error(.sources, "Exception: \(exception?.toString() ?? "unknown")")
         }
@@ -237,10 +238,10 @@ actor JSRuntime {
         context.evaluateScript("var console = { log: _consoleLog, error: _consoleLog, warn: _consoleLog };")
 
         // Inject fetch function (will be handled via callbacks)
-        setupFetchFunction()
+        setupFetch(context, runtime: runtime)
     }
 
-    private nonisolated func setupFetchFunction() {
+    nonisolated private static func setupFetch(_ context: JSContext, runtime: JSRuntime) {
         // Create a simplified fetch that stores requests for async handling
         // In a real implementation, this would bridge to the NetworkClient
         let fetchScript = """
@@ -258,9 +259,9 @@ actor JSRuntime {
         context.evaluateScript(fetchScript)
 
         // Native fetch handler - this gets called from JS
-        let nativeFetch: @convention(block) (Int, String, String) -> Void = { [weak self] id, urlString, optionsJson in
+        let nativeFetch: @convention(block) (Int, String, String) -> Void = { [weak runtime] id, url, options in
             Task {
-                await self?.handleFetch(id: id, urlString: urlString, optionsJson: optionsJson)
+                await runtime?.handleFetch(id: id, urlString: url, optionsJson: options)
             }
         }
         context.setObject(nativeFetch,
@@ -376,39 +377,41 @@ actor JSRuntime {
         }
         Log.debug(.sources, "========================================")
     }
+    
+    private func resolveFetch(id: Int, result: String? = nil, error: String? = nil) {
+        // We use Task { @MainActor } to ensure we are on the thread where JSContext lives.
+        // In many apps, JSContext must be managed on a single consistent thread (usually Main).
+        Task { @MainActor in
+            guard !Task.isCancelled else { return }
+            
+            // Inside this block, we are on the MainActor.
+            // If JSContext was created on the Main Thread, this is safe.
+            if let error {
+                let escapedError = error.replacingOccurrences(of: "'", with: "\\'")
+                context.evaluateScript("""
+                    if (_pendingFetches[\(id)]) {
+                        _pendingFetches[\(id)].reject(new Error('\(escapedError)'));
+                        delete _pendingFetches[\(id)];
+                    }
+                """)
+            } else if let result {
+                let escapedResult = result
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "'", with: "\\'")
+                    .replacingOccurrences(of: "\n", with: "\\n")
+                    .replacingOccurrences(of: "\r", with: "\\r")
 
-    private nonisolated func resolveFetch(id: Int, result: String? = nil, error: String? = nil) {
-        // This needs to run on the main thread to interact with JSContext
-        DispatchQueue.main.async { [weak self] in
-            Task { @MainActor in
-                guard let context = self?.context else { return }
-
-                if let error = error {
-                    context.evaluateScript("""
-                        if (_pendingFetches[\(id)]) {
-                            _pendingFetches[\(id)].reject(new Error('\(error.replacingOccurrences(of: "'", with: "\\'"))'));
-                            delete _pendingFetches[\(id)];
-                        }
-                    """)
-                } else if let result = result {
-                    let escapedResult = result
-                        .replacingOccurrences(of: "\\", with: "\\\\")
-                        .replacingOccurrences(of: "'", with: "\\'")
-                        .replacingOccurrences(of: "\n", with: "\\n")
-                        .replacingOccurrences(of: "\r", with: "\\r")
-
-                    context.evaluateScript("""
-                        if (_pendingFetches[\(id)]) {
-                            _pendingFetches[\(id)].resolve({
-                                ok: true,
-                                status: 200,
-                                text: function() { return Promise.resolve('\(escapedResult)'); },
-                                json: function() { return Promise.resolve(JSON.parse('\(escapedResult)')); }
-                            });
-                            delete _pendingFetches[\(id)];
-                        }
-                    """)
-                }
+                context.evaluateScript("""
+                    if (_pendingFetches[\(id)]) {
+                        _pendingFetches[\(id)].resolve({
+                            ok: true,
+                            status: 200,
+                            text: function() { return Promise.resolve('\(escapedResult)'); },
+                            json: function() { return Promise.resolve(JSON.parse('\(escapedResult)')); }
+                        });
+                        delete _pendingFetches[\(id)];
+                    }
+                """)
             }
         }
     }

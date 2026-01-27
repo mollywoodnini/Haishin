@@ -278,29 +278,29 @@ final class MockDownloadService: DownloadServiceProtocol {
 //#################################################################################
 
 /// Mock implementation of AniListServicing for testing.
-final class MockAniListService: AniListServicing {
+final class MockAniListService: AniListServicing, @unchecked Sendable {
 
     //#################################################################################
     // MARK: - Stub Configuration
     //#################################################################################
 
-    var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
-    var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    var fetchAnimeDetailsResult: Result<AniListAnimeDetail, Error> = .failure(MockError.notConfigured)
+    nonisolated(unsafe) var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
+    nonisolated(unsafe) var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+    nonisolated(unsafe) var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
+    nonisolated(unsafe) var fetchAnimeDetailsResult: Result<AniListAnimeDetail, Error> = .failure(MockError.notConfigured)
 
 
     //#################################################################################
     // MARK: - Call Tracking
     //#################################################################################
 
-    var fetchThisWeekCallCount = 0
-    var fetchTrendingCallCount = 0
-    var fetchTrendingPages: [Int] = []
-    var fetchSeasonalCallCount = 0
-    var fetchSeasonalPages: [Int] = []
-    var fetchAnimeDetailsCallCount = 0
-    var fetchAnimeDetailsIds: [Int] = []
+    nonisolated(unsafe) var fetchThisWeekCallCount = 0
+    nonisolated(unsafe) var fetchTrendingCallCount = 0
+    nonisolated(unsafe) var fetchTrendingPages: [Int] = []
+    nonisolated(unsafe) var fetchSeasonalCallCount = 0
+    nonisolated(unsafe) var fetchSeasonalPages: [Int] = []
+    nonisolated(unsafe) var fetchAnimeDetailsCallCount = 0
+    nonisolated(unsafe) var fetchAnimeDetailsIds: [Int] = []
 
 
     //#################################################################################

@@ -316,9 +316,12 @@ final class VideoPlayerViewModel {
         // Seek to saved position if we have one
         if currentTime > 0 {
             let seekTime = CMTime(seconds: currentTime, preferredTimescale: 600)
+            let savedTime = currentTime
             player?.seek(to: seekTime) { [weak self] _ in
-                self?.player?.play()
-                Log.debug(.playback, "Resumed playback at \(Int(self?.currentTime ?? 0))s")
+                Task { @MainActor [weak self] in
+                    self?.player?.play()
+                    Log.debug(.playback, "Resumed playback at \(Int(savedTime))s")
+                }
             }
         } else {
             player?.play()
@@ -603,7 +606,7 @@ final class VideoPlayerViewModel {
 
         guard let coverURL = animeCoverURL else { return }
 
-        nowPlayingArtworkTask = Task { [weak self] in
+        nowPlayingArtworkTask = Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: coverURL)
                 guard !Task.isCancelled else { return }

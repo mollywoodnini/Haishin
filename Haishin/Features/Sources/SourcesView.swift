@@ -112,22 +112,22 @@ struct SourcesView: View {
             .fileImporter(isPresented: $showingFilePicker,
                           allowedContentTypes: [.javaScript],
                           allowsMultipleSelection: false) { result in
-                print("[SourcesView] File picker result received")
+                Log.debug(.sources, "File picker result received")
                 switch result {
                 case .success(let urls):
-                    print("[SourcesView] Success with \(urls.count) URLs")
+                    Log.debug(.sources, "Success with \(urls.count) URLs")
                     guard let url = urls.first else {
-                        print("[SourcesView] No URL in array")
+                        Log.warning(.sources, "No URL in array")
                         return
                     }
                     
-                    print("[SourcesView] Selected file: \(url)")
+                    Log.debug(.sources, "Selected file: \(url)")
                     
                     Task {
                         await viewModel.installSourceFromFile(fileURL: url)
                     }
                 case .failure(let error):
-                    print("[SourcesView] File picker failed: \(error)")
+                    Log.error(.sources, "File picker failed: \(error)")
                 }
             }
         }

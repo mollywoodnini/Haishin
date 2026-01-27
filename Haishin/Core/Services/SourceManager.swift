@@ -134,8 +134,8 @@ final class SourceManager: SourceManaging {
     /// Adds a source repository.
     /// - Parameter url: URL to the repository manifest.
     func addRepository(url: URL) async throws {
-        let manifest = try await networkClient.fetchJSON(url: url,
-                                                         type: RepositoryManifest.self)
+        let data = try await networkClient.fetch(url: url)
+        let manifest = try Self.decode(RepositoryManifest.self, from: data)
 
         let repository = SourceRepository(name: manifest.name,
                                           url: url,
@@ -556,6 +556,11 @@ final class SourceManager: SourceManaging {
         
         return nil
     }
+
+    /// Decodes JSON data in a nonisolated context to avoid MainActor isolation issues.
+    nonisolated private static func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        try JSONDecoder().decode(type, from: data)
+    }
 }
 
 
@@ -564,7 +569,7 @@ final class SourceManager: SourceManaging {
 //#################################################################################
 
 /// Repository manifest structure.
-private struct RepositoryManifest: Codable {
+private struct RepositoryManifest: Codable, Sendable {
     let name: String
     let sources: [SourceInfo]
 }

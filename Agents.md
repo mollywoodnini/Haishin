@@ -314,3 +314,10 @@ Log.debug(.playback, "Loading video...")
 - `.downloads` - Download operations
 - `.playback` - Video playback
 - `.sync` - Cloud sync operations
+
+### Swift 6 Concurrency & Sendability
+Non-Sendable Types: Avoid passing [AnyHashable: Any] or types containing Any across Task boundaries.
+
+Data Extraction: When handling Notifications, extract specific, Sendable values (like String, Int, or Data) into local variables before creating a Task.
+
+Strict Mapping: Explicitly cast userInfo values to known Sendable types before capturing them in a closure.

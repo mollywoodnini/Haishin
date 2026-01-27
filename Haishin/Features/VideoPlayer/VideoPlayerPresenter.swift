@@ -210,14 +210,16 @@ extension VideoPlayerPresenter: AVPlayerViewControllerDelegate {
 
     nonisolated func playerViewController(_ playerViewController: AVPlayerViewController,
                                           willEndFullScreenPresentationWithAnimationCoordinator coordinator: any UIViewControllerTransitionCoordinator) {
-        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
+        Task { @MainActor [weak self] in
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
 
-                // Only cleanup if not in PiP mode
-                if !self.isInPictureInPicture {
-                    self.cleanup()
-                    self.onDismiss?()
+                    // Only cleanup if not in PiP mode
+                    if !self.isInPictureInPicture {
+                        self.cleanup()
+                        self.onDismiss?()
+                    }
                 }
             }
         }

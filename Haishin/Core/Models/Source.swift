@@ -8,7 +8,7 @@
 import Foundation
 
 /// Metadata about an external anime source.
-struct SourceInfo: Identifiable, Hashable, Codable {
+struct SourceInfo: Identifiable, Hashable, Codable, Sendable {
 
     //#################################################################################
     // MARK: - Properties
@@ -45,7 +45,7 @@ struct SourceInfo: Identifiable, Hashable, Codable {
 //#################################################################################
 
 /// A repository containing multiple sources.
-struct SourceRepository: Identifiable, Hashable, Codable {
+struct SourceRepository: Identifiable, Hashable, Codable, Sendable {
 
     //#################################################################################
     // MARK: - Properties

@@ -8,6 +8,17 @@
 import Foundation
 import WebKit
 
+
+//#################################################################################
+// MARK: - Private Constants
+//#################################################################################
+
+
+
+//#################################################################################
+// MARK: - ChallengeResolver
+//#################################################################################
+
 /// Resolves JavaScript-based challenges (like DDoS-Guard) by loading pages in a WKWebView.
 /// This allows the WebView to execute JavaScript challenges and capture the resulting cookies.
 @MainActor
@@ -18,9 +29,10 @@ final class ChallengeResolver: NSObject {
     //#################################################################################
 
     private struct Constants {
-        static let defaultTimeout: TimeInterval = 30
         static let challengeCheckInterval: TimeInterval = 0.5
         static let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        /// Default timeout for challenge resolution (nonisolated for use as default parameter).
+        nonisolated static let challengeResolverDefaultTimeout: TimeInterval = 30
     }
 
 
@@ -81,7 +93,8 @@ final class ChallengeResolver: NSObject {
     ///   - url: The URL that triggered the challenge.
     ///   - timeout: Maximum time to wait for the challenge to be solved.
     /// - Returns: The cookies obtained after solving the challenge.
-    func resolveChallenge(for url: URL, timeout: TimeInterval = Constants.defaultTimeout) async throws -> [HTTPCookie] {
+    func resolveChallenge(for url: URL,
+                          timeout: TimeInterval = Constants.challengeResolverDefaultTimeout) async throws -> [HTTPCookie] {
         guard let host = url.host else {
             Log.error(.network, "ChallengeResolver: Invalid URL - no host: \(url)")
             throw ChallengeError.navigationFailed("Invalid URL: no host")
@@ -163,7 +176,7 @@ final class ChallengeResolver: NSObject {
     //#################################################################################
 
     private func handleTimeout() {
-        Log.warning(.network, "ChallengeResolver: TIMEOUT after \(Constants.defaultTimeout)s, check count was: \(self.checkCount)")
+        Log.warning(.network, "ChallengeResolver: TIMEOUT after \(Constants.challengeResolverDefaultTimeout)s, check count was: \(self.checkCount)")
         
         // Before timing out, let's try to get whatever cookies we have
         Task { @MainActor in
