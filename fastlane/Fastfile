@@ -62,8 +62,13 @@ platform :ios do
                          groups: options[:groups] || ["Beta Testers"],
                          changelog: options[:changelog] || "New release",
                          notify_external_testers: true,
-                         beta_app_description: "Haishin is a streaming app for discovering and watching content.",
-                         beta_app_feedback_email: "haishin@ninila.com")
+                         beta_app_feedback_email: "haishin@ninila.com",
+                         localized_app_info: {
+                           "en-US" => {
+                             feedback_email: "haishin@ninila.com",
+                             description: "Haishin is a streaming app for discovering and watching content."
+                           }
+                         })
   end
 
   desc "Build IPA only (no upload)"
