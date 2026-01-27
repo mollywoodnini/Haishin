@@ -1,0 +1,169 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.0)'
+        required: true
+        type: string
+      auto_increment:
+        description: 'Auto-increment type (ignores version input if set)'
+        required: false
+        type: choice
+        default: 'none'
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  create-release-pr:
+    name: Create Release PR
+    runs-on: macos-26
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT=$(grep -m1 'MARKETING_VERSION = ' Haishin.xcodeproj/project.pbxproj | sed 's/.*= //' | sed 's/;$//' | tr -d ' ')
+          echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT"
+
+      - name: Calculate new version
+        id: new_version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.version }}"
+          INCREMENT="${{ inputs.auto_increment }}"
+          INPUT_VERSION="${{ inputs.version }}"
+          
+          if [ "$INCREMENT" != "none" ]; then
+            # Parse current version (handle both X.Y and X.Y.Z formats)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            PATCH=${PATCH:-0}
+            
+            case "$INCREMENT" in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+            
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          else
+            NEW_VERSION="$INPUT_VERSION"
+          fi
+          
+          # Validate version format
+          if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Error: Invalid version format '$NEW_VERSION'. Expected X.Y or X.Y.Z"
+            exit 1
+          fi
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update version in Xcode project
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          
+          # Update MARKETING_VERSION
+          sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $NEW_VERSION;/g" Haishin.xcodeproj/project.pbxproj
+          
+          # Increment CURRENT_PROJECT_VERSION (build number)
+          CURRENT_BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION = ' Haishin.xcodeproj/project.pbxproj | sed 's/.*= //' | sed 's/;$//' | tr -d ' ')
+          NEW_BUILD=$((CURRENT_BUILD + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" Haishin.xcodeproj/project.pbxproj
+          
+          echo "Updated MARKETING_VERSION to $NEW_VERSION"
+          echo "Updated CURRENT_PROJECT_VERSION to $NEW_BUILD"
+
+      - name: Create release branch
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          BRANCH_NAME="release/$NEW_VERSION"
+          
+          git checkout -b "$BRANCH_NAME"
+          git add Haishin.xcodeproj/project.pbxproj
+          git commit -m "Bump version to $NEW_VERSION"
+          git push origin "$BRANCH_NAME"
+          
+          echo "Created and pushed branch: $BRANCH_NAME"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the last release tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tags found, generating full changelog from develop"
+            COMMITS=$(git log origin/main..HEAD --pretty=format:"- %s (%h)" --no-merges | head -50)
+          else
+            echo "Generating changelog since $LAST_TAG"
+            COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s (%h)" --no-merges | head -50)
+          fi
+          
+          # Write to file to handle multiline
+          echo "$COMMITS" > /tmp/changelog.txt
+          echo "Generated changelog with $(echo "$COMMITS" | wc -l) commits"
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          BRANCH_NAME="release/$NEW_VERSION"
+          CHANGELOG=$(cat /tmp/changelog.txt)
+          
+          gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "Release $NEW_VERSION" \
+            --body "$(cat <<EOF
+          ## Release $NEW_VERSION
+
+          This PR contains the version bump and all changes for release $NEW_VERSION.
+
+          ### Changes
+
+          $CHANGELOG
+
+          ---
+
+          **After merging:**
+          - A GitHub Release will be created automatically
+          - Tag \`v$NEW_VERSION\` will be created
+          - Changes will be merged back to \`develop\`
+          EOF
+          )"
+          
+          echo "Created PR for release $NEW_VERSION"
