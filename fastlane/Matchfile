@@ -3,13 +3,13 @@
 
 # Git repository to store certificates and profiles
 # You need to create a private repository for this
-git_url(ENV["MATCH_GIT_URL"] || "git@github.com:YOUR_ORG/certificates.git")
+git_url(ENV["MATCH_GIT_URL"] || "git@github.com:mollywoodnini/Haishin-Certificates.git")
 
 # Storage mode (git or google_cloud or s3)
 storage_mode("git")
 
 # App identifier(s)
-app_identifier(["com.haishin.app"])
+app_identifier(["com.ninila.haishin-app"])
 
 # Your Apple Developer Portal username
 username(ENV["APPLE_ID"])
