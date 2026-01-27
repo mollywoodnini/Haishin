@@ -40,7 +40,7 @@ struct JSAnimePreview: Codable, Identifiable, Sendable, Hashable {
 //#################################################################################
 
 /// Result from a search operation on a JavaScript source
-struct JSSearchResult: Codable, Sendable {
+nonisolated struct JSSearchResult: Codable, Sendable {
     
     /// The anime found in this search
     let results: [JSAnimePreview]
@@ -55,7 +55,7 @@ struct JSSearchResult: Codable, Sendable {
 //#################################################################################
 
 /// Detailed information about an anime from a JavaScript source
-struct JSAnimeDetails: Codable, Sendable {
+nonisolated struct JSAnimeDetails: Codable, Sendable {
 
     /// Unique identifier for this anime
     let id: String
@@ -156,7 +156,7 @@ struct SourceEpisode: Codable, Identifiable, Sendable, Hashable {
 //#################################################################################
 
 /// Streaming information for an episode from a JavaScript source
-struct JSEpisodeStream: Codable, Sendable {
+nonisolated struct JSEpisodeStream: Codable, Sendable {
     
     /// Available video streams
     let streams: [Stream]

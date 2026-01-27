@@ -15,7 +15,7 @@ import Foundation
 /// Protocol for network operations, enabling dependency injection and testing.
 protocol NetworkClientProtocol: Sendable {
     func fetch(url: URL, headers: [String: String]?) async throws -> Data
-    func fetchJSON<T: Decodable>(url: URL, type: T.Type, headers: [String: String]?) async throws -> T
+    func fetchJSON<T: Decodable & Sendable>(url: URL, type: T.Type, headers: [String: String]?) async throws -> T
     func fetchHTML(url: URL, headers: [String: String]?) async throws -> String
     func post(url: URL, body: Data?, headers: [String: String]?) async throws -> Data
 }
@@ -126,9 +126,9 @@ actor NetworkClient: NetworkClientProtocol {
     ///   - type: The type to decode.
     ///   - headers: Optional HTTP headers.
     /// - Returns: The decoded object.
-    func fetchJSON<T: Decodable>(url: URL,
-                                 type: T.Type,
-                                 headers: [String: String]? = nil) async throws -> T {
+    func fetchJSON<T: Decodable & Sendable>(url: URL,
+                                            type: T.Type,
+                                            headers: [String: String]? = nil) async throws -> T {
         let data = try await fetch(url: url, headers: headers)
         return try decoder.decode(T.self, from: data)
     }

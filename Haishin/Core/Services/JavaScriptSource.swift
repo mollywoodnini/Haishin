@@ -9,7 +9,7 @@ import Foundation
 
 /// Represents a JavaScript-based anime source.
 /// Wraps a JavaScript source script and provides Swift-friendly async methods.
-actor JavaScriptSource {
+final actor JavaScriptSource {
     
     //#################################################################################
     // MARK: - Properties
