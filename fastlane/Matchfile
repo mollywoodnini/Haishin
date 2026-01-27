@@ -2,7 +2,6 @@
 # Documentation: https://docs.fastlane.tools/actions/match/
 
 # Git repository to store certificates and profiles
-# You need to create a private repository for this
 git_url(ENV["MATCH_GIT_URL"] || "git@github.com:mollywoodnini/Haishin-Certificates.git")
 
 # Storage mode (git or google_cloud or s3)
@@ -11,17 +10,17 @@ storage_mode("git")
 # App identifier(s)
 app_identifier(["com.ninila.haishin-app"])
 
-# Your Apple Developer Portal username
-username(ENV["APPLE_ID"])
-
 # The default type, can be: appstore, adhoc, enterprise or development
 type("appstore")
 
 # Use readonly mode in CI to avoid regenerating certificates
 readonly(true)
 
-# Team ID
-team_id(ENV["TEAM_ID"])
+# Apple ID (only set if present in environment)
+username(ENV["APPLE_ID"]) if ENV["APPLE_ID"]
+
+# Team ID (only set if present in environment)
+team_id(ENV["TEAM_ID"]) if ENV["TEAM_ID"]
 
 # Clone using SSH key (only in CI)
 git_private_key(ENV["MATCH_GIT_PRIVATE_KEY"]) if ENV["MATCH_GIT_PRIVATE_KEY"]

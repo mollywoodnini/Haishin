@@ -24,32 +24,37 @@ platform :ios do
   desc "Build and upload to TestFlight"
   lane :release do |options|
     # Setup App Store Connect API Key
-    app_store_connect_api_key(key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
-                              issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
-                              key_content: ENV["APP_STORE_CONNECT_KEY_CONTENT"],
-                              is_key_content_base64: true,
-                              in_house: false)
+    api_key = app_store_connect_api_key(key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+                                        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+                                        key_content: ENV["APP_STORE_CONNECT_KEY_CONTENT"],
+                                        is_key_content_base64: true,
+                                        in_house: false)
 
-    # Setup temporary keychain for CI
-    setup_ci_keychain
+    # Use Fastlane's built-in CI setup (creates keychain, installs WWDR cert)
+    setup_ci
 
     # Sync code signing certificates and profiles
-    match(type: "appstore",
-          readonly: true,
-          keychain_name: "fastlane_tmp_keychain",
-          keychain_password: "fastlane_tmp_password",
-          git_private_key: ENV["MATCH_GIT_PRIVATE_KEY"])
+    sync_result = match(type: "appstore",
+                        readonly: true,
+                        api_key: api_key,
+                        git_private_key: ENV["MATCH_GIT_PRIVATE_KEY"])
 
     # Increment build number based on TestFlight
     increment_build_number(build_number: latest_testflight_build_number + 1)
 
-    # Build the app
+    # Build the app with manual signing (override automatic signing from project)
     build_app(project: "Haishin.xcodeproj",
               scheme: "Haishin",
               export_method: "app-store",
               output_directory: "build",
               output_name: "Haishin.ipa",
-              clean: true)
+              clean: true,
+              xcargs: "-allowProvisioningUpdates CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='match AppStore com.ninila.haishin-app' DEVELOPMENT_TEAM=7P98753C95",
+              export_options: {
+                provisioningProfiles: {
+                  "com.ninila.haishin-app" => "match AppStore com.ninila.haishin-app"
+                }
+              })
 
     # Upload to TestFlight
     upload_to_testflight(skip_waiting_for_build_processing: false,
@@ -62,38 +67,33 @@ platform :ios do
   desc "Build IPA only (no upload)"
   lane :build_ipa do
     # Setup App Store Connect API Key (needed for Match)
-    app_store_connect_api_key(key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
-                              issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
-                              key_content: ENV["APP_STORE_CONNECT_KEY_CONTENT"],
-                              is_key_content_base64: true,
-                              in_house: false)
+    api_key = app_store_connect_api_key(key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+                                        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+                                        key_content: ENV["APP_STORE_CONNECT_KEY_CONTENT"],
+                                        is_key_content_base64: true,
+                                        in_house: false)
 
-    # Setup temporary keychain for CI
-    setup_ci_keychain
+    # Use Fastlane's built-in CI setup (creates keychain, installs WWDR cert)
+    setup_ci
 
     # Sync code signing certificates and profiles
     match(type: "appstore",
           readonly: true,
-          keychain_name: "fastlane_tmp_keychain",
-          keychain_password: "fastlane_tmp_password",
+          api_key: api_key,
           git_private_key: ENV["MATCH_GIT_PRIVATE_KEY"])
 
-    # Build the app
+    # Build the app with manual signing (override automatic signing from project)
     build_app(project: "Haishin.xcodeproj",
               scheme: "Haishin",
               export_method: "app-store",
               output_directory: "build",
               output_name: "Haishin.ipa",
-              clean: true)
-  end
-
-  private_lane :setup_ci_keychain do
-    # Create a temporary keychain for CI builds
-    create_keychain(name: "fastlane_tmp_keychain",
-                    password: "fastlane_tmp_password",
-                    default_keychain: true,
-                    unlock: true,
-                    timeout: 3600,
-                    lock_when_sleeps: false)
+              clean: true,
+              xcargs: "-allowProvisioningUpdates CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='match AppStore com.ninila.haishin-app' DEVELOPMENT_TEAM=7P98753C95",
+              export_options: {
+                provisioningProfiles: {
+                  "com.ninila.haishin-app" => "match AppStore com.ninila.haishin-app"
+                }
+              })
   end
 end
