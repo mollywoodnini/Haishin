@@ -61,7 +61,9 @@ platform :ios do
                          distribute_external: true,
                          groups: options[:groups] || ["Beta Testers"],
                          changelog: options[:changelog] || "New release",
-                         notify_external_testers: true)
+                         notify_external_testers: true,
+                         beta_app_description: "Haishin is a streaming app for discovering and watching content.",
+                         beta_app_feedback_email: "haishin@ninila.com")
   end
 
   desc "Build IPA only (no upload)"
