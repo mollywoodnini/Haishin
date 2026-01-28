@@ -208,7 +208,7 @@ var source = {
     /**
      * Get series details and all episodes
      */
-    async getAnimeDetails(animeId, animeUrl) {
+    async getVideoDetails(animeId, animeUrl) {
         try {
             // The URL format is "series:Series Name" but may be URL-encoded
             // Decode it first to handle %20 -> space, etc.

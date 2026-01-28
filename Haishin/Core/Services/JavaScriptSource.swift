@@ -73,7 +73,7 @@ final actor JavaScriptSource {
     /// - Returns: Detailed video information including episodes.
     func getVideoDetails(videoId: String, videoUrl: URL) async throws -> JSVideoDetails {
         let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.getAnimeDetails",
+                                                              functionName: "source.getVideoDetails",
                                                               arguments: [videoId, videoUrl.absoluteString])
         
         guard let jsonData = jsonString.data(using: .utf8) else {

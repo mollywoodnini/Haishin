@@ -291,7 +291,7 @@ enum TestFixtures {
                      year: 2024,
                      rating: "PG-13",
                      sourceId: sourceId,
-                     detailsURL: "/anime/\(id)",
+                     detailsURL: "/video/\(id)",
                      episodes: [episode],
                      episodeRanges: [episodeRange])
     }

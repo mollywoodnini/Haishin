@@ -1,6 +1,6 @@
 # Haishin
 
-A free anime streaming application for iOS and iPadOS. Inspired by [NineAnimator](https://github.com/SuperMarcus/NineAnimator).
+A free video streaming application for iOS and iPadOS.
 
 ## Features
 
@@ -39,12 +39,12 @@ A free anime streaming application for iOS and iPadOS. Inspired by [NineAnimator
 
 ## Sources
 
-Haishin uses a JavaScript-based source plugin system that allows adding custom anime providers without modifying the app. Sources are small JavaScript files that implement a standard interface for searching, fetching anime details, and retrieving streaming URLs.
+Haishin uses a JavaScript-based source plugin system that allows adding custom video providers without modifying the app. Sources are small JavaScript files that implement a standard interface for searching and retrieving streaming URLs.
 
 Key features:
 - **Dynamic Loading**: Install and update sources without rebuilding the app
 - **Sandboxed Execution**: Each source runs in an isolated JavaScriptCore environment
-- **Flexible Protocol**: Sources can provide search, browse, anime details, and streaming capabilities
+- **Flexible Protocol**: Sources can provide search, browse, and streaming capabilities
 
 For technical details on creating and integrating sources, see the [Sources Architecture Documentation](Documentation/SOURCES_ARCHITECTURE.md).
 

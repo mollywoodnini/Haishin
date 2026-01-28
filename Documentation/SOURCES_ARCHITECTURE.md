@@ -2,7 +2,7 @@
 
 ## Overview
 
-Haishin supports user-installable external sources through **JavaScript-based plugins**. This allows users to add their own anime sources without needing to modify the app code.
+Haishin supports user-installable external sources through **JavaScript-based plugins**. This allows users to add their own video sources without needing to modify the app code.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ JavaScript Runtime (JSRuntime actor)
     ↓
 User-Installed Source Scripts (.js files)
     ↓
-Anime Websites (HTTP requests via bridged fetch)
+Video Websites (HTTP requests via bridged fetch)
 ```
 
 ## Source Plugin Structure
@@ -28,21 +28,21 @@ const source = {
     // ============================================
     // METADATA
     // ============================================
-    id: "anime-example",
-    name: "anime-exampleeExample",
+    id: "video-example",
+    name: "video-example",
     version: "1.0.0",
     language: "en",
-    baseURL: "https://www.anime-example.tv",
-    iconURL: "https://www.anime-example.tv/favicon.ico", // Optional
+    baseURL: "https://www.video-example.tv",
+    iconURL: "https://www.video-example.tv/favicon.ico", // Optional
     isNSFW: false,
-    description: "Anime Example", // Optional
+    description: "Video Example", // Optional
     
     // ============================================
     // REQUIRED METHODS
     // ============================================
     
     /**
-     * Search for anime
+     * Search for videos
      * @param {string} query - Search query
      * @param {number} page - Page number (1-indexed)
      * @returns {Promise<JSSearchResult>}
@@ -52,12 +52,12 @@ const source = {
         const response = await fetch(url);
         const html = await response.text();
         
-        // Parse HTML and extract anime links
+        // Parse HTML and extract video links
         return {
             results: [
                 {
-                    id: "unique-anime-id",
-                    title: "Anime Title",
+                    id: "unique-video-id",
+                    title: "Video Title",
                     englishTitle: "English Title", // Optional
                     coverUrl: "https://...",
                     url: "https://..."
@@ -68,18 +68,18 @@ const source = {
     },
     
     /**
-     * Get anime details and episodes
-     * @param {string} animeId - Anime identifier
-     * @param {string} animeUrl - Full URL to anime page
-     * @returns {Promise<JSAnimeDetails>}
+     * Get video details and episodes
+     * @param {string} videoId - Video identifier
+     * @param {string} videoUrl - Full URL to video page
+     * @returns {Promise<JSVideoDetails>}
      */
-    async getAnimeDetails(animeId, animeUrl) {
-        const response = await fetch(animeUrl);
+    async getVideoDetails(videoId, videoUrl) {
+        const response = await fetch(videoUrl);
         const html = await response.text();
         
         return {
-            id: animeId,
-            title: "Anime Title",
+            id: videoId,
+            title: "Video Title",
             englishTitle: "English Title", // Optional
             synopsis: "Description...",
             coverUrl: "https://...",
@@ -90,7 +90,7 @@ const source = {
             
             // Available servers/sources
             servers: {
-                "server1": "ExampleAnime",
+                "server1": "ExampleVideo",
                 "server2": "StreamTape"
             },
             
@@ -106,7 +106,7 @@ const source = {
                 ]
             },
             
-            // Optional: Episode ranges for anime with many episodes
+            // Optional: Episode ranges for videos with many episodes
             episodeRanges: {
                 "server1": [
                     {
@@ -157,11 +157,11 @@ const source = {
     },
     
     /**
-     * Get featured/popular anime (optional)
-     * @returns {Promise<JSAnimePreview[]>}
+     * Get featured/popular videos (optional)
+     * @returns {Promise<JSVideoPreview[]>}
      */
     async getFeatured() {
-        // Optional: Return featured/trending anime
+        // Optional: Return featured/trending videos
         return [];
     }
 };
@@ -174,11 +174,11 @@ source;
 
 ```typescript
 interface JSSearchResult {
-    results: JSAnimePreview[];
+    results: JSVideoPreview[];
     hasNextPage: boolean;
 }
 
-interface JSAnimePreview {
+interface JSVideoPreview {
     id: string;
     title: string;
     englishTitle?: string;
@@ -187,7 +187,7 @@ interface JSAnimePreview {
     sourceId?: string;
 }
 
-interface JSAnimeDetails {
+interface JSVideoDetails {
     id: string;
     title: string;
     englishTitle?: string;
@@ -245,7 +245,7 @@ interface SourceSubtitle {
 | `Core/Services/SourceManager.swift` | Manages source installation, loading, and queries |
 | `Core/Protocols/SourceManaging.swift` | Protocol for dependency injection and testing |
 | `Core/Models/Source.swift` | `SourceInfo`, `SourceRepository`, `InstalledSource` |
-| `Core/Models/SourceModels.swift` | JS type definitions (`JSAnimePreview`, `JSSearchResult`, etc.) |
+| `Core/Models/SourceModels.swift` | JS type definitions (`JSVideoPreview`, `JSSearchResult`, etc.) |
 
 ### SourceManaging Protocol
 
@@ -262,10 +262,10 @@ protocol SourceManaging: AnyObject {
     func installSource(fromURL urlString: String) async throws
     func uninstallSource(sourceId: String) throws
     func selectSource(sourceId: String)
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview]
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview]
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview]
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime
+    func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview]
+    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview]
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview]
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video
     func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo
 }
 ```
