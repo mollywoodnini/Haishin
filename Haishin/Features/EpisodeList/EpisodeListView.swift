@@ -44,17 +44,16 @@ struct EpisodeListView: View {
 
     var body: some View {
         Group {
-            switch viewModel.mode {
-            case .online:
+            if viewModel.mode.isOnline {
                 onlineModeContent
-            case .offline:
+            } else {
                 offlineModeContent
             }
         }
-        .navigationTitle(viewModel.mode == .offline ? "Downloads" : "Episodes")
+        .navigationTitle(viewModel.mode.isOffline ? "Downloads" : "Episodes")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if viewModel.mode == .online {
+            if viewModel.mode.isOnline {
                 ToolbarItem(placement: .primaryAction) {
                     onlineToolbarMenu
                 }
@@ -65,7 +64,7 @@ struct EpisodeListView: View {
         }
         .onChange(of: viewModel.hasDownloadedEpisodes) { _, hasEpisodes in
             // Dismiss if all episodes have been deleted in offline mode
-            if viewModel.mode == .offline && !hasEpisodes {
+            if viewModel.mode.isOffline && !hasEpisodes {
                 dismiss()
             }
         }

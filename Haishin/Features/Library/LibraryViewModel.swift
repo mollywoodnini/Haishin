@@ -124,7 +124,7 @@ final class LibraryViewModel {
         guard sourceManager.installedSources.contains(where: { $0.id == anime.sourceId }) else {
             return nil
         }
-        return EpisodeListViewModel(anime: anime,
+        return EpisodeListViewModel(mode: .online(anime: anime, detailsURL: nil),
                                     sourceManager: sourceManager,
                                     watchProgressService: watchProgressService,
                                     subscriptionService: subscriptionService,
@@ -135,7 +135,7 @@ final class LibraryViewModel {
     /// - Parameter anime: The downloaded anime to show episodes for.
     /// - Returns: A new `EpisodeListViewModel` for the downloaded anime.
     func makeEpisodeListViewModel(downloadedAnime anime: DownloadedAnime) -> EpisodeListViewModel {
-        EpisodeListViewModel(downloadedAnime: anime,
+        EpisodeListViewModel(mode: .offline(anime),
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              subscriptionService: subscriptionService,
