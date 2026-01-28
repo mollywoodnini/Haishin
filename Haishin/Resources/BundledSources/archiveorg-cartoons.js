@@ -275,7 +275,7 @@ var source = {
                 
                 episodes.push({
                     id: doc.identifier,
-                    number: String(i + 1),
+                    number: i + 1,
                     title: year ? `${episodeTitle} (${year})` : episodeTitle,
                     url: doc.identifier
                 });

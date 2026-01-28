@@ -210,9 +210,11 @@ var source = {
      */
     async getAnimeDetails(animeId, animeUrl) {
         try {
-            // The URL format is "series:Series Name"
-            const seriesName = animeUrl.startsWith('series:') 
-                ? animeUrl.substring(7) 
+            // The URL format is "series:Series Name" but may be URL-encoded
+            // Decode it first to handle %20 -> space, etc.
+            const decodedUrl = decodeURIComponent(animeUrl);
+            const seriesName = decodedUrl.startsWith('series:') 
+                ? decodedUrl.substring(7) 
                 : animeId.replace(/-/g, ' ');
             
             console.log(`Fetching series details: ${seriesName}`);
@@ -273,7 +275,7 @@ var source = {
                 
                 episodes.push({
                     id: doc.identifier,
-                    number: String(i + 1),
+                    number: i + 1,
                     title: year ? `${episodeTitle} (${year})` : episodeTitle,
                     url: doc.identifier
                 });
