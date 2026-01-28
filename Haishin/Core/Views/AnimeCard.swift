@@ -1,5 +1,5 @@
 //
-//  StandardAnimeCard.swift
+//  AnimeCard.swift
 //  Haishin
 //
 //  Created by Haishin on 24.01.26.
@@ -23,11 +23,11 @@ enum StandardAnimeCardSizingMode {
 
 
 //#################################################################################
-// MARK: - StandardAnimeCard
+// MARK: - AnimeCard
 //#################################################################################
 
 /// A standard anime card for horizontal sections showing cover and title.
-struct StandardAnimeCard: View {
+struct AnimeCard: View {
 
     //#################################################################################
     // MARK: - Constants
@@ -55,18 +55,6 @@ struct StandardAnimeCard: View {
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
-
-    /// Creates a new standard anime card from a recommending item.
-    /// - Parameters:
-    ///   - item: The recommending item to display.
-    ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
-    init(item: RecommendingItem, sizingMode: StandardAnimeCardSizingMode = .fixed) {
-        self.title = item.title
-        self.coverURL = item.coverURL
-        self.totalEpisodes = item.totalEpisodes
-        self.subtitle = item.subtitle
-        self.sizingMode = sizingMode
-    }
 
     /// Creates a new standard anime card from an anime preview.
     /// - Parameters:

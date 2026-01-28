@@ -49,8 +49,8 @@ struct DownloadsListView: View {
             } else {
                 List {
                     ForEach(viewModel.downloadedAnime) { anime in
-                        AnimeListRowButton(mode: .downloaded(anime),
-                                           item: anime) { tappedAnime = $0 }
+                        AnimeRowButton(mode: .downloaded(anime),
+                                       item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {

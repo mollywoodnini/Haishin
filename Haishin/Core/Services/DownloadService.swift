@@ -84,7 +84,7 @@ struct DownloadedEpisode: Identifiable, Codable, Equatable, Hashable {
     let id: String
 
     /// The anime ID this episode belongs to.
-    let animeId: Int
+    let animeId: String
 
     /// The episode ID from the source.
     let episodeId: String
@@ -123,10 +123,10 @@ struct DownloadedEpisode: Identifiable, Codable, Equatable, Hashable {
 //#################################################################################
 
 /// Represents an anime with downloaded episodes.
-struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
+struct DownloadedAnime: AnimeProtocol, Codable, Equatable {
 
-    /// The anime ID (from AniList).
-    let id: Int
+    /// The anime ID.
+    let id: String
 
     /// The anime title.
     let title: String
@@ -188,7 +188,7 @@ protocol DownloadServiceProtocol: AnyObject {
     func setSourceManager(_ sourceManager: SourceManaging)
 
     /// Starts downloading an episode.
-    func startDownload(animeId: Int,
+    func startDownload(animeId: String,
                        animeTitle: String,
                        animeCoverURL: URL?,
                        episodeId: String,
@@ -208,10 +208,10 @@ protocol DownloadServiceProtocol: AnyObject {
     func getDownloadState(episodeId: String) -> DownloadState?
 
     /// Gets all downloads for an anime.
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode]
+    func getDownloads(forAnimeId animeId: String) -> [DownloadedEpisode]
 
     /// Removes all downloads for an anime.
-    func removeAllDownloads(forAnimeId animeId: Int)
+    func removeAllDownloads(forAnimeId animeId: String)
 }
 
 
@@ -292,7 +292,7 @@ final class DownloadService: DownloadServiceProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func startDownload(animeId: Int,
+    func startDownload(animeId: String,
                        animeTitle: String,
                        animeCoverURL: URL?,
                        episodeId: String,
@@ -376,11 +376,11 @@ final class DownloadService: DownloadServiceProtocol {
         allEpisodes.first { $0.episodeId == episodeId }?.state
     }
 
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode] {
+    func getDownloads(forAnimeId animeId: String) -> [DownloadedEpisode] {
         allEpisodes.filter { $0.animeId == animeId }
     }
 
-    func removeAllDownloads(forAnimeId animeId: Int) {
+    func removeAllDownloads(forAnimeId animeId: String) {
         let episodesToRemove = allEpisodes.filter { $0.animeId == animeId }
         for episode in episodesToRemove {
             removeDownload(episodeId: episode.episodeId)
@@ -510,7 +510,7 @@ final class DownloadService: DownloadServiceProtocol {
         try downloadedData.write(to: destination)
     }
 
-    private func updateGroupedAnime(animeId: Int,
+    private func updateGroupedAnime(animeId: String,
                                      title: String,
                                      coverURL: URL?,
                                      sourceId: String,
@@ -528,7 +528,7 @@ final class DownloadService: DownloadServiceProtocol {
         }
     }
 
-    private func refreshGroupedAnime(forAnimeId animeId: Int) {
+    private func refreshGroupedAnime(forAnimeId animeId: String) {
         if let index = downloadedAnime.firstIndex(where: { $0.id == animeId }) {
             let episodes = allEpisodes.filter { $0.animeId == animeId }
             if episodes.isEmpty {

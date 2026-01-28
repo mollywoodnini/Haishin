@@ -21,6 +21,8 @@ struct SubscribedListView: View {
 
     @Bindable private var viewModel: LibraryViewModel
     @State private var tappedAnime: SubscribedAnime?
+    @State private var selectedViewModel: EpisodeListViewModel?
+    @State private var showNoSourceAlert = false
 
 
     //#################################################################################
@@ -49,8 +51,8 @@ struct SubscribedListView: View {
             } else {
                 List {
                     ForEach(viewModel.subscribedAnime) { anime in
-                        AnimeListRowButton(mode: .subscribed(anime),
-                                           item: anime) { tappedAnime = $0 }
+                        AnimeRowButton(mode: .subscribed(anime),
+                                       item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
@@ -59,8 +61,8 @@ struct SubscribedListView: View {
                         }
                     }
                 }
-                .navigationDestination(item: $tappedAnime) { anime in
-                    AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
+                .navigationDestination(item: $selectedViewModel) { episodeViewModel in
+                    EpisodeListView(viewModel: episodeViewModel)
                 }
                 .listStyle(.plain)
             }

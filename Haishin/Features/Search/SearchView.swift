@@ -67,7 +67,7 @@ struct SearchView: View {
                       spacing: .spacingS) {
                 ForEach(viewModel.results) { anime in
                     NavigationLink(value: anime) {
-                        StandardAnimeCard(animePreview: anime, sizingMode: .flexible)
+                        AnimeCard(animePreview: anime, sizingMode: .flexible)
                     }
                     .buttonStyle(.plain)
                 }

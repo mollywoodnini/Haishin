@@ -38,31 +38,6 @@ struct EpisodeListView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    /// Creates a new episodes view for online mode.
-    /// - Parameters:
-    ///   - aniListAnime: The AniList anime details.
-    ///   - sourceId: The selected source ID.
-    ///   - sourceManager: The shared source manager.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - downloadService: The download service.
-    ///   - userPreferences: The user preferences.
-    init(aniListAnime: AniListAnimeDetail,
-         sourceId: String,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol) {
-        self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
-                                                                   sourceId: sourceId,
-                                                                   sourceManager: sourceManager,
-                                                                   watchProgressService: watchProgressService,
-                                                                   subscriptionService: subscriptionService,
-                                                                   downloadService: downloadService,
-                                                                   userPreferences: userPreferences))
-    }
-
     /// Creates a new episodes view for offline mode (downloaded episodes).
     /// - Parameter downloadedAnime: The downloaded anime to display.
     /// - Parameter watchProgressService: The service for accessing watch progress.

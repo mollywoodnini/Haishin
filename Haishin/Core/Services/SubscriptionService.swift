@@ -13,10 +13,10 @@ import Foundation
 //#################################################################################
 
 /// Represents an anime the user has subscribed to for updates.
-struct SubscribedAnime: Codable, Identifiable, Equatable, Hashable {
+struct SubscribedAnime: AnimeProtocol, Codable, Equatable {
 
-    /// The anime ID (from AniList).
-    let id: Int
+    /// The anime ID.
+    let id: String
 
     /// The anime title.
     let title: String
@@ -40,13 +40,13 @@ protocol SubscriptionServiceProtocol {
     func getSubscribedAnime() -> [SubscribedAnime]
 
     /// Subscribes to an anime.
-    func subscribe(id: Int, title: String, coverURL: URL?)
+    func subscribe(id: String, title: String, coverURL: URL?)
 
     /// Unsubscribes from an anime.
-    func unsubscribe(id: Int)
+    func unsubscribe(id: String)
 
     /// Checks if an anime is subscribed.
-    func isSubscribed(id: Int) -> Bool
+    func isSubscribed(id: String) -> Bool
 
     /// Gets the count of subscribed anime.
     func getSubscribedCount() -> Int
@@ -105,7 +105,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         loadAllSubscribed().sorted { $0.subscribedAt > $1.subscribedAt }
     }
 
-    func subscribe(id: Int, title: String, coverURL: URL?) {
+    func subscribe(id: String, title: String, coverURL: URL?) {
         var allSubscribed = loadAllSubscribed()
 
         guard !allSubscribed.contains(where: { $0.id == id }) else { return }
@@ -119,14 +119,14 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         triggerCloudSync()
     }
 
-    func unsubscribe(id: Int) {
+    func unsubscribe(id: String) {
         var allSubscribed = loadAllSubscribed()
         allSubscribed.removeAll { $0.id == id }
         persistAllSubscribed(allSubscribed)
         triggerCloudSync()
     }
 
-    func isSubscribed(id: Int) -> Bool {
+    func isSubscribed(id: String) -> Bool {
         loadAllSubscribed().contains { $0.id == id }
     }
 

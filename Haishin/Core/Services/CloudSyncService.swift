@@ -241,7 +241,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
 
         // Merge: combine both lists, keep the one with the latest subscribedAt date for duplicates
-        var mergedDict: [Int: SubscribedAnime] = [:]
+        var mergedDict: [String: SubscribedAnime] = [:]
 
         for item in localItems {
             mergedDict[item.id] = item
@@ -309,7 +309,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
 
         // Merge: combine both lists, keep the one with the latest lastWatchedAt date for duplicates
-        var mergedDict: [Int: RecentAnime] = [:]
+        var mergedDict: [String: RecentAnime] = [:]
 
         for item in localItems {
             mergedDict[item.id] = item

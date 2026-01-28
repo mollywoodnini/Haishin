@@ -24,18 +24,11 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            BrowseView(sourceManager: sourceManager)
-                .tabItem {
-                    Label(Tab.browse.title, systemImage: Tab.browse.icon)
-                }
-                .tag(Tab.browse)
-
             LibraryView(watchProgressService: WatchProgressService.shared,
                         subscriptionService: SubscriptionService.shared,
                         sourceManager: sourceManager,
                         downloadService: DownloadService.shared,
-                        userPreferences: UserPreferences.shared,
-                        aniListService: AniListService())
+                        userPreferences: UserPreferences.shared)
                 .tabItem {
                     Label(Tab.library.title, systemImage: Tab.library.icon)
                 }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// A lightweight reference to an anime, used for lists and navigation.
-struct AnimePreview: Identifiable, Hashable, Codable {
+struct AnimePreview: AnimeProtocol, Codable {
 
     //#################################################################################
     // MARK: - Properties
@@ -36,7 +36,7 @@ struct AnimePreview: Identifiable, Hashable, Codable {
 //#################################################################################
 
 /// Full anime details including episodes and metadata.
-struct Anime: Identifiable, Hashable, Codable {
+struct Anime: AnimeProtocol, Codable {
 
     //#################################################################################
     // MARK: - Properties

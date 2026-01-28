@@ -1,0 +1,28 @@
+//
+//  AnimeProtocol.swift
+//  Haishin
+//
+//  Created by Haishin on 24.01.28.
+//
+
+import Foundation
+
+
+//#################################################################################
+// MARK: - AnimeProtocol
+//#################################################################################
+
+/// Protocol defining the common properties shared by all anime representations.
+/// Types conforming to this protocol can be used interchangeably in views
+/// that only need basic anime information for display.
+protocol AnimeProtocol: Identifiable, Hashable {
+
+    /// The anime ID.
+    var id: String { get }
+
+    /// The anime title.
+    var title: String { get }
+
+    /// URL to the cover image.
+    var coverURL: URL? { get }
+}

@@ -21,6 +21,8 @@ struct RecentsListView: View {
 
     @Bindable private var viewModel: LibraryViewModel
     @State private var tappedAnime: RecentAnime?
+    @State private var selectedViewModel: EpisodeListViewModel?
+    @State private var showNoSourceAlert = false
 
 
     //#################################################################################
@@ -49,8 +51,8 @@ struct RecentsListView: View {
             } else {
                 List {
                     ForEach(viewModel.recentAnime) { anime in
-                        AnimeListRowButton(mode: .recent(anime),
-                                           item: anime) { tappedAnime = $0 }
+                        AnimeRowButton(mode: .recent(anime),
+                                       item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
@@ -59,8 +61,8 @@ struct RecentsListView: View {
                         }
                     }
                 }
-                .navigationDestination(item: $tappedAnime) { anime in
-                    AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(recentAnime: anime))
+                .navigationDestination(item: $selectedViewModel) { episodeViewModel in
+                    EpisodeListView(viewModel: episodeViewModel)
                 }
                 .listStyle(.plain)
             }
@@ -69,6 +71,20 @@ struct RecentsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.refresh()
+        }
+        .onChange(of: tappedAnime) { _, newValue in
+            guard let anime = newValue else { return }
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(recentAnime: anime) {
+                selectedViewModel = episodeViewModel
+            } else {
+                showNoSourceAlert = true
+            }
+            tappedAnime = nil
+        }
+        .alert("No Source Selected", isPresented: $showNoSourceAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Please select a source in Settings before viewing episodes.")
         }
     }
 }

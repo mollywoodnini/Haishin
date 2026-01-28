@@ -44,7 +44,6 @@ final class LibraryViewModel {
     private let sourceManager: SourceManaging
     private let downloadService: DownloadServiceProtocol
     private let userPreferences: UserPreferencesProtocol
-    private let aniListService: AniListServicing
 
 
     //#################################################################################
@@ -63,14 +62,12 @@ final class LibraryViewModel {
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
          downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol,
-         aniListService: AniListServicing) {
+         userPreferences: UserPreferencesProtocol) {
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.sourceManager = sourceManager
         self.downloadService = downloadService
         self.userPreferences = userPreferences
-        self.aniListService = aniListService
         refresh()
     }
 
@@ -88,21 +85,21 @@ final class LibraryViewModel {
 
     /// Removes a recent anime from the list.
     /// - Parameter id: The anime ID to remove.
-    func removeRecentAnime(id: Int) {
+    func removeRecentAnime(id: String) {
         watchProgressService.removeRecentAnime(id: id)
         recentAnime.removeAll { $0.id == id }
     }
 
     /// Unsubscribes from an anime.
     /// - Parameter id: The anime ID to unsubscribe from.
-    func unsubscribe(id: Int) {
+    func unsubscribe(id: String) {
         subscriptionService.unsubscribe(id: id)
         subscribedAnime.removeAll { $0.id == id }
     }
 
     /// Removes all downloads for an anime.
     /// - Parameter animeId: The anime ID to remove downloads for.
-    func removeAllDownloads(forAnimeId animeId: Int) {
+    func removeAllDownloads(forAnimeId animeId: String) {
         downloadService.removeAllDownloads(forAnimeId: animeId)
         downloadedAnime.removeAll { $0.id == animeId }
     }
@@ -112,32 +109,36 @@ final class LibraryViewModel {
     // MARK: - Child ViewModel Factory Methods
     //#################################################################################
 
-    /// Creates an AnimeDetailViewModel for a recent anime.
-    /// - Parameter anime: The recent anime to show details for.
-    /// - Returns: A new `AnimeDetailViewModel` for the anime.
-    func makeAnimeDetailViewModel(recentAnime anime: RecentAnime) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(mode: .raw(animeId: anime.id,
-                                        title: anime.title,
-                                        coverURL: anime.coverURL),
-                             aniListService: aniListService,
-                             subscriptionService: subscriptionService,
-                             watchProgressService: watchProgressService,
-                             sourceManager: sourceManager,
-                             userPreferences: userPreferences)
+    /// Creates an EpisodeListViewModel for a recent anime.
+    /// - Parameter anime: The recent anime to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if no source is selected.
+    func makeEpisodeListViewModel(recentAnime anime: RecentAnime) -> EpisodeListViewModel? {
+        guard let sourceId = userPreferences.selectedSourceId else { return nil }
+        return EpisodeListViewModel(animeId: anime.id,
+                                    animeTitle: anime.title,
+                                    animeCoverURL: anime.coverURL,
+                                    sourceId: sourceId,
+                                    sourceManager: sourceManager,
+                                    watchProgressService: watchProgressService,
+                                    subscriptionService: subscriptionService,
+                                    downloadService: downloadService,
+                                    userPreferences: userPreferences)
     }
 
-    /// Creates an AnimeDetailViewModel for a subscribed anime.
-    /// - Parameter anime: The subscribed anime to show details for.
-    /// - Returns: A new `AnimeDetailViewModel` for the anime.
-    func makeAnimeDetailViewModel(subscribedAnime anime: SubscribedAnime) -> AnimeDetailViewModel {
-        AnimeDetailViewModel(mode: .raw(animeId: anime.id,
-                                        title: anime.title,
-                                        coverURL: anime.coverURL),
-                             aniListService: aniListService,
-                             subscriptionService: subscriptionService,
-                             watchProgressService: watchProgressService,
-                             sourceManager: sourceManager,
-                             userPreferences: userPreferences)
+    /// Creates an EpisodeListViewModel for a subscribed anime.
+    /// - Parameter anime: The subscribed anime to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if no source is selected.
+    func makeEpisodeListViewModel(subscribedAnime anime: SubscribedAnime) -> EpisodeListViewModel? {
+        guard let sourceId = userPreferences.selectedSourceId else { return nil }
+        return EpisodeListViewModel(animeId: anime.id,
+                                    animeTitle: anime.title,
+                                    animeCoverURL: anime.coverURL,
+                                    sourceId: sourceId,
+                                    sourceManager: sourceManager,
+                                    watchProgressService: watchProgressService,
+                                    subscriptionService: subscriptionService,
+                                    downloadService: downloadService,
+                                    userPreferences: userPreferences)
     }
 
     /// Creates an EpisodeListViewModel for a downloaded anime.

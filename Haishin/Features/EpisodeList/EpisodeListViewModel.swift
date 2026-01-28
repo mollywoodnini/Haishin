@@ -28,7 +28,22 @@ enum EpisodeListMode {
 /// ViewModel for managing episode fetching and playback state.
 @Observable
 @MainActor
-final class EpisodeListViewModel {
+final class EpisodeListViewModel: Identifiable, Hashable {
+
+    //#################################################################################
+    // MARK: - Identifiable & Hashable
+    //#################################################################################
+
+    nonisolated let id = UUID()
+
+    nonisolated static func == (lhs: EpisodeListViewModel, rhs: EpisodeListViewModel) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    nonisolated func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
 
     //#################################################################################
     // MARK: - Properties
@@ -38,16 +53,13 @@ final class EpisodeListViewModel {
     let mode: EpisodeListMode
 
     /// The anime ID.
-    let animeId: Int
+    let animeId: String
 
     /// The anime title.
     let animeTitle: String
 
     /// The anime cover URL.
     let animeCoverURL: URL?
-
-    /// The AniList anime details (only available in online mode).
-    private let aniListAnime: AniListAnimeDetail?
 
     /// The downloaded anime (only available in offline mode).
     private let downloadedAnime: DownloadedAnime?
@@ -133,7 +145,6 @@ final class EpisodeListViewModel {
         self.animeId = downloadedAnime.id
         self.animeTitle = downloadedAnime.title
         self.animeCoverURL = downloadedAnime.coverURL
-        self.aniListAnime = nil
         self.downloadedAnime = downloadedAnime
         self.sourceId = downloadedAnime.sourceId
         self.sourceManager = nil
@@ -168,10 +179,9 @@ final class EpisodeListViewModel {
          watchProgressService: WatchProgressServiceProtocol,
          downloadService: DownloadServiceProtocol) {
         self.mode = .online
-        self.animeId = animePreview.id.hashValue
+        self.animeId = animePreview.id
         self.animeTitle = animePreview.title
         self.animeCoverURL = animePreview.coverURL
-        self.aniListAnime = nil
         self.downloadedAnime = nil
         self.sourceId = animePreview.sourceId
         self.sourceManager = sourceManager

@@ -33,7 +33,7 @@ final class VideoPlayerViewModel {
     let episode: Episode
 
     /// The anime ID for progress tracking.
-    let animeId: Int
+    let animeId: String
 
     /// The anime title for recents tracking.
     let animeTitle: String
@@ -110,7 +110,7 @@ final class VideoPlayerViewModel {
     ///   - watchProgressService: The service for persisting watch progress.
     ///   - isOfflineMode: Whether this is playing a downloaded file.
     init(episode: Episode,
-         animeId: Int,
+         animeId: String,
          animeTitle: String,
          animeCoverURL: URL?,
          sourceId: String,

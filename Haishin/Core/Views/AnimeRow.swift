@@ -1,8 +1,8 @@
 //
-//  AnimeListRow.swift
+//  AnimeRow.swift
 //  Haishin
 //
-//  Created by Tan Nghia La on 25.01.26.
+//  Created by Tan Nghia La on 28.01.26.
 //
 
 import Kingfisher
@@ -13,14 +13,14 @@ import SwiftUI
 // MARK: - AnimeListRowButton
 //#################################################################################
 
-/// A button wrapper for `AnimeListRow` with list row styling for swipe-to-delete lists.
-struct AnimeListRowButton<T>: View {
+/// A button wrapper for `AnimeRow` with list row styling for swipe-to-delete lists.
+struct AnimeRowButton<T>: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    private let mode: AnimeListRow.Mode
+    private let mode: AnimeRow.Mode
     private let item: T
     private let onTap: (T) -> Void
 
@@ -34,7 +34,7 @@ struct AnimeListRowButton<T>: View {
     ///   - mode: The display mode for the row.
     ///   - item: The item associated with this row.
     ///   - onTap: Action to perform when tapped.
-    init(mode: AnimeListRow.Mode, item: T, onTap: @escaping (T) -> Void) {
+    init(mode: AnimeRow.Mode, item: T, onTap: @escaping (T) -> Void) {
         self.mode = mode
         self.item = item
         self.onTap = onTap
@@ -49,7 +49,7 @@ struct AnimeListRowButton<T>: View {
         Button {
             onTap(item)
         } label: {
-            AnimeListRow(mode: mode)
+            AnimeRow(mode: mode)
         }
         .buttonStyle(.plain)
         .listRowInsets(EdgeInsets(top: .spacingXS,
@@ -67,7 +67,7 @@ struct AnimeListRowButton<T>: View {
 //#################################################################################
 
 /// A row showing an anime in the list view.
-struct AnimeListRow: View {
+struct AnimeRow: View {
 
     //#################################################################################
     // MARK: - Types
@@ -75,10 +75,6 @@ struct AnimeListRow: View {
 
     /// The display mode for the row with associated model data.
     enum Mode {
-        /// General list display with subtitle and synopsis.
-        case general(RecommendingItem)
-        /// Schedule display with air time label on top.
-        case schedule(RecommendingItem)
         /// Recent anime display with last watched episode.
         case recent(RecentAnime)
         /// Subscribed anime display.
@@ -137,8 +133,6 @@ struct AnimeListRow: View {
 
     private var coverURL: URL? {
         switch mode {
-        case .general(let item), .schedule(let item):
-            return item.coverURL
         case .recent(let anime):
             return anime.coverURL
         case .subscribed(let anime):
@@ -150,8 +144,6 @@ struct AnimeListRow: View {
 
     private var title: String {
         switch mode {
-        case .general(let item), .schedule(let item):
-            return item.title
         case .recent(let anime):
             return anime.title
         case .subscribed(let anime):
@@ -195,12 +187,6 @@ struct AnimeListRow: View {
     @ViewBuilder
     private var episodeBadge: some View {
         switch mode {
-        case .general(let item), .schedule(let item):
-            if let caption = item.caption {
-                badgeText(caption)
-            } else if let totalEpisodes = item.totalEpisodes {
-                badgeText("\(totalEpisodes) ep")
-            }
         case .downloaded(let anime):
             badgeText("\(anime.totalCount) ep")
         case .recent, .subscribed:
@@ -223,10 +209,6 @@ struct AnimeListRow: View {
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             switch mode {
-            case .general(let item):
-                generalInfoContent(item: item)
-            case .schedule(let item):
-                scheduleInfoContent(item: item)
             case .recent(let anime):
                 recentInfoContent(anime: anime)
             case .subscribed:
@@ -237,50 +219,6 @@ struct AnimeListRow: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(.trailing, .spacingS)
-    }
-
-    @ViewBuilder
-    private func generalInfoContent(item: RecommendingItem) -> some View {
-        Text(item.title)
-            .font(.body)
-            .fontWeight(.medium)
-            .lineLimit(2)
-
-        if let subtitle = item.subtitle {
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-
-        if let synopsis = item.synopsis {
-            Text(synopsis)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-        }
-    }
-
-    @ViewBuilder
-    private func scheduleInfoContent(item: RecommendingItem) -> some View {
-        if let airDate = item.airDate {
-            Text(formatTime(airDate))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.highlight)
-        }
-
-        Text(item.title)
-            .font(.body)
-            .fontWeight(.medium)
-            .lineLimit(2)
-
-        if let synopsis = item.synopsis {
-            Text(synopsis)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-        }
     }
 
     @ViewBuilder

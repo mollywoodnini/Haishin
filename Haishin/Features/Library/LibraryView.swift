@@ -38,14 +38,12 @@ struct LibraryView: View {
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
          downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol,
-         aniListService: AniListServicing) {
+         userPreferences: UserPreferencesProtocol) {
         self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
                                                                subscriptionService: subscriptionService,
                                                                sourceManager: sourceManager,
                                                                downloadService: downloadService,
-                                                               userPreferences: userPreferences,
-                                                               aniListService: aniListService))
+                                                               userPreferences: userPreferences))
     }
 
 
@@ -113,6 +111,5 @@ struct LibraryView: View {
                 subscriptionService: SubscriptionService.shared,
                 sourceManager: SourceManager.shared,
                 downloadService: DownloadService.shared,
-                userPreferences: UserPreferences.shared,
-                aniListService: AniListService())
+                userPreferences: UserPreferences.shared)
 }
