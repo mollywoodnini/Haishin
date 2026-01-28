@@ -149,11 +149,8 @@ struct SourcesView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(viewModel.installedSources) { source in
-                    InstalledSourceRow(source: source) {
-                        viewModel.selectSource(source)
-                    } onDelete: {
-                        viewModel.uninstallSource(source)
-                    }
+                    InstalledSourceRow(source: source,
+                                       onDelete: { viewModel.uninstallSource(source) })
                 }
             }
         } header: {

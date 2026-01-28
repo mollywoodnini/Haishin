@@ -62,6 +62,9 @@ struct RecentAnime: AnimeProtocol, Codable, Equatable {
     /// URL to the cover image.
     let coverURL: URL?
 
+    /// The source ID used to fetch this anime.
+    let sourceId: String
+
     /// Date when the anime was last watched.
     var lastWatchedAt: Date
 
@@ -96,7 +99,13 @@ protocol WatchProgressServiceProtocol {
     func getRecentAnime() -> [RecentAnime]
 
     /// Adds or updates a recent anime entry.
-    func updateRecentAnime(id: String, title: String, coverURL: URL?, episodeNumber: String?)
+    /// - Parameters:
+    ///   - id: The anime ID.
+    ///   - title: The anime title.
+    ///   - coverURL: The cover image URL.
+    ///   - sourceId: The source ID used to fetch this anime.
+    ///   - episodeNumber: The last watched episode number.
+    func updateRecentAnime(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?)
 
     /// Gets the count of recent anime.
     func getRecentAnimeCount() -> Int
@@ -188,7 +197,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         loadAllRecentAnime().sorted { $0.lastWatchedAt > $1.lastWatchedAt }
     }
 
-    func updateRecentAnime(id: String, title: String, coverURL: URL?, episodeNumber: String?) {
+    func updateRecentAnime(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?) {
         var allRecent = loadAllRecentAnime()
 
         if let index = allRecent.firstIndex(where: { $0.id == id }) {
@@ -198,6 +207,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
             let newRecent = RecentAnime(id: id,
                                         title: title,
                                         coverURL: coverURL,
+                                        sourceId: sourceId,
                                         lastWatchedAt: Date(),
                                         lastEpisodeNumber: episodeNumber)
             allRecent.append(newRecent)

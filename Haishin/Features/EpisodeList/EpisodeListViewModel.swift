@@ -64,8 +64,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The downloaded anime (only available in offline mode).
     private let downloadedAnime: DownloadedAnime?
 
-    /// The selected source ID.
-    let sourceId: String?
+    /// The source ID for this anime.
+    let sourceId: String
 
     /// The matched anime from the source (online mode).
     private(set) var sourceAnime: Anime?
@@ -85,61 +85,27 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// Watch progress for each episode, keyed by episode ID.
     private(set) var watchProgressMap: [String: WatchProgress] = [:]
 
-    /// The currently selected source ID from user preferences.
-    var selectedSourceId: String? {
-        get { userPreferences?.selectedSourceId }
-        set { userPreferences?.selectedSourceId = newValue }
-    }
-
-    private let sourceManager: SourceManaging?
+    private let sourceManager: SourceManaging
     private let watchProgressService: WatchProgressServiceProtocol
-    private let subscriptionService: SubscriptionServiceProtocol?
+    private let subscriptionService: SubscriptionServiceProtocol
     private let downloadService: DownloadServiceProtocol
-    private var userPreferences: UserPreferencesProtocol?
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new episodes view model for online mode.
-    /// - Parameters:
-    ///   - aniListAnime: The AniList anime details.
-    ///   - sourceId: The selected source ID.
-    ///   - sourceManager: The source manager for fetching episodes.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - downloadService: The service for managing downloads.
-    ///   - userPreferences: The user preferences for source selection.
-    init(aniListAnime: AniListAnimeDetail,
-         sourceId: String,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol) {
-        self.mode = .online
-        self.animeId = aniListAnime.id
-        self.animeTitle = aniListAnime.title
-        self.animeCoverURL = aniListAnime.coverURL
-        self.aniListAnime = aniListAnime
-        self.downloadedAnime = nil
-        self.sourceId = sourceId
-        self.sourceManager = sourceManager
-        self.watchProgressService = watchProgressService
-        self.subscriptionService = subscriptionService
-        self.downloadService = downloadService
-        self.userPreferences = userPreferences
-        self.isSubscribed = subscriptionService.isSubscribed(id: aniListAnime.id)
-    }
-
     /// Creates a new episodes view model for offline mode.
     /// - Parameters:
     ///   - downloadedAnime: The downloaded anime to display.
+    ///   - sourceManager: The source manager.
     ///   - watchProgressService: The service for accessing watch progress.
+    ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
     init(downloadedAnime: DownloadedAnime,
+         sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
+         subscriptionService: SubscriptionServiceProtocol,
          downloadService: DownloadServiceProtocol) {
         self.mode = .offline
         self.animeId = downloadedAnime.id
@@ -147,11 +113,10 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         self.animeCoverURL = downloadedAnime.coverURL
         self.downloadedAnime = downloadedAnime
         self.sourceId = downloadedAnime.sourceId
-        self.sourceManager = nil
+        self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
-        self.subscriptionService = nil
+        self.subscriptionService = subscriptionService
         self.downloadService = downloadService
-        self.userPreferences = nil
         self.isSubscribed = false
 
         // Convert downloaded episodes to Episode model
@@ -168,29 +133,32 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             }
     }
 
-    /// Creates a new episodes view model for source search results.
+    /// Creates a new episodes view model for online mode.
     /// - Parameters:
-    ///   - animePreview: The anime preview from source search.
+    ///   - anime: The anime to display episodes for (must conform to AnimeProtocol).
+    ///   - detailsURL: Optional details URL for direct source navigation (used with AnimePreview).
     ///   - sourceManager: The source manager for fetching episodes.
     ///   - watchProgressService: The service for accessing watch progress.
+    ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
-    init(animePreview: AnimePreview,
+    init(anime: some AnimeProtocol,
+         detailsURL: String? = nil,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
+         subscriptionService: SubscriptionServiceProtocol,
          downloadService: DownloadServiceProtocol) {
         self.mode = .online
-        self.animeId = animePreview.id
-        self.animeTitle = animePreview.title
-        self.animeCoverURL = animePreview.coverURL
+        self.animeId = anime.id
+        self.animeTitle = anime.title
+        self.animeCoverURL = anime.coverURL
         self.downloadedAnime = nil
-        self.sourceId = animePreview.sourceId
+        self.sourceId = anime.sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
-        self.subscriptionService = nil
+        self.subscriptionService = subscriptionService
         self.downloadService = downloadService
-        self.userPreferences = nil
-        self.isSubscribed = false
-        self._animePreviewDetailsURL = animePreview.detailsURL
+        self.isSubscribed = subscriptionService.isSubscribed(id: anime.id)
+        self._animePreviewDetailsURL = detailsURL
     }
 
     /// The details URL for direct source navigation (when initialized with AnimePreview).
@@ -203,7 +171,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     /// Returns the list of installed sources for the source picker.
     var installedSources: [InstalledSource] {
-        sourceManager?.installedSources ?? []
+        sourceManager.installedSources
     }
 
     /// Returns the episodes to display based on mode.
@@ -218,7 +186,10 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     /// Returns the source name for display.
     var sourceName: String? {
-        downloadedAnime?.sourceName
+        if let downloadedAnime {
+            return downloadedAnime.sourceName
+        }
+        return sourceManager.installedSources.first { $0.id == sourceId }?.info.name
     }
 
 
@@ -253,21 +224,16 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     /// Toggles the subscription status for this anime.
     func toggleSubscription() {
-        guard let aniListAnime, let subscriptionService else { return }
-
         if isSubscribed {
-            subscriptionService.unsubscribe(id: aniListAnime.id)
+            subscriptionService.unsubscribe(id: animeId)
         } else {
-            subscriptionService.subscribe(id: aniListAnime.id,
-                                          title: aniListAnime.title,
-                                          coverURL: aniListAnime.coverURL)
+            subscriptionService.subscribe(id: animeId,
+                                          title: animeTitle,
+                                          coverURL: animeCoverURL,
+                                          sourceId: sourceId)
         }
+        
         isSubscribed.toggle()
-    }
-
-    /// Clears the selected source when it's invalid.
-    func clearSelectedSource() {
-        userPreferences?.selectedSourceId = nil
     }
 
     /// Returns the episode to continue watching, or nil if no progress exists.
@@ -320,21 +286,19 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// - Parameter episode: The episode to download.
     func startDownload(episode: Episode) {
         guard mode == .online,
-              let sourceId,
-              let aniListAnime,
-              let source = sourceManager?.installedSources.first(where: { $0.id == sourceId }) else {
+              let _ = sourceManager.installedSources.first(where: { $0.id == sourceId }) else {
             return
         }
 
-        downloadService.startDownload(animeId: aniListAnime.id,
-                                       animeTitle: aniListAnime.title,
-                                       animeCoverURL: aniListAnime.coverURL,
-                                       episodeId: episode.id,
-                                       episodeNumber: episode.number,
-                                       episodeTitle: episode.title,
-                                       sourceId: sourceId,
-                                       sourceName: source.info.name,
-                                       sourceURL: episode.url)
+//        downloadService.startDownload(animeId: aniListAnime.id,
+//                                       animeTitle: aniListAnime.title,
+//                                       animeCoverURL: aniListAnime.coverURL,
+//                                       episodeId: episode.id,
+//                                       episodeNumber: episode.number,
+//                                       episodeTitle: episode.title,
+//                                       sourceId: sourceId,
+//                                       sourceName: source.info.name,
+//                                       sourceURL: episode.url)
     }
 
     /// Cancels a download in progress.
@@ -371,7 +335,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                              animeId: animeId,
                              animeTitle: animeTitle,
                              animeCoverURL: animeCoverURL,
-                             sourceId: sourceId ?? "",
+                             sourceId: sourceId,
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              isOfflineMode: mode == .offline)
@@ -403,8 +367,6 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             loadWatchProgress()
             return
         }
-
-        guard let sourceManager, let sourceId else { return }
 
         isLoading = true
         error = nil
@@ -485,50 +447,19 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// Generates a list of search queries to try, with fallback strategies.
     /// - Returns: Array of search query strings ordered by priority.
     private func generateSearchQueries() -> [String] {
-        guard let aniListAnime else { return [] }
-
         var queries: [String] = []
+        
+        // Use the stored animeTitle
+        queries.append(animeTitle)
 
-        // 1. Primary title (English or Romaji)
-        queries.append(aniListAnime.title)
-
-        // 2. Alternative titles (Romaji, Native, English)
-        if let romaji = aniListAnime.romajiTitle, romaji != aniListAnime.title {
-            queries.append(romaji)
-        }
-
-        if let english = aniListAnime.englishTitle, english != aniListAnime.title {
-            queries.append(english)
-        }
-
-        if let native = aniListAnime.nativeTitle, native != aniListAnime.title {
-            queries.append(native)
-        }
-
-        // 3. Remove "Season X" and replace with just the number
-        let seasonVariation = removeSeasonKeyword(from: aniListAnime.title)
-        if seasonVariation != aniListAnime.title {
+        // Try season and part variations on the title
+        let seasonVariation = removeSeasonKeyword(from: animeTitle)
+        if seasonVariation != animeTitle {
             queries.append(seasonVariation)
         }
 
-        // Try season variation on alternative titles too
-        if let romaji = aniListAnime.romajiTitle {
-            let romajiSeasonVariation = removeSeasonKeyword(from: romaji)
-            if romajiSeasonVariation != romaji && !queries.contains(romajiSeasonVariation) {
-                queries.append(romajiSeasonVariation)
-            }
-        }
-
-        if let english = aniListAnime.englishTitle {
-            let englishSeasonVariation = removeSeasonKeyword(from: english)
-            if englishSeasonVariation != english && !queries.contains(englishSeasonVariation) {
-                queries.append(englishSeasonVariation)
-            }
-        }
-
-        // 4. Remove "Part X" variations
-        let partVariation = removePartKeyword(from: aniListAnime.title)
-        if partVariation != aniListAnime.title && !queries.contains(partVariation) {
+        let partVariation = removePartKeyword(from: animeTitle)
+        if partVariation != animeTitle && !queries.contains(partVariation) {
             queries.append(partVariation)
         }
 

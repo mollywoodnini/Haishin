@@ -21,6 +21,7 @@ struct EpisodeListHeaderView: View {
     //#################################################################################
 
     private let title: String
+    private let sourceName: String?
     private let coverURL: URL?
     private let subtitle: String?
     private let episodeCount: Int
@@ -32,11 +33,17 @@ struct EpisodeListHeaderView: View {
 
     /// Creates a new episode list header view.
     /// - Parameter title: The anime title.
+    /// - Parameter sourceName: Optional source name to display below the title.
     /// - Parameter coverURL: The cover image URL.
-    /// - Parameter subtitle: Optional subtitle (e.g., genres or source name).
+    /// - Parameter subtitle: Optional subtitle (e.g., genres).
     /// - Parameter episodeCount: The number of episodes.
-    init(title: String, coverURL: URL?, subtitle: String?, episodeCount: Int) {
+    init(title: String,
+         sourceName: String?,
+         coverURL: URL?,
+         subtitle: String?,
+         episodeCount: Int) {
         self.title = title
+        self.sourceName = sourceName
         self.coverURL = coverURL
         self.subtitle = subtitle
         self.episodeCount = episodeCount
@@ -44,8 +51,10 @@ struct EpisodeListHeaderView: View {
 
     /// Creates a new episode list header view from an Anime object.
     /// - Parameter anime: The anime to display.
-    init(anime: Anime) {
+    /// - Parameter sourceName: Optional source name to display below the title.
+    init(anime: Anime, sourceName: String? = nil) {
         self.title = anime.title
+        self.sourceName = sourceName
         self.coverURL = anime.coverURL
         self.subtitle = anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", ")
         self.episodeCount = anime.episodes.count
@@ -72,6 +81,13 @@ struct EpisodeListHeaderView: View {
                 Text(title)
                     .font(.headline)
                     .lineLimit(2)
+
+                if let sourceName, !sourceName.isEmpty {
+                    Text(sourceName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
 
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)

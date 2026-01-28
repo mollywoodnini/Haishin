@@ -52,6 +52,7 @@ struct RecentsListView: View {
                 List {
                     ForEach(viewModel.recentAnime) { anime in
                         AnimeRowButton(mode: .recent(anime),
+                                       sourceName: viewModel.sourceName(for: anime.sourceId),
                                        item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
@@ -74,17 +75,17 @@ struct RecentsListView: View {
         }
         .onChange(of: tappedAnime) { _, newValue in
             guard let anime = newValue else { return }
-            if let episodeViewModel = viewModel.makeEpisodeListViewModel(recentAnime: anime) {
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(anime: anime) {
                 selectedViewModel = episodeViewModel
             } else {
                 showNoSourceAlert = true
             }
             tappedAnime = nil
         }
-        .alert("No Source Selected", isPresented: $showNoSourceAlert) {
+        .alert("Source Not Available", isPresented: $showNoSourceAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Please select a source in Settings before viewing episodes.")
+            Text("The source used for this anime is no longer installed. Please reinstall the source.")
         }
     }
 }

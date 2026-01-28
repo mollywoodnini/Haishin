@@ -18,9 +18,6 @@ final actor JavaScriptSource {
     /// Metadata about this source
     let info: SourceInfo
     
-    /// Whether this source is currently enabled
-    var isEnabled: Bool
-    
     private let runtime: JSRuntime
     private let sourceId: String
     
@@ -39,7 +36,6 @@ final actor JavaScriptSource {
          runtime: JSRuntime) async throws {
         self.runtime = runtime
         self.sourceId = sourceId
-        self.isEnabled = true
         
         // Load the script into the runtime
         try await runtime.loadSource(script: script, sourceId: sourceId)

@@ -103,7 +103,6 @@ struct AnimeCard: View {
                                              fixedWidth: Constants.cardWidth,
                                              fixedHeight: Constants.imageHeight,
                                              aspectRatio: Constants.imageAspectRatio))
-                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
             if let totalEpisodes {

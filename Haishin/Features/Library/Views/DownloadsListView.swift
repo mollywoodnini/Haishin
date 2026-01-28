@@ -50,6 +50,7 @@ struct DownloadsListView: View {
                 List {
                     ForEach(viewModel.downloadedAnime) { anime in
                         AnimeRowButton(mode: .downloaded(anime),
+                                       sourceName: viewModel.sourceName(for: anime.sourceId),
                                        item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in

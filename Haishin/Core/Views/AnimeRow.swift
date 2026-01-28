@@ -21,6 +21,7 @@ struct AnimeRowButton<T>: View {
     //#################################################################################
 
     private let mode: AnimeRow.Mode
+    private let sourceName: String?
     private let item: T
     private let onTap: (T) -> Void
 
@@ -32,10 +33,12 @@ struct AnimeRowButton<T>: View {
     /// Creates a new `AnimeListRowButton`.
     /// - Parameters:
     ///   - mode: The display mode for the row.
+    ///   - sourceName: Optional source name to display.
     ///   - item: The item associated with this row.
     ///   - onTap: Action to perform when tapped.
-    init(mode: AnimeRow.Mode, item: T, onTap: @escaping (T) -> Void) {
+    init(mode: AnimeRow.Mode, sourceName: String?, item: T, onTap: @escaping (T) -> Void) {
         self.mode = mode
+        self.sourceName = sourceName
         self.item = item
         self.onTap = onTap
     }
@@ -49,7 +52,7 @@ struct AnimeRowButton<T>: View {
         Button {
             onTap(item)
         } label: {
-            AnimeRow(mode: mode)
+            AnimeRow(mode: mode, sourceName: sourceName)
         }
         .buttonStyle(.plain)
         .listRowInsets(EdgeInsets(top: .spacingXS,
@@ -99,6 +102,7 @@ struct AnimeRow: View {
     //#################################################################################
 
     private let mode: Mode
+    private let sourceName: String?
 
 
     //#################################################################################
@@ -107,8 +111,10 @@ struct AnimeRow: View {
 
     /// Creates a new `AnimeListRow`.
     /// - Parameter mode: The display mode containing the model data.
-    init(mode: Mode) {
+    /// - Parameter sourceName: Optional source name to display.
+    init(mode: Mode, sourceName: String? = nil) {
         self.mode = mode
+        self.sourceName = sourceName
     }
 
 
@@ -228,6 +234,12 @@ struct AnimeRow: View {
             .fontWeight(.medium)
             .lineLimit(2)
 
+        if let sourceName, !sourceName.isEmpty {
+            Text(sourceName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+
         if let episodeNumber = anime.lastEpisodeNumber {
             Text("Episode \(episodeNumber)")
                 .font(.subheadline)
@@ -241,6 +253,12 @@ struct AnimeRow: View {
             .font(.body)
             .fontWeight(.medium)
             .lineLimit(2)
+
+        if let sourceName, !sourceName.isEmpty {
+            Text(sourceName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder
@@ -249,6 +267,12 @@ struct AnimeRow: View {
             .font(.body)
             .fontWeight(.medium)
             .lineLimit(2)
+
+        if let sourceName, !sourceName.isEmpty {
+            Text(sourceName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
 
         Text(downloadStatusText(for: anime))
             .font(.caption)

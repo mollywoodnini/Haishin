@@ -25,4 +25,7 @@ protocol AnimeProtocol: Identifiable, Hashable {
 
     /// URL to the cover image.
     var coverURL: URL? { get }
+
+    /// The source ID used to fetch this anime.
+    var sourceId: String { get }
 }

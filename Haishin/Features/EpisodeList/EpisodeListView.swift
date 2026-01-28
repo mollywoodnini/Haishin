@@ -21,7 +21,6 @@ struct EpisodeListView: View {
 
     @State private var viewModel: EpisodeListViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showingSourcePicker = false
     @State private var expandedRanges: Set<String> = []
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
@@ -36,18 +35,6 @@ struct EpisodeListView: View {
     /// - Parameter viewModel: The view model to use.
     init(viewModel: EpisodeListViewModel) {
         self._viewModel = State(initialValue: viewModel)
-    }
-
-    /// Creates a new episodes view for offline mode (downloaded episodes).
-    /// - Parameter downloadedAnime: The downloaded anime to display.
-    /// - Parameter watchProgressService: The service for accessing watch progress.
-    /// - Parameter downloadService: The download service.
-    init(downloadedAnime: DownloadedAnime,
-         watchProgressService: WatchProgressServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self._viewModel = State(initialValue: EpisodeListViewModel(downloadedAnime: downloadedAnime,
-                                                                   watchProgressService: watchProgressService,
-                                                                   downloadService: downloadService))
     }
 
 
@@ -72,18 +59,6 @@ struct EpisodeListView: View {
                     onlineToolbarMenu
                 }
             }
-        }
-        .sheet(isPresented: $showingSourcePicker) {
-            SourcePickerView(animeTitle: viewModel.animeTitle,
-                             selectedSourceId: Binding(
-                                get: { viewModel.selectedSourceId },
-                                set: { viewModel.selectedSourceId = $0 }
-                             ),
-                             onSourceSelected: {
-                                 showingSourcePicker = false
-                                 dismiss()
-                             },
-                             sources: viewModel.installedSources)
         }
         .task {
             await viewModel.loadEpisodes()
@@ -171,14 +146,6 @@ struct EpisodeListView: View {
     private var onlineToolbarMenu: some View {
         Menu {
             Button {
-                showingSourcePicker = true
-            } label: {
-                Label("Change Source", systemImage: "arrow.triangle.2.circlepath")
-            }
-
-            Divider()
-
-            Button {
                 viewModel.toggleSubscription()
             } label: {
                 Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
@@ -251,9 +218,8 @@ struct EpisodeListView: View {
                 .padding(.horizontal, .spacingL)
 
             if isSourceNotFound {
-                Button("Select Different Source") {
-                    viewModel.clearSelectedSource()
-                    showingSourcePicker = true
+                Button("Go Back") {
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
             } else {
@@ -275,6 +241,7 @@ struct EpisodeListView: View {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 // Prefer AniList/preview cover URL, fallback to source cover if needed
                 EpisodeListHeaderView(title: anime.title,
+                                      sourceName: viewModel.sourceName,
                                       coverURL: viewModel.animeCoverURL ?? anime.coverURL,
                                       subtitle: anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", "),
                                       episodeCount: anime.episodes.count)
@@ -363,8 +330,9 @@ struct EpisodeListView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 EpisodeListHeaderView(title: viewModel.animeTitle,
+                                      sourceName: viewModel.sourceName,
                                       coverURL: viewModel.animeCoverURL,
-                                      subtitle: viewModel.sourceName,
+                                      subtitle: nil,
                                       episodeCount: viewModel.offlineEpisodes.count)
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {

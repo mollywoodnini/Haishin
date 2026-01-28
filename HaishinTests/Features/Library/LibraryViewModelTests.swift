@@ -27,11 +27,11 @@ struct LibraryViewModelTests {
         var recentAnime: [RecentAnime] = []
         var progressMap: [String: WatchProgress] = [:]
 
-        func getProgress(animeId: Int, episodeId: String) -> WatchProgress? {
+        func getProgress(animeId: String, episodeId: String) -> WatchProgress? {
             progressMap["\(animeId)-\(episodeId)"]
         }
 
-        func getAllProgress(animeId: Int) -> [WatchProgress] {
+        func getAllProgress(animeId: String) -> [WatchProgress] {
             progressMap.values.filter { $0.animeId == animeId }
         }
 
@@ -39,11 +39,11 @@ struct LibraryViewModelTests {
             progressMap["\(progress.animeId)-\(progress.episodeId)"] = progress
         }
 
-        func removeProgress(animeId: Int, episodeId: String) {
+        func removeProgress(animeId: String, episodeId: String) {
             progressMap.removeValue(forKey: "\(animeId)-\(episodeId)")
         }
 
-        func clearAllProgress(animeId: Int) {
+        func clearAllProgress(animeId: String) {
             progressMap = progressMap.filter { $0.value.animeId != animeId }
         }
 
@@ -51,17 +51,23 @@ struct LibraryViewModelTests {
             recentAnime
         }
 
-        func updateRecentAnime(id: Int, title: String, coverURL: URL?, episodeNumber: String?) {
+        func updateRecentAnime(id: String,
+                               title: String,
+                               coverURL: URL?,
+                               sourceId: String,
+                               episodeNumber: String?) {
             if let index = recentAnime.firstIndex(where: { $0.id == id }) {
                 recentAnime[index] = RecentAnime(id: id,
                                                  title: title,
                                                  coverURL: coverURL,
+                                                 sourceId: sourceId,
                                                  lastWatchedAt: Date(),
                                                  lastEpisodeNumber: episodeNumber)
             } else {
                 recentAnime.append(RecentAnime(id: id,
                                                title: title,
                                                coverURL: coverURL,
+                                               sourceId: sourceId,
                                                lastWatchedAt: Date(),
                                                lastEpisodeNumber: episodeNumber))
             }
@@ -71,7 +77,7 @@ struct LibraryViewModelTests {
             recentAnime.count
         }
 
-        func removeRecentAnime(id: Int) {
+        func removeRecentAnime(id: String) {
             recentAnime.removeAll { $0.id == id }
         }
     }
@@ -84,19 +90,20 @@ struct LibraryViewModelTests {
             subscribedAnime
         }
 
-        func subscribe(id: Int, title: String, coverURL: URL?) {
+        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String) {
             guard !isSubscribed(id: id) else { return }
             subscribedAnime.append(SubscribedAnime(id: id,
                                                    title: title,
                                                    coverURL: coverURL,
+                                                   sourceId: sourceId,
                                                    subscribedAt: Date()))
         }
 
-        func unsubscribe(id: Int) {
+        func unsubscribe(id: String) {
             subscribedAnime.removeAll { $0.id == id }
         }
 
-        func isSubscribed(id: Int) -> Bool {
+        func isSubscribed(id: String) -> Bool {
             subscribedAnime.contains { $0.id == id }
         }
 
@@ -115,14 +122,12 @@ struct LibraryViewModelTests {
                          subscriptionService: MockSubscriptionService? = nil,
                          sourceManager: MockSourceManager? = nil,
                          downloadService: MockDownloadService? = nil,
-                         userPreferences: MockUserPreferences? = nil,
-                         aniListService: MockAniListService? = nil) -> LibraryViewModel {
+                         userPreferences: MockUserPreferences? = nil) -> LibraryViewModel {
         LibraryViewModel(watchProgressService: watchProgressService ?? MockWatchProgressService(),
                          subscriptionService: subscriptionService ?? MockSubscriptionService(),
                          sourceManager: sourceManager ?? MockSourceManager(),
                          downloadService: downloadService ?? MockDownloadService(),
-                         userPreferences: userPreferences ?? MockUserPreferences(),
-                         aniListService: aniListService ?? MockAniListService())
+                         userPreferences: userPreferences ?? MockUserPreferences())
     }
 
 
@@ -134,9 +139,10 @@ struct LibraryViewModelTests {
     func initialization_recentAnimeIsLoaded() {
         let mockWatchProgress = MockWatchProgressService()
         mockWatchProgress.recentAnime = [
-            RecentAnime(id: 1,
+            RecentAnime(id: "1",
                         title: "Test Anime",
                         coverURL: nil,
+                        sourceId: "test-source",
                         lastWatchedAt: Date(),
                         lastEpisodeNumber: "1")
         ]
@@ -150,9 +156,10 @@ struct LibraryViewModelTests {
     func initialization_subscribedAnimeIsLoaded() {
         let mockSubscription = MockSubscriptionService()
         mockSubscription.subscribedAnime = [
-            SubscribedAnime(id: 1,
+            SubscribedAnime(id: "1",
                             title: "Subscribed Anime",
                             coverURL: nil,
+                            sourceId: "test-source",
                             subscribedAt: Date())
         ]
         let sut = makeSUT(subscriptionService: mockSubscription)
@@ -165,7 +172,7 @@ struct LibraryViewModelTests {
     func initialization_downloadedAnimeIsLoaded() {
         let mockDownload = MockDownloadService()
         mockDownload.downloadedAnime = [
-            DownloadedAnime(id: 1,
+            DownloadedAnime(id: "1",
                             title: "Downloaded Anime",
                             coverURL: nil,
                             sourceId: "test-source",
@@ -187,8 +194,10 @@ struct LibraryViewModelTests {
     func recentsCount_returnsCount() {
         let mockWatchProgress = MockWatchProgressService()
         mockWatchProgress.recentAnime = [
-            RecentAnime(id: 1, title: "Anime 1", coverURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil),
-            RecentAnime(id: 2, title: "Anime 2", coverURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil)
+            RecentAnime(id: "1", title: "Anime 1", coverURL: nil, sourceId: "test-source",
+                        lastWatchedAt: Date(), lastEpisodeNumber: nil),
+            RecentAnime(id: "2", title: "Anime 2", coverURL: nil, sourceId: "test-source",
+                        lastWatchedAt: Date(), lastEpisodeNumber: nil)
         ]
         let sut = makeSUT(watchProgressService: mockWatchProgress)
 
@@ -211,9 +220,12 @@ struct LibraryViewModelTests {
     func subscribedCount_returnsCount() {
         let mockSubscription = MockSubscriptionService()
         mockSubscription.subscribedAnime = [
-            SubscribedAnime(id: 1, title: "Anime 1", coverURL: nil, subscribedAt: Date()),
-            SubscribedAnime(id: 2, title: "Anime 2", coverURL: nil, subscribedAt: Date()),
-            SubscribedAnime(id: 3, title: "Anime 3", coverURL: nil, subscribedAt: Date())
+            SubscribedAnime(id: "1", title: "Anime 1", coverURL: nil, sourceId: "test-source",
+                            subscribedAt: Date()),
+            SubscribedAnime(id: "2", title: "Anime 2", coverURL: nil, sourceId: "test-source",
+                            subscribedAt: Date()),
+            SubscribedAnime(id: "3", title: "Anime 3", coverURL: nil, sourceId: "test-source",
+                            subscribedAt: Date())
         ]
         let sut = makeSUT(subscriptionService: mockSubscription)
 
@@ -253,7 +265,8 @@ struct LibraryViewModelTests {
 
         // Add anime to mock service
         mockWatchProgress.recentAnime = [
-            RecentAnime(id: 1, title: "New Anime", coverURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil)
+            RecentAnime(id: "1", title: "New Anime", coverURL: nil, sourceId: "test-source",
+                        lastWatchedAt: Date(), lastEpisodeNumber: nil)
         ]
 
         // Refresh
@@ -272,7 +285,8 @@ struct LibraryViewModelTests {
 
         // Add anime to mock service
         mockSubscription.subscribedAnime = [
-            SubscribedAnime(id: 1, title: "New Subscription", coverURL: nil, subscribedAt: Date())
+            SubscribedAnime(id: "1", title: "New Subscription", coverURL: nil, sourceId: "test-source",
+                            subscribedAt: Date())
         ]
 
         // Refresh
@@ -291,7 +305,7 @@ struct LibraryViewModelTests {
 
         // Add anime to mock service
         mockDownload.downloadedAnime = [
-            DownloadedAnime(id: 1,
+            DownloadedAnime(id: "1",
                             title: "New Download",
                             coverURL: nil,
                             sourceId: "test-source",
@@ -315,13 +329,13 @@ struct LibraryViewModelTests {
     func removeAllDownloads_removesAnimeFromList() {
         let mockDownload = MockDownloadService()
         mockDownload.downloadedAnime = [
-            DownloadedAnime(id: 1,
+            DownloadedAnime(id: "1",
                             title: "Anime 1",
                             coverURL: nil,
                             sourceId: "test-source",
                             sourceName: "Test Source",
                             episodes: []),
-            DownloadedAnime(id: 2,
+            DownloadedAnime(id: "2",
                             title: "Anime 2",
                             coverURL: nil,
                             sourceId: "test-source",
@@ -332,17 +346,17 @@ struct LibraryViewModelTests {
 
         #expect(sut.downloadedAnime.count == 2)
 
-        sut.removeAllDownloads(forAnimeId: 1)
+        sut.removeAllDownloads(forAnimeId: "1")
 
         #expect(sut.downloadedAnime.count == 1)
-        #expect(sut.downloadedAnime.first?.id == 2)
+        #expect(sut.downloadedAnime.first?.id == "2")
     }
 
     @Test("removeAllDownloads calls download service")
     func removeAllDownloads_callsDownloadService() {
         let mockDownload = MockDownloadService()
         mockDownload.downloadedAnime = [
-            DownloadedAnime(id: 1,
+            DownloadedAnime(id: "1",
                             title: "Anime 1",
                             coverURL: nil,
                             sourceId: "test-source",
@@ -351,7 +365,7 @@ struct LibraryViewModelTests {
         ]
         let sut = makeSUT(downloadService: mockDownload)
 
-        sut.removeAllDownloads(forAnimeId: 1)
+        sut.removeAllDownloads(forAnimeId: "1")
 
         // Verify service was called (mock removes from its own list)
         #expect(mockDownload.downloadedAnime.isEmpty)

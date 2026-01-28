@@ -104,41 +104,31 @@ final class LibraryViewModel {
         downloadedAnime.removeAll { $0.id == animeId }
     }
 
+    /// Returns the source name for a given source ID.
+    /// - Parameter sourceId: The source ID to look up.
+    /// - Returns: The source name, or nil if the source is not installed.
+    func sourceName(for sourceId: String) -> String? {
+        sourceManager.installedSources.first { $0.id == sourceId }?.info.name
+    }
+
 
     //#################################################################################
     // MARK: - Child ViewModel Factory Methods
     //#################################################################################
 
-    /// Creates an EpisodeListViewModel for a recent anime.
-    /// - Parameter anime: The recent anime to show episodes for.
-    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if no source is selected.
-    func makeEpisodeListViewModel(recentAnime anime: RecentAnime) -> EpisodeListViewModel? {
-        guard let sourceId = userPreferences.selectedSourceId else { return nil }
-        return EpisodeListViewModel(animeId: anime.id,
-                                    animeTitle: anime.title,
-                                    animeCoverURL: anime.coverURL,
-                                    sourceId: sourceId,
+    /// Creates an EpisodeListViewModel for any anime conforming to AnimeProtocol.
+    /// - Parameter anime: The anime to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if the source is not installed.
+    func makeEpisodeListViewModel(anime: some AnimeProtocol) -> EpisodeListViewModel? {
+        // Verify the source is still installed
+        guard sourceManager.installedSources.contains(where: { $0.id == anime.sourceId }) else {
+            return nil
+        }
+        return EpisodeListViewModel(anime: anime,
                                     sourceManager: sourceManager,
                                     watchProgressService: watchProgressService,
                                     subscriptionService: subscriptionService,
-                                    downloadService: downloadService,
-                                    userPreferences: userPreferences)
-    }
-
-    /// Creates an EpisodeListViewModel for a subscribed anime.
-    /// - Parameter anime: The subscribed anime to show episodes for.
-    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if no source is selected.
-    func makeEpisodeListViewModel(subscribedAnime anime: SubscribedAnime) -> EpisodeListViewModel? {
-        guard let sourceId = userPreferences.selectedSourceId else { return nil }
-        return EpisodeListViewModel(animeId: anime.id,
-                                    animeTitle: anime.title,
-                                    animeCoverURL: anime.coverURL,
-                                    sourceId: sourceId,
-                                    sourceManager: sourceManager,
-                                    watchProgressService: watchProgressService,
-                                    subscriptionService: subscriptionService,
-                                    downloadService: downloadService,
-                                    userPreferences: userPreferences)
+                                    downloadService: downloadService)
     }
 
     /// Creates an EpisodeListViewModel for a downloaded anime.
@@ -146,7 +136,9 @@ final class LibraryViewModel {
     /// - Returns: A new `EpisodeListViewModel` for the downloaded anime.
     func makeEpisodeListViewModel(downloadedAnime anime: DownloadedAnime) -> EpisodeListViewModel {
         EpisodeListViewModel(downloadedAnime: anime,
+                             sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
+                             subscriptionService: subscriptionService,
                              downloadService: downloadService)
     }
 }

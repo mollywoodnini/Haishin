@@ -52,6 +52,7 @@ struct SubscribedListView: View {
                 List {
                     ForEach(viewModel.subscribedAnime) { anime in
                         AnimeRowButton(mode: .subscribed(anime),
+                                       sourceName: viewModel.sourceName(for: anime.sourceId),
                                        item: anime) { tappedAnime = $0 }
                     }
                     .onDelete { indexSet in
@@ -71,6 +72,20 @@ struct SubscribedListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.refresh()
+        }
+        .onChange(of: tappedAnime) { _, newValue in
+            guard let anime = newValue else { return }
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(anime: anime) {
+                selectedViewModel = episodeViewModel
+            } else {
+                showNoSourceAlert = true
+            }
+            tappedAnime = nil
+        }
+        .alert("Source Not Available", isPresented: $showNoSourceAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The source used for this subscription is no longer installed. Please reinstall the source or subscribe again with a different source.")
         }
     }
 }

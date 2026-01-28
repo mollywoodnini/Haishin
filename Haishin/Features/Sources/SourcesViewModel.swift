@@ -134,12 +134,6 @@ final class SourcesViewModel {
         }
     }
 
-    /// Selects a source as the active source.
-    /// - Parameter source: The source to select.
-    func selectSource(_ source: InstalledSource) {
-        sourceManager.selectSource(sourceId: source.id)
-    }
-
     /// Checks if a source is already installed.
     /// - Parameter source: The source to check.
     /// - Returns: Whether the source is installed.

@@ -395,6 +395,7 @@ final class VideoPlayerViewModel {
         watchProgressService.updateRecentAnime(id: animeId,
                                                title: animeTitle,
                                                coverURL: animeCoverURL,
+                                               sourceId: sourceId,
                                                episodeNumber: episode.number)
 
         Log.debug(.playback, "Saved progress: \(Int(self.currentProgress * 100))% for '\(self.animeTitle)'")

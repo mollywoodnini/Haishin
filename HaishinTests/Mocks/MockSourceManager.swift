@@ -66,12 +66,6 @@ final class MockSourceManager: SourceManaging {
     /// Source IDs passed to uninstallSource.
     var uninstalledSourceIds: [String] = []
 
-    /// Number of times selectSource was called.
-    var selectSourceCallCount = 0
-
-    /// Source IDs passed to selectSource.
-    var selectedSourceIds: [String] = []
-
     /// Number of times getPopular was called.
     var getPopularCallCount = 0
 
@@ -117,15 +111,6 @@ final class MockSourceManager: SourceManaging {
         uninstallSourceCallCount += 1
         uninstalledSourceIds.append(sourceId)
         installedSources.removeAll { $0.id == sourceId }
-    }
-
-    func selectSource(sourceId: String) {
-        selectSourceCallCount += 1
-        selectedSourceIds.append(sourceId)
-        // Update isEnabled on all sources
-        for index in installedSources.indices {
-            installedSources[index].isEnabled = (installedSources[index].id == sourceId)
-        }
     }
 
     func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
@@ -180,8 +165,6 @@ final class MockUserPreferences: UserPreferencesProtocol {
     //#################################################################################
 
     var appearance: AppearanceMode = .system
-    var selectedSourceId: String?
-    var showNSFW: Bool = false
 
 
     //#################################################################################
@@ -198,8 +181,6 @@ final class MockUserPreferences: UserPreferencesProtocol {
     func clearAll() {
         clearAllCallCount += 1
         appearance = .system
-        selectedSourceId = nil
-        showNSFW = false
     }
 }
 
@@ -239,7 +220,7 @@ final class MockDownloadService: DownloadServiceProtocol {
         setSourceManagerCallCount += 1
     }
 
-    func startDownload(animeId: Int,
+    func startDownload(animeId: String,
                        animeTitle: String,
                        animeCoverURL: URL?,
                        episodeId: String,
@@ -263,71 +244,12 @@ final class MockDownloadService: DownloadServiceProtocol {
         nil
     }
 
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode] {
+    func getDownloads(forAnimeId animeId: String) -> [DownloadedEpisode] {
         downloadedAnime.first { $0.id == animeId }?.episodes ?? []
     }
 
-    func removeAllDownloads(forAnimeId animeId: Int) {
+    func removeAllDownloads(forAnimeId animeId: String) {
         downloadedAnime.removeAll { $0.id == animeId }
-    }
-}
-
-
-//#################################################################################
-// MARK: - MockAniListService
-//#################################################################################
-
-/// Mock implementation of AniListServicing for testing.
-final class MockAniListService: AniListServicing, @unchecked Sendable {
-
-    //#################################################################################
-    // MARK: - Stub Configuration
-    //#################################################################################
-
-    nonisolated(unsafe) var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
-    nonisolated(unsafe) var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    nonisolated(unsafe) var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    nonisolated(unsafe) var fetchAnimeDetailsResult: Result<AniListAnimeDetail, Error> = .failure(MockError.notConfigured)
-
-
-    //#################################################################################
-    // MARK: - Call Tracking
-    //#################################################################################
-
-    nonisolated(unsafe) var fetchThisWeekCallCount = 0
-    nonisolated(unsafe) var fetchTrendingCallCount = 0
-    nonisolated(unsafe) var fetchTrendingPages: [Int] = []
-    nonisolated(unsafe) var fetchSeasonalCallCount = 0
-    nonisolated(unsafe) var fetchSeasonalPages: [Int] = []
-    nonisolated(unsafe) var fetchAnimeDetailsCallCount = 0
-    nonisolated(unsafe) var fetchAnimeDetailsIds: [Int] = []
-
-
-    //#################################################################################
-    // MARK: - AniListServicing Methods
-    //#################################################################################
-
-    func fetchThisWeek(showNSFW: Bool) async throws -> [RecommendingItem] {
-        fetchThisWeekCallCount += 1
-        return try fetchThisWeekResult.get()
-    }
-
-    func fetchTrending(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
-        fetchTrendingCallCount += 1
-        fetchTrendingPages.append(page)
-        return try fetchTrendingResult.get()
-    }
-
-    func fetchSeasonal(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
-        fetchSeasonalCallCount += 1
-        fetchSeasonalPages.append(page)
-        return try fetchSeasonalResult.get()
-    }
-
-    func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail {
-        fetchAnimeDetailsCallCount += 1
-        fetchAnimeDetailsIds.append(id)
-        return try fetchAnimeDetailsResult.get()
     }
 }
 
@@ -338,23 +260,6 @@ final class MockAniListService: AniListServicing, @unchecked Sendable {
 
 /// Factory for creating test data.
 enum TestFixtures {
-
-    /// Creates a sample RecommendingItem for testing.
-    static func makeRecommendingItem(id: String = "1",
-                                      title: String = "Test Anime",
-                                      anilistId: Int = 12345) -> RecommendingItem {
-        RecommendingItem(id: id,
-                         title: title,
-                         subtitle: "Studio Name",
-                         caption: "Ep. 1",
-                         isCaptionHighlighted: false,
-                         synopsis: "A test anime synopsis.",
-                         coverURL: URL(string: "https://example.com/cover.jpg"),
-                         anilistId: anilistId,
-                         airDate: nil,
-                         episodeNumber: 1,
-                         totalEpisodes: 12)
-    }
 
     /// Creates a sample AnimePreview for testing.
     static func makeAnimePreview(id: String = "1",
@@ -418,11 +323,9 @@ enum TestFixtures {
 
     /// Creates a sample InstalledSource for testing.
     static func makeInstalledSource(id: String = "test-source",
-                                     name: String = "Test Source",
-                                     isEnabled: Bool = true) -> InstalledSource {
+                                     name: String = "Test Source") -> InstalledSource {
         InstalledSource(info: makeSourceInfo(id: id, name: name),
                         scriptPath: URL(fileURLWithPath: "/tmp/\(id).js"),
-                        isEnabled: isEnabled,
                         installedAt: Date())
     }
 
@@ -457,44 +360,5 @@ enum TestFixtures {
                                  category: LibraryCategory = .watching) -> LibraryItem {
         LibraryItem(anime: anime ?? makeAnimePreview(),
                     category: category)
-    }
-
-    /// Creates a sample AniListAnimeDetail for testing.
-    static func makeAniListAnimeDetail(id: Int = 12345,
-                                        title: String = "Test Anime") -> AniListAnimeDetail {
-        AniListAnimeDetail(
-            id: id,
-            title: title,
-            romajiTitle: "Tesuto Anime",
-            nativeTitle: "テストアニメ",
-            englishTitle: title,
-            coverURL: URL(string: "https://example.com/cover.jpg"),
-            bannerURL: URL(string: "https://example.com/banner.jpg"),
-            synopsis: "A test anime synopsis for testing.",
-            genres: ["Action", "Comedy"],
-            averageScore: 85,
-            meanScore: 84,
-            popularity: 10000,
-            favourites: 500,
-            status: .releasing,
-            format: .tv,
-            episodes: 12,
-            duration: 24,
-            season: .winter,
-            seasonYear: 2026,
-            startDate: AniListDate(year: 2026, month: 1, day: 1),
-            endDate: nil,
-            source: "MANGA",
-            countryOfOrigin: "JP",
-            studios: [AniListStudio(id: 1, name: "Test Studio", isAnimationStudio: true)],
-            characters: [],
-            relations: [],
-            recommendations: [],
-            externalLinks: [],
-            trailer: nil,
-            tags: [],
-            nextAiringEpisode: nil,
-            siteUrl: URL(string: "https://anilist.co/anime/12345")
-        )
     }
 }

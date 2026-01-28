@@ -85,9 +85,6 @@ struct InstalledSource: Identifiable, Hashable {
     /// Path to the installed JavaScript file.
     let scriptPath: URL
 
-    /// Whether the source is currently enabled.
-    var isEnabled: Bool
-
     /// Date when the source was installed.
     let installedAt: Date
 }

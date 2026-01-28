@@ -16,7 +16,6 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     private let source: InstalledSource
-    private let onSelect: () -> Void
     private let onDelete: () -> Void
 
 
@@ -26,11 +25,9 @@ struct InstalledSourceRow: View {
 
     /// Creates a new installed source row.
     /// - Parameter source: The installed source to display.
-    /// - Parameter onSelect: Closure called when the row is tapped to select this source.
     /// - Parameter onDelete: Closure called when the delete action is triggered.
-    init(source: InstalledSource, onSelect: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(source: InstalledSource, onDelete: @escaping () -> Void) {
         self.source = source
-        self.onSelect = onSelect
         self.onDelete = onDelete
     }
 
@@ -40,18 +37,12 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     var body: some View {
-        Button {
-            onSelect()
-        } label: {
-            HStack(spacing: .spacingS) {
-                iconView
-                infoView
-                Spacer()
-                checkmarkView
-            }
-            .contentShape(Rectangle())
+        HStack(spacing: .spacingS) {
+            iconView
+            infoView
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 onDelete()
@@ -90,15 +81,6 @@ struct InstalledSourceRow: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var checkmarkView: some View {
-        if source.isEnabled {
-            Image(systemName: "checkmark")
-                .foregroundStyle(.tint)
-                .fontWeight(.semibold)
         }
     }
 }

@@ -24,6 +24,9 @@ struct SubscribedAnime: AnimeProtocol, Codable, Equatable {
     /// URL to the cover image.
     let coverURL: URL?
 
+    /// The source ID used to fetch episodes.
+    let sourceId: String
+
     /// Date when the user subscribed.
     var subscribedAt: Date
 }
@@ -40,7 +43,12 @@ protocol SubscriptionServiceProtocol {
     func getSubscribedAnime() -> [SubscribedAnime]
 
     /// Subscribes to an anime.
-    func subscribe(id: String, title: String, coverURL: URL?)
+    /// - Parameters:
+    ///   - id: The anime ID.
+    ///   - title: The anime title.
+    ///   - coverURL: The cover image URL.
+    ///   - sourceId: The source ID used to fetch episodes.
+    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String)
 
     /// Unsubscribes from an anime.
     func unsubscribe(id: String)
@@ -105,7 +113,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         loadAllSubscribed().sorted { $0.subscribedAt > $1.subscribedAt }
     }
 
-    func subscribe(id: String, title: String, coverURL: URL?) {
+    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String) {
         var allSubscribed = loadAllSubscribed()
 
         guard !allSubscribed.contains(where: { $0.id == id }) else { return }
@@ -113,6 +121,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         let newSubscription = SubscribedAnime(id: id,
                                               title: title,
                                               coverURL: coverURL,
+                                              sourceId: sourceId,
                                               subscribedAt: Date())
         allSubscribed.append(newSubscription)
         persistAllSubscribed(allSubscribed)

@@ -16,7 +16,6 @@ struct CreditsView: View {
 
     var body: some View {
         List {
-            apiSection
             librariesSection
         }
         .navigationTitle("Acknowledgments")
@@ -26,18 +25,6 @@ struct CreditsView: View {
     //#################################################################################
     // MARK: - Subviews
     //#################################################################################
-
-    private var apiSection: some View {
-        Section {
-            CreditRow(name: "AniList",
-                      description: "Anime database and tracking API",
-                      url: URL(string: "https://anilist.co"))
-        } header: {
-            Text("APIs")
-        } footer: {
-            Text("Haishin uses AniList for browsing anime, fetching metadata, and tracking your watch progress.")
-        }
-    }
 
     private var librariesSection: some View {
         Section {

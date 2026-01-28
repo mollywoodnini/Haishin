@@ -26,7 +26,6 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 appearanceSection
-                contentSection
                 syncSection
                 aboutSection
             }
@@ -48,16 +47,6 @@ struct SettingsView: View {
             }
         } header: {
             Text("Appearance")
-        }
-    }
-
-    private var contentSection: some View {
-        Section {
-            Toggle("Show NSFW sources", isOn: $userPreferences.showNSFW)
-        } header: {
-            Text("Content")
-        } footer: {
-            Text("NSFW (adult) content will be hidden when disabled.")
         }
     }
 
