@@ -2,7 +2,7 @@
 //  JSRuntime.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
@@ -106,7 +106,9 @@ actor JSRuntime {
         }
         
         // Store source under a unique global name to prevent overwrites
-        let uniqueName = "source_\(sourceId)"
+        // Sanitize sourceId: replace hyphens with underscores (hyphens are operators in JS)
+        let sanitizedId = sourceId.replacingOccurrences(of: "-", with: "_")
+        let uniqueName = "source_\(sanitizedId)"
         context.setObject(sourceObject, forKeyedSubscript: uniqueName as NSString)
         
         Log.debug(.sources, "Found source object: \(sourceObject)")
@@ -166,7 +168,9 @@ actor JSRuntime {
         let argsString = String(data: argsJson, encoding: .utf8) ?? "[]"
         
         // Use the unique source name to avoid conflicts between sources
-        let uniqueSourceName = "source_\(sourceId)"
+        // Sanitize sourceId: replace hyphens with underscores (hyphens are operators in JS)
+        let sanitizedId = sourceId.replacingOccurrences(of: "-", with: "_")
+        let uniqueSourceName = "source_\(sanitizedId)"
         
         // Replace "source." prefix with the unique source name
         let resolvedFunctionName = functionName.replacingOccurrences(of: "source.", with: "\(uniqueSourceName).")

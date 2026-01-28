@@ -2,7 +2,7 @@
 //  EpisodeRangeSectionView.swift
 //  Haishin
 //
-//  Created by Haishin on 25.01.26.
+//  Created by Tan Nghia La on 25.01.26.
 //
 
 import SwiftUI

@@ -2,7 +2,7 @@
 //  SourceManager.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
@@ -10,6 +10,16 @@ import Foundation
 /// Manages anime sources including installation, loading, and execution.
 @Observable
 final class SourceManager: SourceManaging {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let bundledSourcesInstalledKey = "bundledSourcesInstalled"
+        static let bundledSources = ["archiveorg-cartoons"]
+    }
+
 
     //#################################################################################
     // MARK: - Properties
@@ -71,6 +81,9 @@ final class SourceManager: SourceManaging {
 
         do {
             jsRuntime = try JSRuntime(networkClient: networkClient)
+
+            // Install bundled sources on first launch
+            installBundledSourcesIfNeeded()
 
             let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
                                                                    includingPropertiesForKeys: nil)
@@ -359,6 +372,47 @@ final class SourceManager: SourceManaging {
             try? fileManager.createDirectory(at: sourcesDirectory,
                                              withIntermediateDirectories: true)
         }
+    }
+
+    /// Installs bundled sources on first launch.
+    private func installBundledSourcesIfNeeded() {
+        let userDefaults = UserDefaults.standard
+
+        // Check if bundled sources have already been installed
+        guard !userDefaults.bool(forKey: Constants.bundledSourcesInstalledKey) else {
+            Log.debug(.sources, "Bundled sources already installed, skipping")
+            return
+        }
+
+        Log.info(.sources, "Installing bundled sources for first launch")
+
+        for sourceName in Constants.bundledSources {
+            // Check if source is already installed (user might have installed it manually)
+            let destinationPath = sourcesDirectory.appendingPathComponent("\(sourceName).js")
+            if fileManager.fileExists(atPath: destinationPath.path) {
+                Log.debug(.sources, "Source '\(sourceName)' already exists, skipping")
+                continue
+            }
+
+            // Find the bundled source in the app bundle
+            // Note: Xcode flattens resources to the bundle root, so we don't use subdirectory
+            guard let bundledURL = Bundle.main.url(forResource: sourceName,
+                                                   withExtension: "js") else {
+                Log.warning(.sources, "Bundled source '\(sourceName)' not found in bundle")
+                continue
+            }
+
+            // Copy to sources directory
+            do {
+                try fileManager.copyItem(at: bundledURL, to: destinationPath)
+                Log.info(.sources, "Installed bundled source: \(sourceName)")
+            } catch {
+                Log.error(.sources, "Failed to install bundled source '\(sourceName)': \(error)")
+            }
+        }
+
+        // Mark bundled sources as installed
+        userDefaults.set(true, forKey: Constants.bundledSourcesInstalledKey)
     }
 
     private func loadSource(from path: URL) async throws -> InstalledSource {

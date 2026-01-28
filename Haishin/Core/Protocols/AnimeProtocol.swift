@@ -2,7 +2,7 @@
 //  AnimeProtocol.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.28.
+//  Created by Tan Nghia La on 24.01.28.
 //
 
 import Foundation

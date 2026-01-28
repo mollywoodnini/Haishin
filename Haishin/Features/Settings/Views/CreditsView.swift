@@ -2,7 +2,7 @@
 //  CreditsView.swift
 //  Haishin
 //
-//  Created by Haishin on 26.01.26.
+//  Created by Tan Nghia La on 26.01.26.
 //
 
 import SwiftUI
