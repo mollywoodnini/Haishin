@@ -88,7 +88,7 @@ final class SourceManager: SourceManaging {
             let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
                                                                    includingPropertiesForKeys: nil)
                 .filter { $0.pathExtension == "js" }
-                // Sort so that files with proper names (e.g., "animeworld.js") come before
+                // Sort so that files with proper names (e.g., "archive.org") come before
                 // UUID-named files, ensuring we keep the correctly named one
                 .sorted { $0.lastPathComponent < $1.lastPathComponent }
 

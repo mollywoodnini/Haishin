@@ -74,7 +74,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     //#################################################################################
 
     private struct Constants {
-        static let storageKey = "subscribedAnime"
+        static let storageKey = "subscribedVideo"
     }
 
 

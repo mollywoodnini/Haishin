@@ -45,14 +45,14 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         static let syncEnabledKey = "iCloudSyncEnabled"
 
         // iCloud keys (prefixed to avoid conflicts)
-        static let subscribedAnimeKey = "sync_subscribedAnime"
+        static let subscribedVideoKey = "sync_subscribedVideo"
         static let watchProgressKey = "sync_watchProgress"
-        static let recentAnimeKey = "sync_recentAnime"
+        static let recentVideoKey = "sync_recentVideo"
 
         // Local UserDefaults keys (matching existing services)
-        static let localSubscribedAnimeKey = "subscribedAnime"
+        static let localSubscribedVideoKey = "subscribedVideo"
         static let localWatchProgressKey = "watchProgress"
-        static let localRecentAnimeKey = "recentAnime"
+        static let localRecentVideoKey = "recentVideo"
     }
 
 
@@ -116,8 +116,8 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
 
         // Sync subscribed videos
-        if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
-            cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
+        if let data = userDefaults.data(forKey: Constants.localSubscribedVideoKey) {
+            cloudStore.set(data, forKey: Constants.subscribedVideoKey)
             Log.debug(.sync, "Uploaded \(data.count) bytes of subscribed videos to cloud")
         } else {
             Log.debug(.sync, "No local subscribed video data to upload")
@@ -130,8 +130,8 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
 
         // Sync recent videos
-        if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
-            cloudStore.set(data, forKey: Constants.recentAnimeKey)
+        if let data = userDefaults.data(forKey: Constants.localRecentVideoKey) {
+            cloudStore.set(data, forKey: Constants.recentVideoKey)
             Log.debug(.sync, "Uploaded \(data.count) bytes of recent videos to cloud")
         }
 
@@ -165,16 +165,16 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         guard isCloudAvailable else { return }
 
         // Upload all local data to iCloud (overwrite)
-        if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
-            cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
+        if let data = userDefaults.data(forKey: Constants.localSubscribedVideoKey) {
+            cloudStore.set(data, forKey: Constants.subscribedVideoKey)
         }
 
         if let data = userDefaults.data(forKey: Constants.localWatchProgressKey) {
             cloudStore.set(data, forKey: Constants.watchProgressKey)
         }
 
-        if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
-            cloudStore.set(data, forKey: Constants.recentAnimeKey)
+        if let data = userDefaults.data(forKey: Constants.localRecentVideoKey) {
+            cloudStore.set(data, forKey: Constants.recentVideoKey)
         }
 
         cloudStore.synchronize()
@@ -223,7 +223,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
     }
 
     private func mergeSubscribedVideo() {
-        let cloudData = cloudStore.data(forKey: Constants.subscribedAnimeKey)
+        let cloudData = cloudStore.data(forKey: Constants.subscribedVideoKey)
         Log.debug(.sync, "Cloud subscribed video data: \(cloudData?.count ?? 0) bytes")
         
         guard let cloudData,
@@ -235,7 +235,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         Log.debug(.sync, "Found \(cloudItems.count) subscribed videos in cloud")
 
         var localItems: [SubscribedVideo] = []
-        if let localData = userDefaults.data(forKey: Constants.localSubscribedAnimeKey),
+        if let localData = userDefaults.data(forKey: Constants.localSubscribedVideoKey),
            let decoded = try? JSONDecoder().decode([SubscribedVideo].self, from: localData) {
             localItems = decoded
         }
@@ -261,7 +261,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         let merged = Array(mergedDict.values)
 
         if let encoded = try? JSONEncoder().encode(merged) {
-            userDefaults.set(encoded, forKey: Constants.localSubscribedAnimeKey)
+            userDefaults.set(encoded, forKey: Constants.localSubscribedVideoKey)
         }
     }
 
@@ -297,13 +297,13 @@ final class CloudSyncService: CloudSyncServiceProtocol {
     }
 
     private func mergeRecentVideo() {
-        guard let cloudData = cloudStore.data(forKey: Constants.recentAnimeKey),
+        guard let cloudData = cloudStore.data(forKey: Constants.recentVideoKey),
               let cloudItems = try? JSONDecoder().decode([RecentVideo].self, from: cloudData) else {
             return
         }
 
         var localItems: [RecentVideo] = []
-        if let localData = userDefaults.data(forKey: Constants.localRecentAnimeKey),
+        if let localData = userDefaults.data(forKey: Constants.localRecentVideoKey),
            let decoded = try? JSONDecoder().decode([RecentVideo].self, from: localData) {
             localItems = decoded
         }
@@ -329,7 +329,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         let merged = Array(mergedDict.values)
 
         if let encoded = try? JSONEncoder().encode(merged) {
-            userDefaults.set(encoded, forKey: Constants.localRecentAnimeKey)
+            userDefaults.set(encoded, forKey: Constants.localRecentVideoKey)
         }
     }
 }

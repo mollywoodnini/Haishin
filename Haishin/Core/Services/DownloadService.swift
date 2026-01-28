@@ -232,7 +232,7 @@ final class DownloadService: DownloadServiceProtocol {
 
     private struct Constants {
         static let episodesStorageKey = "downloadedEpisodes"
-        static let animeStorageKey = "downloadedVideoMetadata"
+        static let videoStorageKey = "downloadedVideoMetadata"
         static let downloadsDirectory = "Downloads"
     }
 
@@ -549,7 +549,7 @@ final class DownloadService: DownloadServiceProtocol {
         }
 
         // Load video metadata
-        if let videoData = userDefaults.data(forKey: Constants.animeStorageKey),
+        if let videoData = userDefaults.data(forKey: Constants.videoStorageKey),
            let decodedVideo = try? JSONDecoder().decode([DownloadedVideo].self, from: videoData) {
             // Restore videos with their episodes
             downloadedVideo = decodedVideo.compactMap { video in
@@ -585,7 +585,7 @@ final class DownloadService: DownloadServiceProtocol {
 
         // Save video metadata
         if let videoEncoded = try? JSONEncoder().encode(downloadedVideo) {
-            userDefaults.set(videoEncoded, forKey: Constants.animeStorageKey)
+            userDefaults.set(videoEncoded, forKey: Constants.videoStorageKey)
         }
     }
 }

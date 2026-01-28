@@ -208,14 +208,14 @@ var source = {
     /**
      * Get series details and all episodes
      */
-    async getVideoDetails(animeId, animeUrl) {
+    async getVideoDetails(videoId, videoUrl) {
         try {
             // The URL format is "series:Series Name" but may be URL-encoded
             // Decode it first to handle %20 -> space, etc.
-            const decodedUrl = decodeURIComponent(animeUrl);
+            const decodedUrl = decodeURIComponent(videoUrl);
             const seriesName = decodedUrl.startsWith('series:') 
                 ? decodedUrl.substring(7) 
-                : animeId.replace(/-/g, ' ');
+                : videoId.replace(/-/g, ' ');
             
             console.log(`Fetching series details: ${seriesName}`);
             
@@ -293,7 +293,7 @@ var source = {
             };
             
             return {
-                id: animeId,
+                id: videoId,
                 title: seriesName,
                 englishTitle: seriesName,
                 synopsis: this.cleanText(description),
@@ -307,7 +307,7 @@ var source = {
                 episodeRanges: {}
             };
         } catch (error) {
-            console.error('Get anime details error:', error);
+            console.error('Get video details error:', error);
             throw error;
         }
     },

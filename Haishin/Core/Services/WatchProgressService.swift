@@ -131,7 +131,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
 
     private struct Constants {
         static let storageKey = "watchProgress"
-        static let recentAnimeKey = "recentAnime"
+        static let recentVideoKey = "recentVideo"
     }
 
 
@@ -253,7 +253,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
     }
 
     private func loadAllRecentVideo() -> [RecentVideo] {
-        guard let data = userDefaults.data(forKey: Constants.recentAnimeKey),
+        guard let data = userDefaults.data(forKey: Constants.recentVideoKey),
               let decoded = try? JSONDecoder().decode([RecentVideo].self, from: data) else {
             return []
         }
@@ -262,7 +262,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
 
     private func persistAllRecentVideo(_ recentVideo: [RecentVideo]) {
         guard let encoded = try? JSONEncoder().encode(recentVideo) else { return }
-        userDefaults.set(encoded, forKey: Constants.recentAnimeKey)
+        userDefaults.set(encoded, forKey: Constants.recentVideoKey)
     }
 
     private func triggerCloudSync() {
