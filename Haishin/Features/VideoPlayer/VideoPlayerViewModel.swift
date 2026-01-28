@@ -11,7 +11,7 @@ import CoreMedia
 import Foundation
 import MediaPlayer
 
-/// ViewModel for managing video playback of anime episodes.
+/// ViewModel for managing video playback of episodes.
 @Observable
 @MainActor
 final class VideoPlayerViewModel {
@@ -32,14 +32,14 @@ final class VideoPlayerViewModel {
     /// The episode being played.
     let episode: Episode
 
-    /// The anime ID for progress tracking.
-    let animeId: String
+    /// The video ID for progress tracking.
+    let videoId: String
 
-    /// The anime title for recents tracking.
-    let animeTitle: String
+    /// The video title for recents tracking.
+    let videoTitle: String
 
-    /// The anime cover URL for recents tracking.
-    let animeCoverURL: URL?
+    /// The video cover URL for recents tracking.
+    let videoCoverURL: URL?
 
     /// The source ID to fetch streams from.
     let sourceId: String
@@ -102,25 +102,25 @@ final class VideoPlayerViewModel {
     /// Creates a new video player view model.
     /// - Parameters:
     ///   - episode: The episode to play.
-    ///   - animeId: The anime ID for progress tracking.
-    ///   - animeTitle: The anime title for recents tracking.
-    ///   - animeCoverURL: The anime cover URL for recents tracking.
+    ///   - videoId: The video ID for progress tracking.
+    ///   - videoTitle: The video title for recents tracking.
+    ///   - videoCoverURL: The video cover URL for recents tracking.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources (nil for offline mode).
     ///   - watchProgressService: The service for persisting watch progress.
     ///   - isOfflineMode: Whether this is playing a downloaded file.
     init(episode: Episode,
-         animeId: String,
-         animeTitle: String,
-         animeCoverURL: URL?,
+         videoId: String,
+         videoTitle: String,
+         videoCoverURL: URL?,
          sourceId: String,
          sourceManager: SourceManaging?,
          watchProgressService: WatchProgressServiceProtocol,
          isOfflineMode: Bool = false) {
         self.episode = episode
-        self.animeId = animeId
-        self.animeTitle = animeTitle
-        self.animeCoverURL = animeCoverURL
+        self.videoId = videoId
+        self.videoTitle = videoTitle
+        self.videoCoverURL = videoCoverURL
         self.sourceId = sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
@@ -144,7 +144,7 @@ final class VideoPlayerViewModel {
         Log.debug(.playback, "Loading streams for episode \(self.episode.number)")
 
         // Restore previous progress if available
-        if let savedProgress = watchProgressService.getProgress(animeId: animeId, episodeId: episode.id) {
+        if let savedProgress = watchProgressService.getProgress(videoId: videoId, episodeId: episode.id) {
             currentTime = savedProgress.currentTime
             duration = savedProgress.duration
             currentProgress = savedProgress.progress
@@ -382,7 +382,7 @@ final class VideoPlayerViewModel {
             return
         }
 
-        let progress = WatchProgress(animeId: animeId,
+        let progress = WatchProgress(videoId: videoId,
                                      episodeId: episode.id,
                                      episodeNumber: episode.number,
                                      currentTime: currentTime,
@@ -392,13 +392,13 @@ final class VideoPlayerViewModel {
         watchProgressService.saveProgress(progress)
 
         // Also update recents tracking
-        watchProgressService.updateRecentAnime(id: animeId,
-                                               title: animeTitle,
-                                               coverURL: animeCoverURL,
+        watchProgressService.updateRecentVideo(id: videoId,
+                                               title: videoTitle,
+                                               coverURL: videoCoverURL,
                                                sourceId: sourceId,
                                                episodeNumber: episode.number)
 
-        Log.debug(.playback, "Saved progress: \(Int(self.currentProgress * 100))% for '\(self.animeTitle)'")
+        Log.debug(.playback, "Saved progress: \(Int(self.currentProgress * 100))% for '\(self.videoTitle)'")
     }
 
     private func observePlayerItem(_ playerItem: AVPlayerItem) {
@@ -580,9 +580,9 @@ final class VideoPlayerViewModel {
         let episodeTitle = episode.title ?? "Episode \(episode.number)"
         nowPlayingInfo[MPMediaItemPropertyTitle] = episodeTitle
 
-        // Album/Artist: Anime title
-        nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = animeTitle
-        nowPlayingInfo[MPMediaItemPropertyArtist] = animeTitle
+        // Album/Artist: Video title
+        nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = videoTitle
+        nowPlayingInfo[MPMediaItemPropertyArtist] = videoTitle
 
         // Duration and current time
         nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
@@ -597,7 +597,7 @@ final class VideoPlayerViewModel {
         // Load artwork asynchronously
         loadNowPlayingArtwork()
 
-        Log.debug(.playback, "Now Playing info set: \(self.animeTitle) - \(episodeTitle)")
+        Log.debug(.playback, "Now Playing info set: \(self.videoTitle) - \(episodeTitle)")
         #endif
     }
 
@@ -605,7 +605,7 @@ final class VideoPlayerViewModel {
         #if os(iOS)
         nowPlayingArtworkTask?.cancel()
 
-        guard let coverURL = animeCoverURL else { return }
+        guard let coverURL = videoCoverURL else { return }
 
         nowPlayingArtworkTask = Task {
             do {

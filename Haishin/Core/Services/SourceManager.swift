@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Manages anime sources including installation, loading, and execution.
+/// Manages video sources including installation, loading, and execution.
 @Observable
 final class SourceManager: SourceManaging {
 
@@ -270,27 +270,27 @@ final class SourceManager: SourceManaging {
         }
     }
 
-    /// Gets the popular anime from a source.
+    /// Gets the popular videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
+    /// - Returns: List of video previews.
+    func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview] {
         // For JavaScript sources, getFeatured() maps to getPopular
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
         let featured = try await jsSource.getFeatured()
-        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
+        return featured.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Gets the latest anime from a source.
+    /// Gets the latest videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview] {
+    /// - Returns: List of video previews.
+    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview] {
         // For JavaScript sources, we use getFeatured() for both popular and latest
         // Individual sources can differentiate in their implementation
         guard let jsSource = jsSources[sourceId] else {
@@ -298,43 +298,43 @@ final class SourceManager: SourceManaging {
         }
         
         let featured = try await jsSource.getFeatured()
-        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
+        return featured.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Searches for anime in a source.
+    /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.
     ///   - query: Search query.
     ///   - page: Page number.
-    /// - Returns: List of matching anime previews.
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview] {
+    /// - Returns: List of matching video previews.
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
         let searchResult = try await jsSource.search(query: query, page: page)
-        return searchResult.results.map { convertToAnimePreview($0, sourceId: sourceId) }
+        return searchResult.results.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Gets full anime details.
+    /// Gets full video details.
     /// - Parameters:
     ///   - sourceId: The source.
-    ///   - url: The anime details URL.
-    /// - Returns: Full anime information.
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime {
+    ///   - url: The video details URL.
+    /// - Returns: Full video information.
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
-        guard let animeUrl = URL(string: url) else {
+        guard let videoUrl = URL(string: url) else {
             throw SourceError.invalidResponse
         }
         
-        // Extract anime ID from URL (typically the last path component)
-        let animeId = animeUrl.lastPathComponent
+        // Extract video ID from URL (typically the last path component)
+        let videoId = videoUrl.lastPathComponent
         
-        let details = try await jsSource.getAnimeDetails(animeId: animeId, animeUrl: animeUrl)
-        return try convertToAnime(details, sourceId: sourceId, detailsURL: url)
+        let details = try await jsSource.getVideoDetails(videoId: videoId, videoUrl: videoUrl)
+        return try convertToVideo(details, sourceId: sourceId, detailsURL: url)
     }
 
     /// Gets video sources for an episode.
@@ -353,7 +353,7 @@ final class SourceManager: SourceManaging {
         }
         
         // For now, use the first available server (in a real app, let user choose)
-        // We'll need to get anime details first to know available servers
+        // We'll need to get video details first to know available servers
         // For simplicity, we'll use "default" as server name
         let streams = try await jsSource.getEpisodeStreams(episodeId: episodeId,
                                                             episodeUrl: episodeUrl,
@@ -441,19 +441,19 @@ final class SourceManager: SourceManaging {
 
     // MARK: - Conversion Methods
     
-    /// Converts a JSAnimePreview to AnimePreview
-    private func convertToAnimePreview(_ jsPreview: JSAnimePreview, sourceId: String) -> AnimePreview {
-        return AnimePreview(id: jsPreview.id,
+    /// Converts a JSVideoPreview to VideoPreview
+    private func convertToVideoPreview(_ jsPreview: JSVideoPreview, sourceId: String) -> VideoPreview {
+        return VideoPreview(id: jsPreview.id,
                             title: jsPreview.title.decodingHTMLEntities(),
                             coverURL: URL(string: jsPreview.coverUrl),
                             sourceId: sourceId,
                             detailsURL: jsPreview.url)
     }
     
-    /// Converts JSAnimeDetails to Anime
-    private func convertToAnime(_ jsDetails: JSAnimeDetails,
+    /// Converts JSVideoDetails to Video
+    private func convertToVideo(_ jsDetails: JSVideoDetails,
                                 sourceId: String,
-                                detailsURL: String) throws -> Anime {
+                                detailsURL: String) throws -> Video {
         // Convert episodes from server-grouped to flat list
         // For now, use the first available server's episodes
         let episodes: [Episode]
@@ -492,7 +492,7 @@ final class SourceManager: SourceManaging {
             status = .unknown
         }
         
-        return Anime(id: jsDetails.id,
+        return Video(id: jsDetails.id,
                      title: jsDetails.title.decodingHTMLEntities(),
                      alternativeTitles: jsDetails.englishTitle.map { [$0.decodingHTMLEntities()] } ?? [],
                      coverURL: URL(string: jsDetails.coverUrl),

@@ -15,8 +15,8 @@ import Foundation
 /// Represents the watch progress for a specific episode.
 struct WatchProgress: Codable, Equatable {
 
-    /// The anime ID.
-    let animeId: String
+    /// The video ID.
+    let videoId: String
 
     /// The episode ID (from the source).
     let episodeId: String
@@ -47,30 +47,32 @@ struct WatchProgress: Codable, Equatable {
 
 
 //#################################################################################
-// MARK: - RecentAnime
+// MARK: - RecentVideo
 //#################################################################################
 
-/// Represents a recently watched anime with minimal info for display.
-struct RecentAnime: AnimeProtocol, Codable, Equatable {
+/// Represents a recently watched video with minimal info for display.
+struct RecentVideo: VideoProtocol, Codable, Equatable {
 
-    /// The anime ID.
+    /// The video ID.
     let id: String
 
-    /// The anime title.
+    /// The video title.
     let title: String
 
     /// URL to the cover image.
     let coverURL: URL?
 
-    /// The source ID used to fetch this anime.
+    /// The source ID used to fetch this video.
     let sourceId: String
 
-    /// Date when the anime was last watched.
+    /// Date when the video was last watched.
     var lastWatchedAt: Date
 
     /// The last watched episode number.
     var lastEpisodeNumber: String?
 }
+
+
 
 
 //#################################################################################
@@ -81,37 +83,37 @@ struct RecentAnime: AnimeProtocol, Codable, Equatable {
 @MainActor
 protocol WatchProgressServiceProtocol {
     /// Gets the watch progress for a specific episode.
-    func getProgress(animeId: String, episodeId: String) -> WatchProgress?
+    func getProgress(videoId: String, episodeId: String) -> WatchProgress?
 
-    /// Gets all watch progress for an anime.
-    func getAllProgress(animeId: String) -> [WatchProgress]
+    /// Gets all watch progress for a video.
+    func getAllProgress(videoId: String) -> [WatchProgress]
 
     /// Saves or updates watch progress for an episode.
     func saveProgress(_ progress: WatchProgress)
 
     /// Removes watch progress for a specific episode.
-    func removeProgress(animeId: String, episodeId: String)
+    func removeProgress(videoId: String, episodeId: String)
 
-    /// Clears all watch progress for an anime.
-    func clearAllProgress(animeId: String)
+    /// Clears all watch progress for a video.
+    func clearAllProgress(videoId: String)
 
-    /// Gets all recent anime sorted by last watched date.
-    func getRecentAnime() -> [RecentAnime]
+    /// Gets all recent videos sorted by last watched date.
+    func getRecentVideo() -> [RecentVideo]
 
-    /// Adds or updates a recent anime entry.
+    /// Adds or updates a recent video entry.
     /// - Parameters:
-    ///   - id: The anime ID.
-    ///   - title: The anime title.
+    ///   - id: The video ID.
+    ///   - title: The video title.
     ///   - coverURL: The cover image URL.
-    ///   - sourceId: The source ID used to fetch this anime.
+    ///   - sourceId: The source ID used to fetch this video.
     ///   - episodeNumber: The last watched episode number.
-    func updateRecentAnime(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?)
+    func updateRecentVideo(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?)
 
-    /// Gets the count of recent anime.
-    func getRecentAnimeCount() -> Int
+    /// Gets the count of recent videos.
+    func getRecentVideoCount() -> Int
 
-    /// Removes a recent anime entry.
-    func removeRecentAnime(id: String)
+    /// Removes a recent video entry.
+    func removeRecentVideo(id: String)
 }
 
 
@@ -158,53 +160,53 @@ final class WatchProgressService: WatchProgressServiceProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func getProgress(animeId: String, episodeId: String) -> WatchProgress? {
+    func getProgress(videoId: String, episodeId: String) -> WatchProgress? {
         let allProgress = loadAllProgress()
-        let key = makeKey(animeId: animeId, episodeId: episodeId)
+        let key = makeKey(videoId: videoId, episodeId: episodeId)
         return allProgress[key]
     }
 
-    func getAllProgress(animeId: String) -> [WatchProgress] {
+    func getAllProgress(videoId: String) -> [WatchProgress] {
         let allProgress = loadAllProgress()
-        return allProgress.values.filter { $0.animeId == animeId }
+        return allProgress.values.filter { $0.videoId == videoId }
     }
 
     func saveProgress(_ progress: WatchProgress) {
         var allProgress = loadAllProgress()
-        let key = makeKey(animeId: progress.animeId, episodeId: progress.episodeId)
+        let key = makeKey(videoId: progress.videoId, episodeId: progress.episodeId)
         allProgress[key] = progress
         persistAllProgress(allProgress)
         triggerCloudSync()
     }
 
-    func removeProgress(animeId: String, episodeId: String) {
+    func removeProgress(videoId: String, episodeId: String) {
         var allProgress = loadAllProgress()
-        let key = makeKey(animeId: animeId, episodeId: episodeId)
+        let key = makeKey(videoId: videoId, episodeId: episodeId)
         allProgress.removeValue(forKey: key)
         persistAllProgress(allProgress)
         triggerCloudSync()
     }
 
-    func clearAllProgress(animeId: String) {
+    func clearAllProgress(videoId: String) {
         var allProgress = loadAllProgress()
-        let keysToRemove = allProgress.keys.filter { $0.hasPrefix("\(animeId)_") }
+        let keysToRemove = allProgress.keys.filter { $0.hasPrefix("\(videoId)_") }
         keysToRemove.forEach { allProgress.removeValue(forKey: $0) }
         persistAllProgress(allProgress)
         triggerCloudSync()
     }
 
-    func getRecentAnime() -> [RecentAnime] {
-        loadAllRecentAnime().sorted { $0.lastWatchedAt > $1.lastWatchedAt }
+    func getRecentVideo() -> [RecentVideo] {
+        loadAllRecentVideo().sorted { $0.lastWatchedAt > $1.lastWatchedAt }
     }
 
-    func updateRecentAnime(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?) {
-        var allRecent = loadAllRecentAnime()
+    func updateRecentVideo(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?) {
+        var allRecent = loadAllRecentVideo()
 
         if let index = allRecent.firstIndex(where: { $0.id == id }) {
             allRecent[index].lastWatchedAt = Date()
             allRecent[index].lastEpisodeNumber = episodeNumber
         } else {
-            let newRecent = RecentAnime(id: id,
+            let newRecent = RecentVideo(id: id,
                                         title: title,
                                         coverURL: coverURL,
                                         sourceId: sourceId,
@@ -213,18 +215,18 @@ final class WatchProgressService: WatchProgressServiceProtocol {
             allRecent.append(newRecent)
         }
 
-        persistAllRecentAnime(allRecent)
+        persistAllRecentVideo(allRecent)
         triggerCloudSync()
     }
 
-    func getRecentAnimeCount() -> Int {
-        loadAllRecentAnime().count
+    func getRecentVideoCount() -> Int {
+        loadAllRecentVideo().count
     }
 
-    func removeRecentAnime(id: String) {
-        var allRecent = loadAllRecentAnime()
+    func removeRecentVideo(id: String) {
+        var allRecent = loadAllRecentVideo()
         allRecent.removeAll { $0.id == id }
-        persistAllRecentAnime(allRecent)
+        persistAllRecentVideo(allRecent)
         triggerCloudSync()
     }
 
@@ -233,8 +235,8 @@ final class WatchProgressService: WatchProgressServiceProtocol {
     // MARK: - Private Methods
     //#################################################################################
 
-    private func makeKey(animeId: String, episodeId: String) -> String {
-        "\(animeId)_\(episodeId)"
+    private func makeKey(videoId: String, episodeId: String) -> String {
+        "\(videoId)_\(episodeId)"
     }
 
     private func loadAllProgress() -> [String: WatchProgress] {
@@ -250,16 +252,16 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         userDefaults.set(encoded, forKey: Constants.storageKey)
     }
 
-    private func loadAllRecentAnime() -> [RecentAnime] {
+    private func loadAllRecentVideo() -> [RecentVideo] {
         guard let data = userDefaults.data(forKey: Constants.recentAnimeKey),
-              let decoded = try? JSONDecoder().decode([RecentAnime].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([RecentVideo].self, from: data) else {
             return []
         }
         return decoded
     }
 
-    private func persistAllRecentAnime(_ recentAnime: [RecentAnime]) {
-        guard let encoded = try? JSONEncoder().encode(recentAnime) else { return }
+    private func persistAllRecentVideo(_ recentVideo: [RecentVideo]) {
+        guard let encoded = try? JSONEncoder().encode(recentVideo) else { return }
         userDefaults.set(encoded, forKey: Constants.recentAnimeKey)
     }
 

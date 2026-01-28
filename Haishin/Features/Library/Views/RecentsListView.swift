@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - RecentsListView
 //#################################################################################
 
-/// A list view displaying recently watched anime.
+/// A list view displaying recently watched videos.
 struct RecentsListView: View {
 
     //#################################################################################
@@ -20,7 +20,7 @@ struct RecentsListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
-    @State private var tappedAnime: RecentAnime?
+    @State private var tappedVideo: RecentVideo?
     @State private var selectedViewModel: EpisodeListViewModel?
     @State private var showNoSourceAlert = false
 
@@ -42,23 +42,23 @@ struct RecentsListView: View {
 
     var body: some View {
         Group {
-            if viewModel.recentAnime.isEmpty {
+            if viewModel.recentVideo.isEmpty {
                 ContentUnavailableView {
-                    Label("No Recent Anime", systemImage: "clock")
+                    Label("No Recent Videos", systemImage: "clock")
                 } description: {
-                    Text("Anime you've started watching will appear here.")
+                    Text("Videos you've started watching will appear here.")
                 }
             } else {
                 List {
-                    ForEach(viewModel.recentAnime) { anime in
-                        AnimeRowButton(mode: .recent(anime),
-                                       sourceName: viewModel.sourceName(for: anime.sourceId),
-                                       item: anime) { tappedAnime = $0 }
+                    ForEach(viewModel.recentVideo) { video in
+                        VideoRowButton(mode: .recent(video),
+                                       sourceName: viewModel.sourceName(for: video.sourceId),
+                                       item: video) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let anime = viewModel.recentAnime[index]
-                            viewModel.removeRecentAnime(id: anime.id)
+                            let video = viewModel.recentVideo[index]
+                            viewModel.removeRecentVideo(id: video.id)
                         }
                     }
                 }
@@ -73,19 +73,19 @@ struct RecentsListView: View {
         .onAppear {
             viewModel.refresh()
         }
-        .onChange(of: tappedAnime) { _, newValue in
-            guard let anime = newValue else { return }
-            if let episodeViewModel = viewModel.makeEpisodeListViewModel(anime: anime) {
+        .onChange(of: tappedVideo) { _, newValue in
+            guard let video = newValue else { return }
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(video: video) {
                 selectedViewModel = episodeViewModel
             } else {
                 showNoSourceAlert = true
             }
-            tappedAnime = nil
+            tappedVideo = nil
         }
         .alert("Source Not Available", isPresented: $showNoSourceAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("The source used for this anime is no longer installed. Please reinstall the source.")
+            Text("The source used for this video is no longer installed. Please reinstall the source.")
         }
     }
 }

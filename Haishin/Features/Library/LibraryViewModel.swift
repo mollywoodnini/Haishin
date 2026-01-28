@@ -21,20 +21,20 @@ final class LibraryViewModel {
     // MARK: - Properties
     //#################################################################################
 
-    /// All recently watched anime.
-    private(set) var recentAnime: [RecentAnime] = []
+    /// All recently watched videos.
+    private(set) var recentVideo: [RecentVideo] = []
 
-    /// All subscribed anime.
-    private(set) var subscribedAnime: [SubscribedAnime] = []
+    /// All subscribed videos.
+    private(set) var subscribedVideo: [SubscribedVideo] = []
 
-    /// All downloaded anime.
-    private(set) var downloadedAnime: [DownloadedAnime] = []
+    /// All downloaded videos.
+    private(set) var downloadedVideo: [DownloadedVideo] = []
 
-    /// Count of recent anime.
-    var recentsCount: Int { recentAnime.count }
+    /// Count of recent videos.
+    var recentsCount: Int { recentVideo.count }
 
-    /// Count of subscribed anime.
-    var subscribedCount: Int { subscribedAnime.count }
+    /// Count of subscribed videos.
+    var subscribedCount: Int { subscribedVideo.count }
 
     /// Count of downloaded items.
     var downloadsCount: Int { downloadService.totalDownloadsCount }
@@ -57,7 +57,7 @@ final class LibraryViewModel {
     ///   - sourceManager: The source manager for episode fetching.
     ///   - downloadService: The service for managing downloads.
     ///   - userPreferences: The user preferences.
-    ///   - aniListService: The service to fetch anime details.
+    ///   - userPreferences: The user preferences.
     init(watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
@@ -78,30 +78,30 @@ final class LibraryViewModel {
 
     /// Refreshes all library data.
     func refresh() {
-        recentAnime = watchProgressService.getRecentAnime()
-        subscribedAnime = subscriptionService.getSubscribedAnime()
-        downloadedAnime = downloadService.downloadedAnime
+        recentVideo = watchProgressService.getRecentVideo()
+        subscribedVideo = subscriptionService.getSubscribedVideo()
+        downloadedVideo = downloadService.downloadedVideo
     }
 
-    /// Removes a recent anime from the list.
-    /// - Parameter id: The anime ID to remove.
-    func removeRecentAnime(id: String) {
-        watchProgressService.removeRecentAnime(id: id)
-        recentAnime.removeAll { $0.id == id }
+    /// Removes a recent video from the list.
+    /// - Parameter id: The video ID to remove.
+    func removeRecentVideo(id: String) {
+        watchProgressService.removeRecentVideo(id: id)
+        recentVideo.removeAll { $0.id == id }
     }
 
-    /// Unsubscribes from an anime.
-    /// - Parameter id: The anime ID to unsubscribe from.
+    /// Unsubscribes from a video.
+    /// - Parameter id: The video ID to unsubscribe from.
     func unsubscribe(id: String) {
         subscriptionService.unsubscribe(id: id)
-        subscribedAnime.removeAll { $0.id == id }
+        subscribedVideo.removeAll { $0.id == id }
     }
 
-    /// Removes all downloads for an anime.
-    /// - Parameter animeId: The anime ID to remove downloads for.
-    func removeAllDownloads(forAnimeId animeId: String) {
-        downloadService.removeAllDownloads(forAnimeId: animeId)
-        downloadedAnime.removeAll { $0.id == animeId }
+    /// Removes all downloads for a video.
+    /// - Parameter videoId: The video ID to remove downloads for.
+    func removeAllDownloads(forVideoId videoId: String) {
+        downloadService.removeAllDownloads(forVideoId: videoId)
+        downloadedVideo.removeAll { $0.id == videoId }
     }
 
     /// Returns the source name for a given source ID.
@@ -116,26 +116,26 @@ final class LibraryViewModel {
     // MARK: - Child ViewModel Factory Methods
     //#################################################################################
 
-    /// Creates an EpisodeListViewModel for any anime conforming to AnimeProtocol.
-    /// - Parameter anime: The anime to show episodes for.
-    /// - Returns: A new `EpisodeListViewModel` for the anime, or nil if the source is not installed.
-    func makeEpisodeListViewModel(anime: some AnimeProtocol) -> EpisodeListViewModel? {
+    /// Creates an EpisodeListViewModel for any video conforming to VideoProtocol.
+    /// - Parameter video: The video to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the video, or nil if the source is not installed.
+    func makeEpisodeListViewModel(video: some VideoProtocol) -> EpisodeListViewModel? {
         // Verify the source is still installed
-        guard sourceManager.installedSources.contains(where: { $0.id == anime.sourceId }) else {
+        guard sourceManager.installedSources.contains(where: { $0.id == video.sourceId }) else {
             return nil
         }
-        return EpisodeListViewModel(mode: .online(anime: anime, detailsURL: nil),
+        return EpisodeListViewModel(mode: .online(video: video, detailsURL: nil),
                                     sourceManager: sourceManager,
                                     watchProgressService: watchProgressService,
                                     subscriptionService: subscriptionService,
                                     downloadService: downloadService)
     }
 
-    /// Creates an EpisodeListViewModel for a downloaded anime.
-    /// - Parameter anime: The downloaded anime to show episodes for.
-    /// - Returns: A new `EpisodeListViewModel` for the downloaded anime.
-    func makeEpisodeListViewModel(downloadedAnime anime: DownloadedAnime) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .offline(anime),
+    /// Creates an EpisodeListViewModel for a downloaded video.
+    /// - Parameter video: The downloaded video to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the downloaded video.
+    func makeEpisodeListViewModel(downloadedVideo video: DownloadedVideo) -> EpisodeListViewModel {
+        EpisodeListViewModel(mode: .offline(video),
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              subscriptionService: subscriptionService,

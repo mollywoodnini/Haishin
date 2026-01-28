@@ -16,11 +16,11 @@ import Foundation
 enum EpisodeListMode {
     /// Online mode - fetches episodes from a source.
     /// - Parameters:
-    ///   - anime: The anime to display.
+    ///   - video: The video to display.
     ///   - detailsURL: Optional details URL for direct source navigation.
-    case online(anime: any AnimeProtocol, detailsURL: String?)
+    case online(video: any VideoProtocol, detailsURL: String?)
     /// Offline mode - displays downloaded episodes.
-    case offline(DownloadedAnime)
+    case offline(DownloadedVideo)
 
     /// Returns whether this is online mode.
     var isOnline: Bool {
@@ -67,8 +67,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The display mode for the episode list.
     let mode: EpisodeListMode
 
-    /// The matched anime from the source (online mode).
-    private(set) var sourceAnime: Anime?
+    /// The matched video from the source (online mode).
+    private(set) var sourceVideo: Video?
 
     /// Episodes converted from downloaded episodes (offline mode).
     private(set) var offlineEpisodes: [Episode] = []
@@ -79,7 +79,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The last error that occurred.
     private(set) var error: Error?
 
-    /// Whether the user is subscribed to this anime.
+    /// Whether the user is subscribed to this video.
     private(set) var isSubscribed = false
 
     /// Watch progress for each episode, keyed by episode ID.
@@ -114,12 +114,12 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         self.downloadService = downloadService
 
         switch mode {
-        case .online(let anime, _):
-            self.isSubscribed = subscriptionService.isSubscribed(id: anime.id)
+        case .online(let video, _):
+            self.isSubscribed = subscriptionService.isSubscribed(id: video.id)
 
-        case .offline(let downloadedAnime):
-            self.isSubscribed = subscriptionService.isSubscribed(id: downloadedAnime.id)
-            self.offlineEpisodes = downloadedAnime.episodes
+        case .offline(let downloadedVideo):
+            self.isSubscribed = subscriptionService.isSubscribed(id: downloadedVideo.id)
+            self.offlineEpisodes = downloadedVideo.episodes
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
                 .map { downloadedEpisode in
@@ -138,43 +138,43 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     // MARK: - Public Computed Properties
     //#################################################################################
 
-    /// The anime ID.
-    var animeId: String {
+    /// The video ID.
+    var videoId: String {
         switch mode {
-        case .online(let anime, _):
-            return anime.id
-        case .offline(let downloadedAnime):
-            return downloadedAnime.id
+        case .online(let video, _):
+            return video.id
+        case .offline(let downloadedVideo):
+            return downloadedVideo.id
         }
     }
 
-    /// The anime title.
-    var animeTitle: String {
+    /// The video title.
+    var videoTitle: String {
         switch mode {
-        case .online(let anime, _):
-            return anime.title
-        case .offline(let downloadedAnime):
-            return downloadedAnime.title
+        case .online(let video, _):
+            return video.title
+        case .offline(let downloadedVideo):
+            return downloadedVideo.title
         }
     }
 
-    /// The anime cover URL.
-    var animeCoverURL: URL? {
+    /// The video cover URL.
+    var videoCoverURL: URL? {
         switch mode {
-        case .online(let anime, _):
-            return anime.coverURL
-        case .offline(let downloadedAnime):
-            return downloadedAnime.coverURL
+        case .online(let video, _):
+            return video.coverURL
+        case .offline(let downloadedVideo):
+            return downloadedVideo.coverURL
         }
     }
 
-    /// The source ID for this anime.
+    /// The source ID for this video.
     var sourceId: String {
         switch mode {
-        case .online(let anime, _):
-            return anime.sourceId
-        case .offline(let downloadedAnime):
-            return downloadedAnime.sourceId
+        case .online(let video, _):
+            return video.sourceId
+        case .offline(let downloadedVideo):
+            return downloadedVideo.sourceId
         }
     }
 
@@ -187,7 +187,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     var episodes: [Episode] {
         switch mode {
         case .online:
-            return sourceAnime?.episodes ?? []
+            return sourceVideo?.episodes ?? []
         case .offline:
             return offlineEpisodes
         }
@@ -198,8 +198,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         switch mode {
         case .online:
             return sourceManager.installedSources.first { $0.id == sourceId }?.info.name
-        case .offline(let downloadedAnime):
-            return downloadedAnime.sourceName
+        case .offline(let downloadedVideo):
+            return downloadedVideo.sourceName
         }
     }
 
@@ -225,7 +225,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     /// Reloads watch progress from the service.
     func loadWatchProgress() {
-        let allProgress = watchProgressService.getAllProgress(animeId: animeId)
+        let allProgress = watchProgressService.getAllProgress(videoId: videoId)
         var progressMap: [String: WatchProgress] = [:]
         for progress in allProgress {
             progressMap[progress.episodeId] = progress
@@ -233,14 +233,14 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         watchProgressMap = progressMap
     }
 
-    /// Toggles the subscription status for this anime.
+    /// Toggles the subscription status for this video.
     func toggleSubscription() {
         if isSubscribed {
-            subscriptionService.unsubscribe(id: animeId)
+            subscriptionService.unsubscribe(id: videoId)
         } else {
-            subscriptionService.subscribe(id: animeId,
-                                          title: animeTitle,
-                                          coverURL: animeCoverURL,
+            subscriptionService.subscribe(id: videoId,
+                                          title: videoTitle,
+                                          coverURL: videoCoverURL,
                                           sourceId: sourceId)
         }
         
@@ -301,9 +301,9 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             return
         }
 
-        downloadService.startDownload(animeId: animeId,
-                                       animeTitle: animeTitle,
-                                       animeCoverURL: animeCoverURL,
+        downloadService.startDownload(videoId: videoId,
+                                       videoTitle: videoTitle,
+                                       videoCoverURL: videoCoverURL,
                                        episodeId: episode.id,
                                        episodeNumber: episode.number,
                                        episodeTitle: episode.title,
@@ -328,7 +328,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         offlineEpisodes.removeAll { $0.id == episodeId }
     }
 
-    /// Checks if the anime has any remaining downloaded episodes.
+    /// Checks if the video has any remaining downloaded episodes.
     var hasDownloadedEpisodes: Bool {
         !offlineEpisodes.isEmpty
     }
@@ -343,9 +343,9 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// - Returns: A new `VideoPlayerViewModel` for the episode.
     func makeVideoPlayerViewModel(episode: Episode) -> VideoPlayerViewModel {
         VideoPlayerViewModel(episode: episode,
-                             animeId: animeId,
-                             animeTitle: animeTitle,
-                             animeCoverURL: animeCoverURL,
+                             videoId: videoId,
+                             videoTitle: videoTitle,
+                             videoCoverURL: videoCoverURL,
                              sourceId: sourceId,
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
@@ -376,7 +376,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         guard case .online(_, let directDetailsURL) = mode else { return }
 
         // Skip if already loaded
-        guard sourceAnime == nil else {
+        guard sourceVideo == nil else {
             // Just reload watch progress in case it changed
             loadWatchProgress()
             return
@@ -395,7 +395,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         do {
             let detailsURL: String
             
-            // If we have a direct details URL from AnimePreview, use it
+            // If we have a direct details URL from VideoPreview, use it
             if let directURL = directDetailsURL {
                 detailsURL = directURL
             } else {
@@ -403,7 +403,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 let searchQueries = generateSearchQueries()
 
                 // Try each query until we find results
-                var searchResults: [AnimePreview] = []
+                var searchResults: [VideoPreview] = []
                 var bestQuery = ""
 
                 for query in searchQueries {
@@ -420,7 +420,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
                 // Find the best matching result using title similarity
                 guard let bestMatch = findBestMatch(in: searchResults, for: bestQuery) else {
-                    error = EpisodesError.animeNotFound
+                    error = EpisodesError.videoNotFound
                     isLoading = false
                     return
                 }
@@ -428,10 +428,10 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 detailsURL = bestMatch.detailsURL
             }
 
-            // Fetch full anime details with episodes
-            let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
+            // Fetch full video details with episodes
+            let video = try await sourceManager.getVideoDetails(sourceId: sourceId,
                                                                 url: detailsURL)
-            sourceAnime = anime
+            sourceVideo = video
             loadWatchProgress()
             isLoading = false
         } catch {
@@ -442,8 +442,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     private func loadOfflineEpisodes() {
         // Refresh from download service in case of updates
-        if let currentDownloadedAnime = downloadService.downloadedAnime.first(where: { $0.id == animeId }) {
-            offlineEpisodes = currentDownloadedAnime.episodes
+        if let currentDownloadedVideo = downloadService.downloadedVideo.first(where: { $0.id == videoId }) {
+            offlineEpisodes = currentDownloadedVideo.episodes
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
                 .map { downloadedEpisode in
@@ -463,17 +463,17 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     private func generateSearchQueries() -> [String] {
         var queries: [String] = []
         
-        // Use the stored animeTitle
-        queries.append(animeTitle)
+        // Use the stored videoTitle
+        queries.append(videoTitle)
 
         // Try season and part variations on the title
-        let seasonVariation = removeSeasonKeyword(from: animeTitle)
-        if seasonVariation != animeTitle {
+        let seasonVariation = removeSeasonKeyword(from: videoTitle)
+        if seasonVariation != videoTitle {
             queries.append(seasonVariation)
         }
 
-        let partVariation = removePartKeyword(from: animeTitle)
-        if partVariation != animeTitle && !queries.contains(partVariation) {
+        let partVariation = removePartKeyword(from: videoTitle)
+        if partVariation != videoTitle && !queries.contains(partVariation) {
             queries.append(partVariation)
         }
 
@@ -512,12 +512,12 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         return modifiedTitle
     }
 
-    /// Finds the best matching anime from search results using title similarity.
+    /// Finds the best matching video from search results using title similarity.
     /// - Parameters:
     ///   - results: The search results to search through.
     ///   - query: The original search query.
-    /// - Returns: The best matching AnimePreview, or nil if no results.
-    private func findBestMatch(in results: [AnimePreview], for query: String) -> AnimePreview? {
+    /// - Returns: The best matching VideoPreview, or nil if no results.
+    private func findBestMatch(in results: [VideoPreview], for query: String) -> VideoPreview? {
         guard !results.isEmpty else { return nil }
 
         // If only one result, return it
@@ -526,7 +526,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         }
 
         // Calculate similarity scores for each result
-        let scoredResults = results.map { result -> (preview: AnimePreview, score: Double) in
+        let scoredResults = results.map { result -> (preview: VideoPreview, score: Double) in
             let score = query.similarityScore(to: result.title)
             return (result, score)
         }
@@ -548,13 +548,13 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 //#################################################################################
 
 enum EpisodesError: LocalizedError {
-    case animeNotFound
+    case videoNotFound
     case sourceNotFoundHint
 
     var errorDescription: String? {
         switch self {
-        case .animeNotFound:
-            return "Could not find this anime on the selected source."
+        case .videoNotFound:
+            return "Could not find this video on the selected source."
         case .sourceNotFoundHint:
             return "The selected source is no longer installed. Please select a different source or reinstall it."
         }

@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - SubscribedListView
 //#################################################################################
 
-/// A list view displaying subscribed anime.
+/// A list view displaying subscribed videos.
 struct SubscribedListView: View {
 
     //#################################################################################
@@ -20,7 +20,7 @@ struct SubscribedListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
-    @State private var tappedAnime: SubscribedAnime?
+    @State private var tappedVideo: SubscribedVideo?
     @State private var selectedViewModel: EpisodeListViewModel?
     @State private var showNoSourceAlert = false
 
@@ -42,23 +42,23 @@ struct SubscribedListView: View {
 
     var body: some View {
         Group {
-            if viewModel.subscribedAnime.isEmpty {
+            if viewModel.subscribedVideo.isEmpty {
                 ContentUnavailableView {
                     Label("No Subscriptions", systemImage: "bell")
                 } description: {
-                    Text("Anime you subscribe to will appear here.")
+                    Text("Videos you subscribe to will appear here.")
                 }
             } else {
                 List {
-                    ForEach(viewModel.subscribedAnime) { anime in
-                        AnimeRowButton(mode: .subscribed(anime),
-                                       sourceName: viewModel.sourceName(for: anime.sourceId),
-                                       item: anime) { tappedAnime = $0 }
+                    ForEach(viewModel.subscribedVideo) { video in
+                        VideoRowButton(mode: .subscribed(video),
+                                       sourceName: viewModel.sourceName(for: video.sourceId),
+                                       item: video) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let anime = viewModel.subscribedAnime[index]
-                            viewModel.unsubscribe(id: anime.id)
+                            let video = viewModel.subscribedVideo[index]
+                            viewModel.unsubscribe(id: video.id)
                         }
                     }
                 }
@@ -73,14 +73,14 @@ struct SubscribedListView: View {
         .onAppear {
             viewModel.refresh()
         }
-        .onChange(of: tappedAnime) { _, newValue in
-            guard let anime = newValue else { return }
-            if let episodeViewModel = viewModel.makeEpisodeListViewModel(anime: anime) {
+        .onChange(of: tappedVideo) { _, newValue in
+            guard let video = newValue else { return }
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(video: video) {
                 selectedViewModel = episodeViewModel
             } else {
                 showNoSourceAlert = true
             }
-            tappedAnime = nil
+            tappedVideo = nil
         }
         .alert("Source Not Available", isPresented: $showNoSourceAlert) {
             Button("OK", role: .cancel) { }

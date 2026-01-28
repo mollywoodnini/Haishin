@@ -13,7 +13,7 @@ import SwiftUI
 // MARK: - EpisodeListHeaderView
 //#################################################################################
 
-/// Header view displaying anime cover, title, and episode count.
+/// Header view displaying video cover, title, and episode count.
 struct EpisodeListHeaderView: View {
 
     //#################################################################################
@@ -32,7 +32,7 @@ struct EpisodeListHeaderView: View {
     //#################################################################################
 
     /// Creates a new episode list header view.
-    /// - Parameter title: The anime title.
+    /// - Parameter title: The video title.
     /// - Parameter sourceName: Optional source name to display below the title.
     /// - Parameter coverURL: The cover image URL.
     /// - Parameter subtitle: Optional subtitle (e.g., genres).
@@ -49,15 +49,15 @@ struct EpisodeListHeaderView: View {
         self.episodeCount = episodeCount
     }
 
-    /// Creates a new episode list header view from an Anime object.
-    /// - Parameter anime: The anime to display.
+    /// Creates a new episode list header view from a Video object.
+    /// - Parameter video: The video to display.
     /// - Parameter sourceName: Optional source name to display below the title.
-    init(anime: Anime, sourceName: String? = nil) {
-        self.title = anime.title
+    init(video: Video, sourceName: String? = nil) {
+        self.title = video.title
         self.sourceName = sourceName
-        self.coverURL = anime.coverURL
-        self.subtitle = anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", ")
-        self.episodeCount = anime.episodes.count
+        self.coverURL = video.coverURL
+        self.subtitle = video.genres.isEmpty ? nil : video.genres.joined(separator: ", ")
+        self.episodeCount = video.episodes.count
     }
 
 

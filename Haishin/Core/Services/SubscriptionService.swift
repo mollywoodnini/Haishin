@@ -9,16 +9,16 @@ import Foundation
 
 
 //#################################################################################
-// MARK: - SubscribedAnime
+// MARK: - SubscribedVideo
 //#################################################################################
 
-/// Represents an anime the user has subscribed to for updates.
-struct SubscribedAnime: AnimeProtocol, Codable, Equatable {
+/// Represents a video the user has subscribed to for updates.
+struct SubscribedVideo: VideoProtocol, Codable, Equatable {
 
-    /// The anime ID.
+    /// The video ID.
     let id: String
 
-    /// The anime title.
+    /// The video title.
     let title: String
 
     /// URL to the cover image.
@@ -39,24 +39,24 @@ struct SubscribedAnime: AnimeProtocol, Codable, Equatable {
 /// Protocol for subscription management.
 @MainActor
 protocol SubscriptionServiceProtocol {
-    /// Gets all subscribed anime sorted by subscription date.
-    func getSubscribedAnime() -> [SubscribedAnime]
+    /// Gets all subscribed videos sorted by subscription date.
+    func getSubscribedVideo() -> [SubscribedVideo]
 
-    /// Subscribes to an anime.
+    /// Subscribes to a video.
     /// - Parameters:
-    ///   - id: The anime ID.
-    ///   - title: The anime title.
+    ///   - id: The video ID.
+    ///   - title: The video title.
     ///   - coverURL: The cover image URL.
     ///   - sourceId: The source ID used to fetch episodes.
     func subscribe(id: String, title: String, coverURL: URL?, sourceId: String)
 
-    /// Unsubscribes from an anime.
+    /// Unsubscribes from a video.
     func unsubscribe(id: String)
 
-    /// Checks if an anime is subscribed.
+    /// Checks if a video is subscribed.
     func isSubscribed(id: String) -> Bool
 
-    /// Gets the count of subscribed anime.
+    /// Gets the count of subscribed videos.
     func getSubscribedCount() -> Int
 }
 
@@ -65,7 +65,7 @@ protocol SubscriptionServiceProtocol {
 // MARK: - SubscriptionService
 //#################################################################################
 
-/// Service for managing anime subscriptions using UserDefaults.
+/// Service for managing video subscriptions using UserDefaults.
 @MainActor
 final class SubscriptionService: SubscriptionServiceProtocol {
 
@@ -109,7 +109,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func getSubscribedAnime() -> [SubscribedAnime] {
+    func getSubscribedVideo() -> [SubscribedVideo] {
         loadAllSubscribed().sorted { $0.subscribedAt > $1.subscribedAt }
     }
 
@@ -118,7 +118,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
 
         guard !allSubscribed.contains(where: { $0.id == id }) else { return }
 
-        let newSubscription = SubscribedAnime(id: id,
+        let newSubscription = SubscribedVideo(id: id,
                                               title: title,
                                               coverURL: coverURL,
                                               sourceId: sourceId,
@@ -148,15 +148,15 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     // MARK: - Private Methods
     //#################################################################################
 
-    private func loadAllSubscribed() -> [SubscribedAnime] {
+    private func loadAllSubscribed() -> [SubscribedVideo] {
         guard let data = userDefaults.data(forKey: Constants.storageKey),
-              let decoded = try? JSONDecoder().decode([SubscribedAnime].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([SubscribedVideo].self, from: data) else {
             return []
         }
         return decoded
     }
 
-    private func persistAllSubscribed(_ subscribed: [SubscribedAnime]) {
+    private func persistAllSubscribed(_ subscribed: [SubscribedVideo]) {
         guard let encoded = try? JSONEncoder().encode(subscribed) else { return }
         userDefaults.set(encoded, forKey: Constants.storageKey)
     }

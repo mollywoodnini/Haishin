@@ -30,7 +30,7 @@ final class SourceSearchState: Identifiable {
     private(set) var isLoading: Bool = true
 
     /// The search results from this source.
-    private(set) var results: [AnimePreview] = []
+    private(set) var results: [VideoPreview] = []
 
     /// Error that occurred during search, if any.
     private(set) var error: Error?
@@ -59,7 +59,7 @@ final class SourceSearchState: Identifiable {
     /// Updates the state with search results.
     /// - Parameter results: The search results.
     @MainActor
-    func setResults(_ results: [AnimePreview]) {
+    func setResults(_ results: [VideoPreview]) {
         self.results = results
         self.isLoading = false
         self.error = nil
@@ -163,7 +163,7 @@ final class SearchViewModel {
     // MARK: - Public Methods
     //#################################################################################
 
-    /// Searches for anime matching the query.
+    /// Searches for videos matching the query.
     /// - Parameter query: The search query.
     @MainActor
     func search(query: String) {
@@ -190,12 +190,12 @@ final class SearchViewModel {
         }
     }
 
-    /// Creates an EpisodeListViewModel for the given anime preview.
-    /// - Parameter animePreview: The anime preview to show episodes for.
-    /// - Returns: A new `EpisodeListViewModel` for the anime.
+    /// Creates an EpisodeListViewModel for the given video preview.
+    /// - Parameter videoPreview: The video preview to show episodes for.
+    /// - Returns: A new `EpisodeListViewModel` for the video.
     @MainActor
-    func makeEpisodeListViewModel(for animePreview: AnimePreview) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .online(anime: animePreview, detailsURL: animePreview.detailsURL),
+    func makeEpisodeListViewModel(for videoPreview: VideoPreview) -> EpisodeListViewModel {
+        EpisodeListViewModel(mode: .online(video: videoPreview, detailsURL: videoPreview.detailsURL),
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              subscriptionService: subscriptionService,

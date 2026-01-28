@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The search view for finding anime across sources.
+/// The search view for finding videos across sources.
 struct SearchView: View {
 
     //#################################################################################
@@ -67,7 +67,7 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
-            .searchable(text: $searchText, prompt: "Search anime...")
+            .searchable(text: $searchText, prompt: "Search videos...")
             .searchFocused($isSearchFocused)
             .onChange(of: searchText) { _, newValue in
                 viewModel.search(query: newValue)
@@ -131,8 +131,8 @@ struct SearchView: View {
             }
             .padding(.vertical, .spacingS)
         }
-        .navigationDestination(for: AnimePreview.self) { anime in
-            EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(for: anime))
+        .navigationDestination(for: VideoPreview.self) { video in
+            EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(for: video))
         }
     }
 
@@ -197,9 +197,9 @@ struct SearchView: View {
     private func resultsCardsView(for state: SourceSearchState) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: .spacingS) {
-                ForEach(state.results) { anime in
-                    NavigationLink(value: anime) {
-                        AnimeCard(animePreview: anime, sizingMode: .fixed)
+                ForEach(state.results) { video in
+                    NavigationLink(value: video) {
+                        VideoCard(videoPreview: video, sizingMode: .fixed)
                     }
                     .buttonStyle(.plain)
                 }

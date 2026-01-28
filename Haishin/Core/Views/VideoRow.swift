@@ -1,5 +1,5 @@
 //
-//  AnimeRow.swift
+//  VideoRow.swift
 //  Haishin
 //
 //  Created by Tan Nghia La on 28.01.26.
@@ -10,17 +10,17 @@ import SwiftUI
 
 
 //#################################################################################
-// MARK: - AnimeListRowButton
+// MARK: - VideoRowButton
 //#################################################################################
 
-/// A button wrapper for `AnimeRow` with list row styling for swipe-to-delete lists.
-struct AnimeRowButton<T>: View {
+/// A button wrapper for `VideoRow` with list row styling for swipe-to-delete lists.
+struct VideoRowButton<T>: View {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    private let mode: AnimeRow.Mode
+    private let mode: VideoRow.Mode
     private let sourceName: String?
     private let item: T
     private let onTap: (T) -> Void
@@ -30,13 +30,13 @@ struct AnimeRowButton<T>: View {
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new `AnimeListRowButton`.
+    /// Creates a new `VideoRowButton`.
     /// - Parameters:
     ///   - mode: The display mode for the row.
     ///   - sourceName: Optional source name to display.
     ///   - item: The item associated with this row.
     ///   - onTap: Action to perform when tapped.
-    init(mode: AnimeRow.Mode, sourceName: String?, item: T, onTap: @escaping (T) -> Void) {
+    init(mode: VideoRow.Mode, sourceName: String?, item: T, onTap: @escaping (T) -> Void) {
         self.mode = mode
         self.sourceName = sourceName
         self.item = item
@@ -52,7 +52,7 @@ struct AnimeRowButton<T>: View {
         Button {
             onTap(item)
         } label: {
-            AnimeRow(mode: mode, sourceName: sourceName)
+            VideoRow(mode: mode, sourceName: sourceName)
         }
         .buttonStyle(.plain)
         .listRowInsets(EdgeInsets(top: .spacingXS,
@@ -66,11 +66,11 @@ struct AnimeRowButton<T>: View {
 
 
 //#################################################################################
-// MARK: - AnimeListRow
+// MARK: - VideoRow
 //#################################################################################
 
-/// A row showing an anime in the list view.
-struct AnimeRow: View {
+/// A row showing a video in the list view.
+struct VideoRow: View {
 
     //#################################################################################
     // MARK: - Types
@@ -78,12 +78,12 @@ struct AnimeRow: View {
 
     /// The display mode for the row with associated model data.
     enum Mode {
-        /// Recent anime display with last watched episode.
-        case recent(RecentAnime)
-        /// Subscribed anime display.
-        case subscribed(SubscribedAnime)
-        /// Downloaded anime display with episode count and progress.
-        case downloaded(DownloadedAnime)
+        /// Recent video display with last watched episode.
+        case recent(RecentVideo)
+        /// Subscribed video display.
+        case subscribed(SubscribedVideo)
+        /// Downloaded video display with episode count and progress.
+        case downloaded(DownloadedVideo)
     }
 
 
@@ -109,7 +109,7 @@ struct AnimeRow: View {
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new `AnimeListRow`.
+    /// Creates a new `VideoRow`.
     /// - Parameter mode: The display mode containing the model data.
     /// - Parameter sourceName: Optional source name to display.
     init(mode: Mode, sourceName: String? = nil) {
@@ -139,23 +139,23 @@ struct AnimeRow: View {
 
     private var coverURL: URL? {
         switch mode {
-        case .recent(let anime):
-            return anime.coverURL
-        case .subscribed(let anime):
-            return anime.coverURL
-        case .downloaded(let anime):
-            return anime.coverURL
+        case .recent(let video):
+            return video.coverURL
+        case .subscribed(let video):
+            return video.coverURL
+        case .downloaded(let video):
+            return video.coverURL
         }
     }
 
     private var title: String {
         switch mode {
-        case .recent(let anime):
-            return anime.title
-        case .subscribed(let anime):
-            return anime.title
-        case .downloaded(let anime):
-            return anime.title
+        case .recent(let video):
+            return video.title
+        case .subscribed(let video):
+            return video.title
+        case .downloaded(let video):
+            return video.title
         }
     }
 
@@ -193,8 +193,8 @@ struct AnimeRow: View {
     @ViewBuilder
     private var episodeBadge: some View {
         switch mode {
-        case .downloaded(let anime):
-            badgeText("\(anime.totalCount) ep")
+        case .downloaded(let video):
+            badgeText("\(video.totalCount) ep")
         case .recent, .subscribed:
             EmptyView()
         }
@@ -215,12 +215,12 @@ struct AnimeRow: View {
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             switch mode {
-            case .recent(let anime):
-                recentInfoContent(anime: anime)
+            case .recent(let video):
+                recentInfoContent(video: video)
             case .subscribed:
                 subscribedInfoContent
-            case .downloaded(let anime):
-                downloadedInfoContent(anime: anime)
+            case .downloaded(let video):
+                downloadedInfoContent(video: video)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -228,8 +228,8 @@ struct AnimeRow: View {
     }
 
     @ViewBuilder
-    private func recentInfoContent(anime: RecentAnime) -> some View {
-        Text(anime.title)
+    private func recentInfoContent(video: RecentVideo) -> some View {
+        Text(video.title)
             .font(.body)
             .fontWeight(.medium)
             .lineLimit(2)
@@ -240,7 +240,7 @@ struct AnimeRow: View {
                 .foregroundStyle(.secondary)
         }
 
-        if let episodeNumber = anime.lastEpisodeNumber {
+        if let episodeNumber = video.lastEpisodeNumber {
             Text("Episode \(episodeNumber)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -262,8 +262,8 @@ struct AnimeRow: View {
     }
 
     @ViewBuilder
-    private func downloadedInfoContent(anime: DownloadedAnime) -> some View {
-        Text(anime.title)
+    private func downloadedInfoContent(video: DownloadedVideo) -> some View {
+        Text(video.title)
             .font(.body)
             .fontWeight(.medium)
             .lineLimit(2)
@@ -274,17 +274,17 @@ struct AnimeRow: View {
                 .foregroundStyle(.secondary)
         }
 
-        Text(downloadStatusText(for: anime))
+        Text(downloadStatusText(for: video))
             .font(.caption)
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
 
-        if anime.inProgressCount > 0 {
+        if video.inProgressCount > 0 {
             HStack(spacing: .spacingXXS) {
-                ProgressView(value: anime.averageProgress)
+                ProgressView(value: video.averageProgress)
                     .frame(width: 60)
 
-                Text("\(Int(anime.averageProgress * 100))%")
+                Text("\(Int(video.averageProgress * 100))%")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -303,11 +303,11 @@ struct AnimeRow: View {
         return formatter.string(from: date)
     }
 
-    private func downloadStatusText(for anime: DownloadedAnime) -> String {
-        if anime.inProgressCount > 0 {
-            return "\(anime.inProgressCount) in progress"
+    private func downloadStatusText(for video: DownloadedVideo) -> String {
+        if video.inProgressCount > 0 {
+            return "\(video.inProgressCount) in progress"
         } else {
-            return "\(anime.completedCount) downloaded"
+            return "\(video.completedCount) downloaded"
         }
     }
 }

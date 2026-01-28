@@ -69,7 +69,7 @@ struct SearchViewModelTests {
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         // Given - Set some initial results
-        mockSourceManager.searchResult = .success([TestFixtures.makeAnimePreview()])
+        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
 
         // When
         sut.search(query: "")
@@ -100,8 +100,8 @@ struct SearchViewModelTests {
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
-        let expectedAnime = TestFixtures.makeAnimePreview(title: "Naruto")
-        mockSourceManager.searchResult = .success([expectedAnime])
+        let expectedVideo = TestFixtures.makeVideoPreview(title: "Naruto")
+        mockSourceManager.searchResult = .success([expectedVideo])
 
         // When
         sut.search(query: "Naruto")
@@ -128,7 +128,7 @@ struct SearchViewModelTests {
         let source2 = TestFixtures.makeInstalledSource(id: "source2", name: "B Source")
         let source3 = TestFixtures.makeInstalledSource(id: "source3", name: "C Source")
         mockSourceManager.installedSources = [source1, source2, source3]
-        mockSourceManager.searchResult = .success([TestFixtures.makeAnimePreview()])
+        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
 
         // When
         sut.search(query: "Test")
@@ -151,7 +151,7 @@ struct SearchViewModelTests {
         // Given
         let source = TestFixtures.makeInstalledSource()
         mockSourceManager.installedSources = [source]
-        mockSourceManager.searchResult = .success([TestFixtures.makeAnimePreview()])
+        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
 
         // When - Search with different queries
         sut.search(query: "first")

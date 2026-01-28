@@ -1,5 +1,5 @@
 //
-//  Anime.swift
+//  Video.swift
 //  Haishin
 //
 //  Created by Tan Nghia La on 24.01.26.
@@ -7,60 +7,60 @@
 
 import Foundation
 
-/// A lightweight reference to an anime, used for lists and navigation.
-struct AnimePreview: AnimeProtocol, Codable {
+/// A lightweight reference to a video, used for lists and navigation.
+struct VideoPreview: VideoProtocol, Codable {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    /// Unique identifier for the anime within a source.
+    /// Unique identifier for the video within a source.
     let id: String
 
-    /// Display title of the anime.
+    /// Display title of the video.
     let title: String
 
-    /// URL to the anime's cover/poster image.
+    /// URL to the video's cover/poster image.
     let coverURL: URL?
 
-    /// The source this anime belongs to.
+    /// The source this video belongs to.
     let sourceId: String
 
-    /// URL path to fetch full anime details.
+    /// URL path to fetch full video details.
     let detailsURL: String
 }
 
 
 //#################################################################################
-// MARK: - Anime
+// MARK: - Video
 //#################################################################################
 
-/// Full anime details including episodes and metadata.
-struct Anime: AnimeProtocol, Codable {
+/// Full video details including episodes and metadata.
+struct Video: VideoProtocol, Codable {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    /// Unique identifier for the anime within a source.
+    /// Unique identifier for the video within a source.
     let id: String
 
-    /// Display title of the anime.
+    /// Display title of the video.
     let title: String
 
     /// Alternative titles (e.g., Japanese, English, synonyms).
     let alternativeTitles: [String]
 
-    /// URL to the anime's cover/poster image.
+    /// URL to the video's cover/poster image.
     let coverURL: URL?
 
-    /// URL to the anime's banner image.
+    /// URL to the video's banner image.
     let bannerURL: URL?
 
-    /// Synopsis or description of the anime.
+    /// Synopsis or description of the video.
     let synopsis: String?
 
-    /// Genres associated with the anime.
+    /// Genres associated with the video.
     let genres: [String]
 
     /// Current airing status.
@@ -72,10 +72,10 @@ struct Anime: AnimeProtocol, Codable {
     /// Content rating (e.g., PG-13, R).
     let rating: String?
 
-    /// The source this anime belongs to.
+    /// The source this video belongs to.
     let sourceId: String
 
-    /// URL path used to fetch this anime's details.
+    /// URL path used to fetch this video's details.
     let detailsURL: String
 
     /// Available episodes (flat list for backward compatibility).
@@ -91,7 +91,7 @@ struct Anime: AnimeProtocol, Codable {
 // MARK: - EpisodeRange
 //#################################################################################
 
-/// A range of episodes for better organization of long-running anime.
+/// A range of episodes for better organization of long-running series.
 struct EpisodeRange: Identifiable, Hashable, Codable {
 
     /// Unique identifier for this range.
@@ -109,7 +109,7 @@ struct EpisodeRange: Identifiable, Hashable, Codable {
 // MARK: - AiringStatus
 //#################################################################################
 
-/// The airing status of an anime.
+/// The airing status of a video.
 enum AiringStatus: String, Codable, CaseIterable {
     case ongoing
     case completed

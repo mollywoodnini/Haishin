@@ -53,34 +53,34 @@ protocol SourceManaging: AnyObject {
     /// - Parameter sourceId: The source ID to uninstall.
     func uninstallSource(sourceId: String) throws
 
-    /// Gets the popular anime from a source.
+    /// Gets the popular videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview]
+    /// - Returns: List of video previews.
+    func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview]
 
-    /// Gets the latest anime from a source.
+    /// Gets the latest videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview]
+    /// - Returns: List of video previews.
+    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview]
 
-    /// Searches for anime in a source.
+    /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.
     ///   - query: Search query.
     ///   - page: Page number.
-    /// - Returns: List of matching anime previews.
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview]
+    /// - Returns: List of matching video previews.
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview]
 
-    /// Gets full anime details.
+    /// Gets full video details.
     /// - Parameters:
     ///   - sourceId: The source.
-    ///   - url: The anime details URL.
-    /// - Returns: Full anime information.
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime
+    ///   - url: The video details URL.
+    /// - Returns: Full video information.
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video
 
     /// Gets video sources for an episode.
     /// - Parameters:

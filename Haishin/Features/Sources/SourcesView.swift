@@ -8,7 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// View for managing anime sources.
+/// View for managing video sources.
 struct SourcesView: View {
 
     //#################################################################################

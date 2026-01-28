@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Metadata about an external anime source.
+/// Metadata about an external video source.
 struct SourceInfo: Identifiable, Hashable, Codable, Sendable {
 
     //#################################################################################

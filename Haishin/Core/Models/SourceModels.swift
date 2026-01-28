@@ -9,16 +9,16 @@ import Foundation
 
 
 //#################################################################################
-// MARK: - JSAnimePreview
+// MARK: - JSVideoPreview
 //#################################################################################
 
-/// A preview of an anime from a JavaScript source (used in search results and featured lists)
-struct JSAnimePreview: Codable, Identifiable, Sendable, Hashable {
+/// A preview of a video from a JavaScript source (used in search results and featured lists)
+struct JSVideoPreview: Codable, Identifiable, Sendable, Hashable {
     
-    /// Unique identifier for this anime
+    /// Unique identifier for this video
     let id: String
     
-    /// The anime title (original or preferred language)
+    /// The video title (original or preferred language)
     let title: String
     
     /// English title (if available)
@@ -27,10 +27,10 @@ struct JSAnimePreview: Codable, Identifiable, Sendable, Hashable {
     /// Cover/poster image URL
     let coverUrl: String
     
-    /// Full URL to the anime's page on the source website
+    /// Full URL to the video's page on the source website
     let url: String
     
-    /// Source that provided this anime
+    /// Source that provided this video
     let sourceId: String?
 }
 
@@ -42,8 +42,8 @@ struct JSAnimePreview: Codable, Identifiable, Sendable, Hashable {
 /// Result from a search operation on a JavaScript source
 nonisolated struct JSSearchResult: Codable, Sendable {
     
-    /// The anime found in this search
-    let results: [JSAnimePreview]
+    /// The videos found in this search
+    let results: [JSVideoPreview]
     
     /// Whether there are more pages available
     let hasNextPage: Bool
@@ -51,16 +51,16 @@ nonisolated struct JSSearchResult: Codable, Sendable {
 
 
 //#################################################################################
-// MARK: - JSAnimeDetails
+// MARK: - JSVideoDetails
 //#################################################################################
 
-/// Detailed information about an anime from a JavaScript source
-nonisolated struct JSAnimeDetails: Codable, Sendable {
+/// Detailed information about a video from a JavaScript source
+nonisolated struct JSVideoDetails: Codable, Sendable {
 
-    /// Unique identifier for this anime
+    /// Unique identifier for this video
     let id: String
 
-    /// The anime title (original or preferred language)
+    /// The video title (original or preferred language)
     let title: String
 
     /// English title (if available)
@@ -79,7 +79,7 @@ nonisolated struct JSAnimeDetails: Codable, Sendable {
     let releaseDate: String?
 
     /// Current status
-    let status: AnimeStatus
+    let status: VideoStatus
 
     /// Genres
     let genres: [String]
@@ -92,7 +92,7 @@ nonisolated struct JSAnimeDetails: Codable, Sendable {
     /// Key: server ID, Value: array of episodes
     let episodes: [String: [SourceEpisode]]
 
-    /// Episode ranges organized by server (for anime with many episodes)
+    /// Episode ranges organized by server (for videos with many episodes)
     /// Key: server ID, Value: array of episode ranges
     /// Optional - only present when source provides range information
     let episodeRanges: [String: [SourceEpisodeRange]]?
@@ -100,11 +100,11 @@ nonisolated struct JSAnimeDetails: Codable, Sendable {
 
 
 //#################################################################################
-// MARK: - AnimeStatus
+// MARK: - VideoStatus
 //#################################################################################
 
-/// The current airing status of an anime
-enum AnimeStatus: String, Codable, Sendable {
+/// The current airing status of a video
+enum VideoStatus: String, Codable, Sendable {
     case ongoing
     case completed
     case upcoming
@@ -134,7 +134,7 @@ struct SourceEpisodeRange: Codable, Identifiable, Sendable, Hashable {
 // MARK: - SourceEpisode
 //#################################################################################
 
-/// An anime episode from a JavaScript source
+/// A video episode from a JavaScript source
 struct SourceEpisode: Codable, Identifiable, Sendable, Hashable {
 
     /// Unique identifier for this episode

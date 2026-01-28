@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - LibraryView
 //#################################################################################
 
-/// The library view showing recents, subscribed anime, and downloads.
+/// The library view showing recents, subscribed videos, and downloads.
 struct LibraryView: View {
 
     //#################################################################################

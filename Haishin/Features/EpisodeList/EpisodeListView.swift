@@ -130,12 +130,12 @@ struct EpisodeListView: View {
     @ViewBuilder
     private var onlineModeContent: some View {
         ZStack {
-            if viewModel.isLoading && viewModel.sourceAnime == nil {
+            if viewModel.isLoading && viewModel.sourceVideo == nil {
                 loadingView
             } else if let error = viewModel.error {
                 errorView(error: error)
-            } else if let anime = viewModel.sourceAnime {
-                onlineEpisodesListView(anime: anime)
+            } else if let video = viewModel.sourceVideo {
+                onlineEpisodesListView(video: video)
             } else {
                 Color.clear
             }
@@ -233,34 +233,34 @@ struct EpisodeListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func onlineEpisodesListView(anime: Anime) -> some View {
-        let hasMultipleRanges = anime.episodeRanges.count > 1
+    private func onlineEpisodesListView(video: Video) -> some View {
+        let hasMultipleRanges = video.episodeRanges.count > 1
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 // Prefer AniList/preview cover URL, fallback to source cover if needed
-                EpisodeListHeaderView(title: anime.title,
+                EpisodeListHeaderView(title: video.title,
                                       sourceName: viewModel.sourceName,
-                                      coverURL: viewModel.animeCoverURL ?? anime.coverURL,
-                                      subtitle: anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", "),
-                                      episodeCount: anime.episodes.count)
+                                      coverURL: viewModel.videoCoverURL ?? video.coverURL,
+                                      subtitle: video.genres.isEmpty ? nil : video.genres.joined(separator: ", "),
+                                      episodeCount: video.episodes.count)
 
-                if let continueEpisode = viewModel.getContinueWatchingEpisode(from: anime.episodes) {
+                if let continueEpisode = viewModel.getContinueWatchingEpisode(from: video.episodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
                         playEpisode(continueEpisode)
                     }
                 }
 
                 if hasMultipleRanges {
-                    onlineEpisodeRangesView(ranges: anime.episodeRanges)
+                    onlineEpisodeRangesView(ranges: video.episodeRanges)
                 } else {
-                    onlineFlatEpisodesListView(episodes: anime.episodes)
+                    onlineFlatEpisodesListView(episodes: video.episodes)
                 }
             }
             .padding(.spacingS)
         }
         .onAppear {
-            if let firstRange = anime.episodeRanges.first {
+            if let firstRange = video.episodeRanges.first {
                 expandedRanges.insert(firstRange.id)
             }
         }
@@ -328,9 +328,9 @@ struct EpisodeListView: View {
     private var offlineEpisodesListView: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
-                EpisodeListHeaderView(title: viewModel.animeTitle,
+                EpisodeListHeaderView(title: viewModel.videoTitle,
                                       sourceName: viewModel.sourceName,
-                                      coverURL: viewModel.animeCoverURL,
+                                      coverURL: viewModel.videoCoverURL,
                                       subtitle: nil,
                                       episodeCount: viewModel.offlineEpisodes.count)
 

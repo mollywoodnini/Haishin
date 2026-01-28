@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Represents a JavaScript-based anime source.
+/// Represents a JavaScript-based video source.
 /// Wraps a JavaScript source script and provides Swift-friendly async methods.
 final actor JavaScriptSource {
     
@@ -49,11 +49,11 @@ final actor JavaScriptSource {
     // MARK: - Public Methods
     //#################################################################################
     
-    /// Searches for anime matching the query.
+    /// Searches for videos matching the query.
     /// - Parameters:
     ///   - query: The search query.
     ///   - page: The page number (1-indexed).
-    /// - Returns: Search results with anime previews.
+    /// - Returns: Search results with video previews.
     func search(query: String, page: Int = 1) async throws -> JSSearchResult {
         let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
                                                               functionName: "source.search",
@@ -66,21 +66,21 @@ final actor JavaScriptSource {
         return try JSONDecoder().decode(JSSearchResult.self, from: jsonData)
     }
     
-    /// Gets detailed information about an anime.
+    /// Gets detailed information about a video.
     /// - Parameters:
-    ///   - animeId: The anime's unique identifier.
-    ///   - animeUrl: Full URL to the anime's page on the source website.
-    /// - Returns: Detailed anime information including episodes.
-    func getAnimeDetails(animeId: String, animeUrl: URL) async throws -> JSAnimeDetails {
+    ///   - videoId: The video's unique identifier.
+    ///   - videoUrl: Full URL to the video's page on the source website.
+    /// - Returns: Detailed video information including episodes.
+    func getVideoDetails(videoId: String, videoUrl: URL) async throws -> JSVideoDetails {
         let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
                                                               functionName: "source.getAnimeDetails",
-                                                              arguments: [animeId, animeUrl.absoluteString])
+                                                              arguments: [videoId, videoUrl.absoluteString])
         
         guard let jsonData = jsonString.data(using: .utf8) else {
-            throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in anime details result")
+            throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in video details result")
         }
         
-        return try JSONDecoder().decode(JSAnimeDetails.self, from: jsonData)
+        return try JSONDecoder().decode(JSVideoDetails.self, from: jsonData)
     }
     
     /// Gets streaming information for an episode.
@@ -103,9 +103,9 @@ final actor JavaScriptSource {
         return try JSONDecoder().decode(JSEpisodeStream.self, from: jsonData)
     }
     
-    /// Gets featured/popular anime from the source.
-    /// - Returns: Array of featured anime previews.
-    func getFeatured() async throws -> [JSAnimePreview] {
+    /// Gets featured/popular videos from the source.
+    /// - Returns: Array of featured video previews.
+    func getFeatured() async throws -> [JSVideoPreview] {
         let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
                                                               functionName: "source.getFeatured",
                                                               arguments: [])
@@ -114,7 +114,7 @@ final actor JavaScriptSource {
             throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in featured result")
         }
         
-        return try JSONDecoder().decode([JSAnimePreview].self, from: jsonData)
+        return try JSONDecoder().decode([JSVideoPreview].self, from: jsonData)
     }
     
     /// Unloads this source from the runtime.

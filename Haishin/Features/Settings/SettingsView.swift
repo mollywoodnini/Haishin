@@ -58,7 +58,7 @@ struct SettingsView: View {
             Text("Sync")
         } footer: {
             if cloudSyncService.isCloudAvailable {
-                Text("Sync your subscriptions, watch progress, and recently watched anime across your devices.")
+                Text("Sync your subscriptions, watch progress, and recently watched videos across your devices.")
             } else {
                 Text("Sign in to iCloud in Settings to enable sync.")
             }

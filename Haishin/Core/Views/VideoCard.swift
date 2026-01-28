@@ -1,5 +1,5 @@
 //
-//  AnimeCard.swift
+//  VideoCard.swift
 //  Haishin
 //
 //  Created by Tan Nghia La on 24.01.26.
@@ -13,8 +13,8 @@ import Kingfisher
 // MARK: - SizingMode
 //#################################################################################
 
-/// Defines how a StandardAnimeCard should size itself.
-enum StandardAnimeCardSizingMode {
+/// Defines how a StandardVideoCard should size itself.
+enum StandardVideoCardSizingMode {
     /// Fixed width card, suitable for horizontal scroll sections.
     case fixed
     /// Flexible width card that fills available space, suitable for grids.
@@ -23,11 +23,11 @@ enum StandardAnimeCardSizingMode {
 
 
 //#################################################################################
-// MARK: - AnimeCard
+// MARK: - VideoCard
 //#################################################################################
 
-/// A standard anime card for horizontal sections showing cover and title.
-struct AnimeCard: View {
+/// A standard video card for horizontal sections showing cover and title.
+struct VideoCard: View {
 
     //#################################################################################
     // MARK: - Constants
@@ -49,20 +49,20 @@ struct AnimeCard: View {
     private let coverURL: URL?
     private let totalEpisodes: Int?
     private let subtitle: String?
-    private let sizingMode: StandardAnimeCardSizingMode
+    private let sizingMode: StandardVideoCardSizingMode
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new standard anime card from an anime preview.
+    /// Creates a new standard video card from a video preview.
     /// - Parameters:
-    ///   - animePreview: The anime preview to display.
+    ///   - videoPreview: The video preview to display.
     ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
-    init(animePreview: AnimePreview, sizingMode: StandardAnimeCardSizingMode = .fixed) {
-        self.title = animePreview.title
-        self.coverURL = animePreview.coverURL
+    init(videoPreview: VideoPreview, sizingMode: StandardVideoCardSizingMode = .fixed) {
+        self.title = videoPreview.title
+        self.coverURL = videoPreview.coverURL
         self.totalEpisodes = nil
         self.subtitle = nil
         self.sizingMode = sizingMode
@@ -148,7 +148,7 @@ struct AnimeCard: View {
 
 /// A view modifier that applies width constraints based on sizing mode.
 private struct CardWidthModifier: ViewModifier {
-    let sizingMode: StandardAnimeCardSizingMode
+    let sizingMode: StandardVideoCardSizingMode
     let width: CGFloat
 
     func body(content: Content) -> some View {
@@ -168,7 +168,7 @@ private struct CardWidthModifier: ViewModifier {
 
 /// A view modifier that applies image frame constraints based on sizing mode.
 private struct ImageFrameModifier: ViewModifier {
-    let sizingMode: StandardAnimeCardSizingMode
+    let sizingMode: StandardVideoCardSizingMode
     let fixedWidth: CGFloat
     let fixedHeight: CGFloat
     let aspectRatio: CGFloat

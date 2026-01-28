@@ -26,16 +26,16 @@ final class MockSourceManager: SourceManaging {
     //#################################################################################
 
     /// Stub for getPopular responses.
-    var getPopularResult: Result<[AnimePreview], Error> = .success([])
+    var getPopularResult: Result<[VideoPreview], Error> = .success([])
 
     /// Stub for getLatest responses.
-    var getLatestResult: Result<[AnimePreview], Error> = .success([])
+    var getLatestResult: Result<[VideoPreview], Error> = .success([])
 
     /// Stub for search responses.
-    var searchResult: Result<[AnimePreview], Error> = .success([])
+    var searchResult: Result<[VideoPreview], Error> = .success([])
 
-    /// Stub for getAnimeDetails responses.
-    var getAnimeDetailsResult: Result<Anime, Error> = .failure(MockError.notConfigured)
+    /// Stub for getVideoDetails responses.
+    var getVideoDetailsResult: Result<Video, Error> = .failure(MockError.notConfigured)
 
     /// Stub for getVideoSources responses.
     var getVideoSourcesResult: Result<PlaybackInfo, Error> = .failure(MockError.notConfigured)
@@ -78,8 +78,8 @@ final class MockSourceManager: SourceManaging {
     /// Queries passed to search.
     var searchQueries: [String] = []
 
-    /// Number of times getAnimeDetails was called.
-    var getAnimeDetailsCallCount = 0
+    /// Number of times getVideoDetails was called.
+    var getVideoDetailsCallCount = 0
 
     /// Number of times getVideoSources was called.
     var getVideoSourcesCallCount = 0
@@ -113,25 +113,25 @@ final class MockSourceManager: SourceManaging {
         installedSources.removeAll { $0.id == sourceId }
     }
 
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
+    func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview] {
         getPopularCallCount += 1
         return try getPopularResult.get()
     }
 
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview] {
+    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview] {
         getLatestCallCount += 1
         return try getLatestResult.get()
     }
 
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview] {
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {
         searchCallCount += 1
         searchQueries.append(query)
         return try searchResult.get()
     }
 
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime {
-        getAnimeDetailsCallCount += 1
-        return try getAnimeDetailsResult.get()
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video {
+        getVideoDetailsCallCount += 1
+        return try getVideoDetailsResult.get()
     }
 
     func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo {
@@ -197,9 +197,9 @@ final class MockDownloadService: DownloadServiceProtocol {
     // MARK: - Properties
     //#################################################################################
 
-    var downloadedAnime: [DownloadedAnime] = []
+    var downloadedVideo: [DownloadedVideo] = []
     var activeDownloads: [DownloadedEpisode] = []
-    var totalDownloadsCount: Int { downloadedAnime.flatMap(\.episodes).count }
+    var totalDownloadsCount: Int { downloadedVideo.flatMap(\.episodes).count }
 
 
     //#################################################################################
@@ -220,9 +220,9 @@ final class MockDownloadService: DownloadServiceProtocol {
         setSourceManagerCallCount += 1
     }
 
-    func startDownload(animeId: String,
-                       animeTitle: String,
-                       animeCoverURL: URL?,
+    func startDownload(videoId: String,
+                       videoTitle: String,
+                       videoCoverURL: URL?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -244,12 +244,12 @@ final class MockDownloadService: DownloadServiceProtocol {
         nil
     }
 
-    func getDownloads(forAnimeId animeId: String) -> [DownloadedEpisode] {
-        downloadedAnime.first { $0.id == animeId }?.episodes ?? []
+    func getDownloads(forVideoId videoId: String) -> [DownloadedEpisode] {
+        downloadedVideo.first { $0.id == videoId }?.episodes ?? []
     }
 
-    func removeAllDownloads(forAnimeId animeId: String) {
-        downloadedAnime.removeAll { $0.id == animeId }
+    func removeAllDownloads(forVideoId videoId: String) {
+        downloadedVideo.removeAll { $0.id == videoId }
     }
 }
 
@@ -261,31 +261,31 @@ final class MockDownloadService: DownloadServiceProtocol {
 /// Factory for creating test data.
 enum TestFixtures {
 
-    /// Creates a sample AnimePreview for testing.
-    static func makeAnimePreview(id: String = "1",
-                                  title: String = "Test Anime",
-                                  sourceId: String = "test-source") -> AnimePreview {
-        AnimePreview(id: id,
+    /// Creates a sample VideoPreview for testing.
+    static func makeVideoPreview(id: String = "1",
+                                  title: String = "Test Video",
+                                  sourceId: String = "test-source") -> VideoPreview {
+        VideoPreview(id: id,
                      title: title,
                      coverURL: nil,
                      sourceId: sourceId,
-                     detailsURL: "/anime/\(id)")
+                     detailsURL: "/video/\(id)")
     }
 
-    /// Creates a sample Anime for testing.
-    static func makeAnime(id: String = "1",
-                          title: String = "Test Anime",
-                          sourceId: String = "test-source") -> Anime {
+    /// Creates a sample Video for testing.
+    static func makeVideo(id: String = "1",
+                          title: String = "Test Video",
+                          sourceId: String = "test-source") -> Video {
         let episode = makeEpisode()
         let episodeRange = EpisodeRange(id: "range-1",
                                         title: "1 - 1",
                                         episodes: [episode])
-        return Anime(id: id,
+        return Video(id: id,
                      title: title,
                      alternativeTitles: [],
                      coverURL: nil,
                      bannerURL: nil,
-                     synopsis: "A test anime for unit testing.",
+                     synopsis: "A test video for unit testing.",
                      genres: ["Action", "Comedy"],
                      status: .ongoing,
                      year: 2024,
@@ -356,9 +356,9 @@ enum TestFixtures {
     }
 
     /// Creates a sample LibraryItem for testing.
-    static func makeLibraryItem(anime: AnimePreview? = nil,
+    static func makeLibraryItem(video: VideoPreview? = nil,
                                  category: LibraryCategory = .watching) -> LibraryItem {
-        LibraryItem(anime: anime ?? makeAnimePreview(),
+        LibraryItem(video: video ?? makeVideoPreview(),
                     category: category)
     }
 }

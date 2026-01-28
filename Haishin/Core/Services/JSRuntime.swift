@@ -9,7 +9,7 @@ import Foundation
 import JavaScriptCore
 import WebKit
 
-/// Manages JavaScript execution for anime sources.
+/// Manages JavaScript execution for video sources.
 /// Uses JavaScriptCore to run source scripts in a sandboxed environment.
 actor JSRuntime {
 

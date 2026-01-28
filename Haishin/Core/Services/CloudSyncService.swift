@@ -115,12 +115,12 @@ final class CloudSyncService: CloudSyncServiceProtocol {
             return
         }
 
-        // Sync subscribed anime
+        // Sync subscribed videos
         if let data = userDefaults.data(forKey: Constants.localSubscribedAnimeKey) {
             cloudStore.set(data, forKey: Constants.subscribedAnimeKey)
-            Log.debug(.sync, "Uploaded \(data.count) bytes of subscribed anime to cloud")
+            Log.debug(.sync, "Uploaded \(data.count) bytes of subscribed videos to cloud")
         } else {
-            Log.debug(.sync, "No local subscribed anime data to upload")
+            Log.debug(.sync, "No local subscribed video data to upload")
         }
 
         // Sync watch progress
@@ -129,10 +129,10 @@ final class CloudSyncService: CloudSyncServiceProtocol {
             Log.debug(.sync, "Uploaded \(data.count) bytes of watch progress to cloud")
         }
 
-        // Sync recent anime
+        // Sync recent videos
         if let data = userDefaults.data(forKey: Constants.localRecentAnimeKey) {
             cloudStore.set(data, forKey: Constants.recentAnimeKey)
-            Log.debug(.sync, "Uploaded \(data.count) bytes of recent anime to cloud")
+            Log.debug(.sync, "Uploaded \(data.count) bytes of recent videos to cloud")
         }
 
         let syncResult = cloudStore.synchronize()
@@ -149,14 +149,14 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         let syncResult = cloudStore.synchronize()
         Log.debug(.sync, "cloudStore.synchronize() result: \(syncResult)")
 
-        // Merge subscribed anime
-        mergeSubscribedAnime()
+        // Merge subscribed videos
+        mergeSubscribedVideo()
 
         // Merge watch progress
         mergeWatchProgress()
 
-        // Merge recent anime
-        mergeRecentAnime()
+        // Merge recent videos
+        mergeRecentVideo()
 
         Log.info(.sync, "Synced data from iCloud")
     }
@@ -222,26 +222,26 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
     }
 
-    private func mergeSubscribedAnime() {
+    private func mergeSubscribedVideo() {
         let cloudData = cloudStore.data(forKey: Constants.subscribedAnimeKey)
-        Log.debug(.sync, "Cloud subscribed anime data: \(cloudData?.count ?? 0) bytes")
+        Log.debug(.sync, "Cloud subscribed video data: \(cloudData?.count ?? 0) bytes")
         
         guard let cloudData,
-              let cloudItems = try? JSONDecoder().decode([SubscribedAnime].self, from: cloudData) else {
-            Log.debug(.sync, "No cloud subscribed anime data found or decode failed")
+              let cloudItems = try? JSONDecoder().decode([SubscribedVideo].self, from: cloudData) else {
+            Log.debug(.sync, "No cloud subscribed video data found or decode failed")
             return
         }
         
-        Log.debug(.sync, "Found \(cloudItems.count) subscribed anime in cloud")
+        Log.debug(.sync, "Found \(cloudItems.count) subscribed videos in cloud")
 
-        var localItems: [SubscribedAnime] = []
+        var localItems: [SubscribedVideo] = []
         if let localData = userDefaults.data(forKey: Constants.localSubscribedAnimeKey),
-           let decoded = try? JSONDecoder().decode([SubscribedAnime].self, from: localData) {
+           let decoded = try? JSONDecoder().decode([SubscribedVideo].self, from: localData) {
             localItems = decoded
         }
 
         // Merge: combine both lists, keep the one with the latest subscribedAt date for duplicates
-        var mergedDict: [String: SubscribedAnime] = [:]
+        var mergedDict: [String: SubscribedVideo] = [:]
 
         for item in localItems {
             mergedDict[item.id] = item
@@ -296,20 +296,20 @@ final class CloudSyncService: CloudSyncServiceProtocol {
         }
     }
 
-    private func mergeRecentAnime() {
+    private func mergeRecentVideo() {
         guard let cloudData = cloudStore.data(forKey: Constants.recentAnimeKey),
-              let cloudItems = try? JSONDecoder().decode([RecentAnime].self, from: cloudData) else {
+              let cloudItems = try? JSONDecoder().decode([RecentVideo].self, from: cloudData) else {
             return
         }
 
-        var localItems: [RecentAnime] = []
+        var localItems: [RecentVideo] = []
         if let localData = userDefaults.data(forKey: Constants.localRecentAnimeKey),
-           let decoded = try? JSONDecoder().decode([RecentAnime].self, from: localData) {
+           let decoded = try? JSONDecoder().decode([RecentVideo].self, from: localData) {
             localItems = decoded
         }
 
         // Merge: combine both lists, keep the one with the latest lastWatchedAt date for duplicates
-        var mergedDict: [String: RecentAnime] = [:]
+        var mergedDict: [String: RecentVideo] = [:]
 
         for item in localItems {
             mergedDict[item.id] = item

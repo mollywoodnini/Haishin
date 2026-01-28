@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// An anime saved to the user's library.
+/// A video saved to the user's library.
 struct LibraryItem: Identifiable, Hashable, Codable {
 
     //#################################################################################
@@ -17,10 +17,10 @@ struct LibraryItem: Identifiable, Hashable, Codable {
     /// Unique identifier.
     let id: UUID
 
-    /// The anime preview data.
-    let anime: AnimePreview
+    /// The video preview data.
+    let video: VideoPreview
 
-    /// Category/list the anime belongs to.
+    /// Category/list the video belongs to.
     var category: LibraryCategory
 
     /// Last episode number watched.
@@ -29,10 +29,10 @@ struct LibraryItem: Identifiable, Hashable, Codable {
     /// Progress through the last watched episode (0.0 to 1.0).
     var lastWatchedProgress: Double?
 
-    /// Date when the anime was added to library.
+    /// Date when the video was added to library.
     let addedAt: Date
 
-    /// Date when the anime was last watched.
+    /// Date when the video was last watched.
     var lastWatchedAt: Date?
 
 
@@ -42,11 +42,11 @@ struct LibraryItem: Identifiable, Hashable, Codable {
 
     /// Creates a new library item.
     /// - Parameters:
-    ///   - anime: The anime to add to the library.
+    ///   - video: The video to add to the library.
     ///   - category: The library category.
-    init(anime: AnimePreview, category: LibraryCategory = .watching) {
+    init(video: VideoPreview, category: LibraryCategory = .watching) {
         self.id = UUID()
-        self.anime = anime
+        self.video = video
         self.category = category
         self.lastWatchedEpisode = nil
         self.lastWatchedProgress = nil
@@ -60,7 +60,7 @@ struct LibraryItem: Identifiable, Hashable, Codable {
 // MARK: - LibraryCategory
 //#################################################################################
 
-/// Categories for organizing anime in the library.
+/// Categories for organizing videos in the library.
 enum LibraryCategory: String, Codable, CaseIterable, Identifiable {
     case watching
     case planToWatch

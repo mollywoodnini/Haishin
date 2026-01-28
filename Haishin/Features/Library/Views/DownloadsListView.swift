@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - DownloadsListView
 //#################################################################################
 
-/// A view displaying all downloaded anime and their episodes.
+/// A view displaying all downloaded videos and their episodes.
 struct DownloadsListView: View {
 
     //#################################################################################
@@ -20,7 +20,7 @@ struct DownloadsListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
-    @State private var tappedAnime: DownloadedAnime?
+    @State private var tappedVideo: DownloadedVideo?
 
 
     //#################################################################################
@@ -40,7 +40,7 @@ struct DownloadsListView: View {
 
     var body: some View {
         Group {
-            if viewModel.downloadedAnime.isEmpty {
+            if viewModel.downloadedVideo.isEmpty {
                 ContentUnavailableView {
                     Label("No Downloads", systemImage: "arrow.down.circle")
                 } description: {
@@ -48,20 +48,20 @@ struct DownloadsListView: View {
                 }
             } else {
                 List {
-                    ForEach(viewModel.downloadedAnime) { anime in
-                        AnimeRowButton(mode: .downloaded(anime),
-                                       sourceName: viewModel.sourceName(for: anime.sourceId),
-                                       item: anime) { tappedAnime = $0 }
+                    ForEach(viewModel.downloadedVideo) { video in
+                        VideoRowButton(mode: .downloaded(video),
+                                       sourceName: viewModel.sourceName(for: video.sourceId),
+                                       item: video) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let anime = viewModel.downloadedAnime[index]
-                            viewModel.removeAllDownloads(forAnimeId: anime.id)
+                            let video = viewModel.downloadedVideo[index]
+                            viewModel.removeAllDownloads(forVideoId: video.id)
                         }
                     }
                 }
-                .navigationDestination(item: $tappedAnime) { anime in
-                    EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(downloadedAnime: anime))
+                .navigationDestination(item: $tappedVideo) { video in
+                    EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(downloadedVideo: video))
                 }
                 .listStyle(.plain)
             }

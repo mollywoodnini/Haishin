@@ -7,14 +7,14 @@
 
 import Foundation
 
-/// Represents a single episode of an anime.
+/// Represents a single episode of a video series.
 struct Episode: Identifiable, Hashable, Codable {
 
     //#################################################################################
     // MARK: - Properties
     //#################################################################################
 
-    /// Unique identifier for the episode within the anime.
+    /// Unique identifier for the episode within the video series.
     let id: String
 
     /// Episode number (e.g., "1", "12.5", "OVA 1").
