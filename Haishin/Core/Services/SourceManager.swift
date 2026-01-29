@@ -402,13 +402,12 @@ final class SourceManager: SourceManaging {
     ///   - page: Page number.
     /// - Returns: List of video previews.
     func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview] {
-        // For JavaScript sources, getFeatured() maps to getPopular
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
-        let featured = try await jsSource.getFeatured()
-        return featured.map { convertToVideoPreview($0, sourceId: sourceId) }
+        let entryVideos = try await jsSource.getEntryVideos()
+        return entryVideos.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
     /// Searches for videos in a source.

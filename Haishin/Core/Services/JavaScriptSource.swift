@@ -103,15 +103,15 @@ final actor JavaScriptSource {
         return try JSONDecoder().decode(JSEpisodeStream.self, from: jsonData)
     }
     
-    /// Gets featured/popular videos from the source.
-    /// - Returns: Array of featured video previews.
-    func getFeatured() async throws -> [JSVideoPreview] {
+    /// Gets entry videos from the source (first glance of available content).
+    /// - Returns: Array of video previews.
+    func getEntryVideos() async throws -> [JSVideoPreview] {
         let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.getFeatured",
+                                                              functionName: "source.getEntryVideos",
                                                               arguments: [])
         
         guard let jsonData = jsonString.data(using: .utf8) else {
-            throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in featured result")
+            throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in entry videos result")
         }
         
         return try JSONDecoder().decode([JSVideoPreview].self, from: jsonData)
