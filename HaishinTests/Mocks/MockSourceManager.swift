@@ -17,6 +17,7 @@ final class MockSourceManager: SourceManaging {
 
     var installedSources: [InstalledSource] = []
     var repositories: [SourceRepository] = []
+    var availableUpdates: [String: SourceInfo] = [:]
     var isLoading = false
     var lastError: Error?
 
@@ -27,9 +28,6 @@ final class MockSourceManager: SourceManaging {
 
     /// Stub for getPopular responses.
     var getPopularResult: Result<[VideoPreview], Error> = .success([])
-
-    /// Stub for getLatest responses.
-    var getLatestResult: Result<[VideoPreview], Error> = .success([])
 
     /// Stub for search responses.
     var searchResult: Result<[VideoPreview], Error> = .success([])
@@ -69,9 +67,6 @@ final class MockSourceManager: SourceManaging {
     /// Number of times getPopular was called.
     var getPopularCallCount = 0
 
-    /// Number of times getLatest was called.
-    var getLatestCallCount = 0
-
     /// Number of times search was called.
     var searchCallCount = 0
 
@@ -84,6 +79,21 @@ final class MockSourceManager: SourceManaging {
     /// Number of times getVideoSources was called.
     var getVideoSourcesCallCount = 0
 
+    /// Number of times loadSavedRepositories was called.
+    var loadSavedRepositoriesCallCount = 0
+
+    /// Number of times removeRepository was called.
+    var removeRepositoryCallCount = 0
+
+    /// Number of times refreshRepositories was called.
+    var refreshRepositoriesCallCount = 0
+
+    /// Number of times updateSource was called.
+    var updateSourceCallCount = 0
+
+    /// Number of times updateAllSources was called.
+    var updateAllSourcesCallCount = 0
+
 
     //#################################################################################
     // MARK: - SourceManaging Methods
@@ -93,9 +103,22 @@ final class MockSourceManager: SourceManaging {
         loadInstalledSourcesCallCount += 1
     }
 
+    func loadSavedRepositories() async {
+        loadSavedRepositoriesCallCount += 1
+    }
+
     func addRepository(url: URL) async throws {
         addRepositoryCallCount += 1
         addRepositoryURLs.append(url)
+    }
+
+    func removeRepository(_ repository: SourceRepository) {
+        removeRepositoryCallCount += 1
+        repositories.removeAll { $0.url == repository.url }
+    }
+
+    func refreshRepositories() async {
+        refreshRepositoriesCallCount += 1
     }
 
     func installSource(_ source: SourceInfo, from repository: SourceRepository) async throws {
@@ -113,14 +136,21 @@ final class MockSourceManager: SourceManaging {
         installedSources.removeAll { $0.id == sourceId }
     }
 
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo? {
+        availableUpdates[sourceId]
+    }
+
+    func updateSource(sourceId: String) async throws {
+        updateSourceCallCount += 1
+    }
+
+    func updateAllSources() async {
+        updateAllSourcesCallCount += 1
+    }
+
     func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview] {
         getPopularCallCount += 1
         return try getPopularResult.get()
-    }
-
-    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview] {
-        getLatestCallCount += 1
-        return try getLatestResult.get()
     }
 
     func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {

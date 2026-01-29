@@ -52,6 +52,13 @@ struct SourcesView: View {
                 }
             }
             .navigationTitle("Sources")
+            .navigationDestination(for: InstalledSource.self) { source in
+                SourceDetailView(source: source,
+                                 sourceManager: viewModel.sourceManager,
+                                 watchProgressService: WatchProgressService.shared,
+                                 subscriptionService: SubscriptionService.shared,
+                                 downloadService: DownloadService.shared)
+            }
             .refreshable {
                 await viewModel.refreshRepositories()
             }
@@ -197,9 +204,11 @@ struct SourcesView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(viewModel.installedSources) { source in
-                    InstalledSourceRow(source: source,
-                                       hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil,
-                                       onDelete: { viewModel.uninstallSource(source) })
+                    NavigationLink(value: source) {
+                        InstalledSourceRow(source: source,
+                                           hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil,
+                                           onDelete: { viewModel.uninstallSource(source) })
+                    }
                 }
             }
         } header: {

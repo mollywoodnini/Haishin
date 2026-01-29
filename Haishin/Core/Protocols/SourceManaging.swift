@@ -85,13 +85,6 @@ protocol SourceManaging: AnyObject {
     /// - Returns: List of video previews.
     func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview]
 
-    /// Gets the latest videos from a source.
-    /// - Parameters:
-    ///   - sourceId: The source to query.
-    ///   - page: Page number.
-    /// - Returns: List of video previews.
-    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview]
-
     /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.

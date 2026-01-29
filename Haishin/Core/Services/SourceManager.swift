@@ -411,22 +411,6 @@ final class SourceManager: SourceManaging {
         return featured.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Gets the latest videos from a source.
-    /// - Parameters:
-    ///   - sourceId: The source to query.
-    ///   - page: Page number.
-    /// - Returns: List of video previews.
-    func getLatest(sourceId: String, page: Int) async throws -> [VideoPreview] {
-        // For JavaScript sources, we use getFeatured() for both popular and latest
-        // Individual sources can differentiate in their implementation
-        guard let jsSource = jsSources[sourceId] else {
-            throw SourceError.sourceNotFound
-        }
-        
-        let featured = try await jsSource.getFeatured()
-        return featured.map { convertToVideoPreview($0, sourceId: sourceId) }
-    }
-
     /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.

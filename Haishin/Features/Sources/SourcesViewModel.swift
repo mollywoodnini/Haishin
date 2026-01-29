@@ -46,7 +46,8 @@ final class SourcesViewModel {
     /// The last error that occurred.
     private(set) var error: Error?
 
-    private let sourceManager: SourceManaging
+    /// The source manager instance.
+    let sourceManager: SourceManaging
 
 
     //#################################################################################
