@@ -34,10 +34,9 @@ struct VideoCard: View {
     //#################################################################################
 
     private struct Constants {
-        static let cardWidth: CGFloat = 140
-        static let imageHeight: CGFloat = 200
         static let imageAspectRatio: CGFloat = 2 / 3
-        static let textHeight: CGFloat = 60
+        static let fixedWidth: CGFloat = 140
+        static let fixedImageHeight: CGFloat = 210
     }
 
 
@@ -77,8 +76,9 @@ struct VideoCard: View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             imageView
             textView
+            Spacer()
         }
-        .modifier(CardWidthModifier(sizingMode: sizingMode, width: Constants.cardWidth))
+        .frame(width: sizingMode == .fixed ? Constants.fixedWidth : nil)
     }
 
 
@@ -98,11 +98,10 @@ struct VideoCard: View {
                                 .foregroundStyle(.secondary)
                         }
                 }
-                .aspectRatio(contentMode: .fill)
-                .modifier(ImageFrameModifier(sizingMode: sizingMode,
-                                             fixedWidth: Constants.cardWidth,
-                                             fixedHeight: Constants.imageHeight,
-                                             aspectRatio: Constants.imageAspectRatio))
+                .aspectRatio(Constants.imageAspectRatio, contentMode: .fill)
+                .frame(width: sizingMode == .fixed ? Constants.fixedWidth : nil,
+                       height: sizingMode == .fixed ? Constants.fixedImageHeight : nil)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
             if let totalEpisodes {
@@ -136,49 +135,6 @@ struct VideoCard: View {
             }
 
             Spacer(minLength: 0)
-        }
-        .frame(height: Constants.textHeight)
-    }
-}
-
-
-//#################################################################################
-// MARK: - CardWidthModifier
-//#################################################################################
-
-/// A view modifier that applies width constraints based on sizing mode.
-private struct CardWidthModifier: ViewModifier {
-    let sizingMode: StandardVideoCardSizingMode
-    let width: CGFloat
-
-    func body(content: Content) -> some View {
-        switch sizingMode {
-        case .fixed:
-            content.frame(width: width)
-        case .flexible:
-            content.frame(maxWidth: .infinity)
-        }
-    }
-}
-
-
-//#################################################################################
-// MARK: - ImageFrameModifier
-//#################################################################################
-
-/// A view modifier that applies image frame constraints based on sizing mode.
-private struct ImageFrameModifier: ViewModifier {
-    let sizingMode: StandardVideoCardSizingMode
-    let fixedWidth: CGFloat
-    let fixedHeight: CGFloat
-    let aspectRatio: CGFloat
-
-    func body(content: Content) -> some View {
-        switch sizingMode {
-        case .fixed:
-            content.frame(width: fixedWidth, height: fixedHeight)
-        case .flexible:
-            content.aspectRatio(aspectRatio, contentMode: .fit)
         }
     }
 }

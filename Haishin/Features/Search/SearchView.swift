@@ -18,6 +18,7 @@ struct SearchView: View {
         static let cardWidth: CGFloat = 140
         static let loadingPlaceholderCount: Int = 3
         static let loadingPlaceholderHeight: CGFloat = 200
+        static let stateViewHeight: CGFloat = 60
     }
 
 
@@ -179,7 +180,7 @@ struct SearchView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, .spacingM)
-        .frame(height: 60)
+        .frame(height: Constants.stateViewHeight)
     }
 
     private var noResultsView: some View {
@@ -191,7 +192,7 @@ struct SearchView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, .spacingM)
-        .frame(height: 60)
+        .frame(height: Constants.stateViewHeight)
     }
 
     private func resultsCardsView(for state: SourceSearchState) -> some View {

@@ -94,6 +94,7 @@ struct VideoRow: View {
     private struct Constants {
         static let imageWidth: CGFloat = 85
         static let rowHeight: CGFloat = 120
+        static let stateViewHeight: CGFloat = 60
     }
 
 
@@ -282,7 +283,7 @@ struct VideoRow: View {
         if video.inProgressCount > 0 {
             HStack(spacing: .spacingXXS) {
                 ProgressView(value: video.averageProgress)
-                    .frame(width: 60)
+                    .frame(width: Constants.stateViewHeight)
 
                 Text("\(Int(video.averageProgress * 100))%")
                     .font(.caption2)

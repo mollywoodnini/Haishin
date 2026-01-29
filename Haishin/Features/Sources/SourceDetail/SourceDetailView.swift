@@ -20,7 +20,9 @@ struct SourceDetailView: View {
     //#################################################################################
 
     private struct Constants {
-        static let minimumCardWidth: CGFloat = 140
+        static let columnCount = 2
+        static let imageAspectRatio: CGFloat = 2 / 3
+        static let titleLineLimit = 2
     }
 
 
@@ -48,10 +50,10 @@ struct SourceDetailView: View {
          subscriptionService: SubscriptionServiceProtocol,
          downloadService: DownloadServiceProtocol) {
         self._viewModel = State(initialValue: SourceDetailViewModel(source: source,
-                                                                     sourceManager: sourceManager,
-                                                                     watchProgressService: watchProgressService,
-                                                                     subscriptionService: subscriptionService,
-                                                                     downloadService: downloadService))
+                                                                    sourceManager: sourceManager,
+                                                                    watchProgressService: watchProgressService,
+                                                                    subscriptionService: subscriptionService,
+                                                                    downloadService: downloadService))
     }
 
 
@@ -90,18 +92,18 @@ struct SourceDetailView: View {
     //#################################################################################
 
     private var videoGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: Constants.minimumCardWidth),
-                                     spacing: .spacingS)],
-                  spacing: .spacingM) {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: .spacingS),
+                            count: Constants.columnCount)
+
+        return LazyVGrid(columns: columns, spacing: .spacingS) {
             ForEach(viewModel.videos) { video in
                 NavigationLink(value: video) {
-                    VideoCard(videoPreview: video, sizingMode: .fixed)
+                    VideoCard(videoPreview: video)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, .spacingM)
-        .padding(.vertical, .spacingS)
+        .padding(.spacingS)
     }
 
     private var loadingView: some View {
