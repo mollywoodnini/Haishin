@@ -25,7 +25,7 @@ struct JSVideoPreview: Codable, Identifiable, Sendable, Hashable {
     let englishTitle: String?
     
     /// Cover/poster image URL
-    let coverUrl: String
+    let coverUrl: String?
     
     /// Full URL to the video's page on the source website
     let url: String
@@ -67,10 +67,10 @@ nonisolated struct JSVideoDetails: Codable, Sendable {
     let englishTitle: String?
 
     /// Synopsis/description
-    let synopsis: String
+    let synopsis: String?
 
     /// Cover/poster image URL
-    let coverUrl: String
+    let coverUrl: String?
 
     /// Rating (e.g., 8.5 out of 10)
     let rating: Double?

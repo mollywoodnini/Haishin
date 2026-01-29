@@ -610,7 +610,7 @@ final class SourceManager: SourceManaging {
     private func convertToVideoPreview(_ jsPreview: JSVideoPreview, sourceId: String) -> VideoPreview {
         return VideoPreview(id: jsPreview.id,
                             title: jsPreview.title.decodingHTMLEntities(),
-                            coverURL: URL(string: jsPreview.coverUrl),
+                            coverURL: jsPreview.coverUrl.flatMap { URL(string: $0) },
                             sourceId: sourceId,
                             detailsURL: jsPreview.url)
     }
@@ -660,9 +660,9 @@ final class SourceManager: SourceManaging {
         return Video(id: jsDetails.id,
                      title: jsDetails.title.decodingHTMLEntities(),
                      alternativeTitles: jsDetails.englishTitle.map { [$0.decodingHTMLEntities()] } ?? [],
-                     coverURL: URL(string: jsDetails.coverUrl),
+                     coverURL: jsDetails.coverUrl.flatMap { URL(string: $0) },
                      bannerURL: nil, // JS sources don't typically provide banner
-                     synopsis: jsDetails.synopsis.decodingHTMLEntities(),
+                     synopsis: jsDetails.synopsis?.decodingHTMLEntities(),
                      genres: jsDetails.genres,
                      status: status,
                      year: extractYear(from: jsDetails.releaseDate),
