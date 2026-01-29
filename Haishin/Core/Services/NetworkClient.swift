@@ -19,8 +19,9 @@ protocol NetworkClientProtocol: Sendable {
     /// - Parameters:
     ///   - url: The URL to fetch.
     ///   - headers: Optional HTTP headers.
+    ///   - ignoreCache: Whether to bypass the cache. Defaults to false.
     /// - Returns: The raw data from the response.
-    func fetch(url: URL, headers: [String: String]?) async throws -> Data
+    func fetch(url: URL, headers: [String: String]?, ignoreCache: Bool) async throws -> Data
     
     /// Fetches and decodes JSON from a URL.
     /// - Parameters:
@@ -97,9 +98,15 @@ actor NetworkClient: NetworkClientProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func fetch(url: URL, headers: [String: String]? = nil) async throws -> Data {
+    func fetch(url: URL,
+                headers: [String: String]? = nil,
+                ignoreCache: Bool = false) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+
+        if ignoreCache {
+            request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        }
 
         headers?.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)

@@ -25,6 +25,21 @@ final class SourcesViewModel {
         sourceManager.repositories
     }
 
+    /// Sources that have updates available.
+    var availableUpdates: [String: SourceInfo] {
+        sourceManager.availableUpdates
+    }
+
+    /// Whether there are any updates available.
+    var hasUpdates: Bool {
+        !availableUpdates.isEmpty
+    }
+
+    /// Number of available updates.
+    var updateCount: Int {
+        availableUpdates.count
+    }
+
     /// Whether an operation is in progress.
     private(set) var isLoading = false
 
@@ -49,6 +64,22 @@ final class SourcesViewModel {
     // MARK: - Public Methods
     //#################################################################################
 
+    /// Loads saved repositories from storage.
+    func loadRepositories() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        await sourceManager.loadSavedRepositories()
+    }
+
+    /// Refreshes all repositories to check for updates.
+    func refreshRepositories() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        await sourceManager.refreshRepositories()
+    }
+
     /// Adds a repository from a URL string.
     /// - Parameter urlString: The repository URL as a string.
     func addRepository(urlString: String) async {
@@ -65,6 +96,12 @@ final class SourcesViewModel {
         } catch {
             self.error = error
         }
+    }
+
+    /// Removes a repository.
+    /// - Parameter repository: The repository to remove.
+    func removeRepository(_ repository: SourceRepository) {
+        sourceManager.removeRepository(repository)
     }
     
     /// Installs a source from a direct URL.
@@ -139,5 +176,33 @@ final class SourcesViewModel {
     /// - Returns: Whether the source is installed.
     func isInstalled(_ source: SourceInfo) -> Bool {
         installedSources.contains { $0.info.id == source.id }
+    }
+
+    /// Checks if an update is available for a source.
+    /// - Parameter sourceId: The source ID to check.
+    /// - Returns: The new version info if available.
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo? {
+        sourceManager.getAvailableUpdate(for: sourceId)
+    }
+
+    /// Updates a single source.
+    /// - Parameter sourceId: The source ID to update.
+    func updateSource(sourceId: String) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await sourceManager.updateSource(sourceId: sourceId)
+        } catch {
+            self.error = error
+        }
+    }
+
+    /// Updates all sources that have updates available.
+    func updateAllSources() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        await sourceManager.updateAllSources()
     }
 }

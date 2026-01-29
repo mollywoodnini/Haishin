@@ -16,8 +16,9 @@ final class SourceManager: SourceManaging {
     //#################################################################################
 
     private struct Constants {
-        static let bundledSourcesInstalledKey = "bundledSourcesInstalled"
-        static let bundledSources = ["archiveorg-cartoons"]
+        static let defaultRepositoryAddedKey = "defaultRepositoryAdded"
+        static let repositoryURLsKey = "repositoryURLs"
+        static let defaultRepositoryURL = "https://raw.githubusercontent.com/mollywoodnini/Haishin-example-sources/main/manifest.json"
     }
 
 
@@ -33,6 +34,9 @@ final class SourceManager: SourceManaging {
 
     /// Available source repositories.
     private(set) var repositories: [SourceRepository] = []
+
+    /// Sources that have updates available (keyed by source ID).
+    private(set) var availableUpdates: [String: SourceInfo] = [:]
 
     /// Whether sources are currently being loaded.
     private(set) var isLoading = false
@@ -82,8 +86,8 @@ final class SourceManager: SourceManaging {
         do {
             jsRuntime = try JSRuntime(networkClient: networkClient)
 
-            // Install bundled sources on first launch
-            installBundledSourcesIfNeeded()
+            // Add default repository on first launch
+            await addDefaultRepositoryIfNeeded()
 
             let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
                                                                    includingPropertiesForKeys: nil)
@@ -142,7 +146,7 @@ final class SourceManager: SourceManaging {
     /// Adds a source repository.
     /// - Parameter url: URL to the repository manifest.
     func addRepository(url: URL) async throws {
-        let data = try await networkClient.fetch(url: url)
+        let data = try await networkClient.fetch(url: url, headers: nil, ignoreCache: true)
         let manifest = try Self.decode(RepositoryManifest.self, from: data)
 
         let repository = SourceRepository(name: manifest.name,
@@ -151,6 +155,128 @@ final class SourceManager: SourceManaging {
 
         if !repositories.contains(where: { $0.url == url }) {
             repositories.append(repository)
+            saveRepositoryURLs()
+            checkForUpdates()
+        }
+    }
+
+    /// Removes a repository.
+    /// - Parameter repository: The repository to remove.
+    func removeRepository(_ repository: SourceRepository) {
+        repositories.removeAll { $0.url == repository.url }
+        saveRepositoryURLs()
+        checkForUpdates()
+    }
+
+    /// Refreshes all repositories to check for new sources and updates.
+    func refreshRepositories() async {
+        Log.info(.sources, "Refreshing \(repositories.count) repositories")
+
+        let urls = repositories.map { $0.url }
+        repositories.removeAll()
+
+        for url in urls {
+            do {
+                try await addRepository(url: url)
+                Log.debug(.sources, "Refreshed repository: \(url)")
+            } catch {
+                Log.error(.sources, "Failed to refresh repository \(url): \(error)")
+            }
+        }
+
+        checkForUpdates()
+    }
+
+    /// Loads saved repositories from UserDefaults.
+    func loadSavedRepositories() async {
+        let userDefaults = UserDefaults.standard
+        guard let urlStrings = userDefaults.stringArray(forKey: Constants.repositoryURLsKey) else {
+            Log.debug(.sources, "No saved repositories found")
+            return
+        }
+
+        Log.info(.sources, "Loading \(urlStrings.count) saved repositories")
+
+        for urlString in urlStrings {
+            guard let url = URL(string: urlString) else {
+                Log.warning(.sources, "Invalid repository URL: \(urlString)")
+                continue
+            }
+
+            do {
+                try await addRepository(url: url)
+                Log.debug(.sources, "Loaded repository: \(url)")
+            } catch {
+                Log.error(.sources, "Failed to load repository \(url): \(error)")
+            }
+        }
+    }
+
+    /// Checks if an update is available for a source.
+    /// - Parameter sourceId: The source ID to check.
+    /// - Returns: The new version info if an update is available, nil otherwise.
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo? {
+        availableUpdates[sourceId]
+    }
+
+    /// Updates a source to the latest version from its repository.
+    /// - Parameter sourceId: The source ID to update.
+    func updateSource(sourceId: String) async throws {
+        guard let updateInfo = availableUpdates[sourceId] else {
+            Log.warning(.sources, "No update available for \(sourceId)")
+            return
+        }
+
+        // Find the repository containing this source
+        guard let repository = repositories.first(where: { repo in
+            repo.sources.contains { $0.id == sourceId }
+        }) else {
+            Log.error(.sources, "Repository not found for source \(sourceId)")
+            throw SourceError.sourceNotFound
+        }
+
+        Log.info(.sources, "Updating \(sourceId) to v\(updateInfo.version)")
+
+        // Download and install the new version (overwrites existing)
+        let scriptURL = repository.url
+            .deletingLastPathComponent()
+            .appendingPathComponent("sources/\(sourceId).js")
+
+        let scriptData = try await networkClient.fetch(url: scriptURL)
+
+        guard let script = String(data: scriptData, encoding: .utf8) else {
+            throw SourceError.invalidScript
+        }
+
+        // Save the script (overwriting existing)
+        let localPath = sourcesDirectory.appendingPathComponent("\(sourceId).js")
+        try script.write(to: localPath, atomically: true, encoding: .utf8)
+
+        // Reload the source
+        let updatedSource = try await loadSource(from: localPath)
+
+        // Update the installed sources list
+        if let index = installedSources.firstIndex(where: { $0.id == sourceId }) {
+            installedSources[index] = updatedSource
+        }
+
+        // Remove from available updates
+        availableUpdates.removeValue(forKey: sourceId)
+
+        Log.info(.sources, "Successfully updated \(sourceId) to v\(updateInfo.version)")
+    }
+
+    /// Updates all sources that have updates available.
+    func updateAllSources() async {
+        let sourceIds = Array(availableUpdates.keys)
+        Log.info(.sources, "Updating \(sourceIds.count) sources")
+
+        for sourceId in sourceIds {
+            do {
+                try await updateSource(sourceId: sourceId)
+            } catch {
+                Log.error(.sources, "Failed to update \(sourceId): \(error)")
+            }
         }
     }
 
@@ -374,45 +500,84 @@ final class SourceManager: SourceManaging {
         }
     }
 
-    /// Installs bundled sources on first launch.
-    private func installBundledSourcesIfNeeded() {
+    /// Saves repository URLs to UserDefaults for persistence.
+    private func saveRepositoryURLs() {
+        let urls = repositories.map { $0.url.absoluteString }
+        UserDefaults.standard.set(urls, forKey: Constants.repositoryURLsKey)
+        Log.debug(.sources, "Saved \(urls.count) repository URLs")
+    }
+
+    /// Checks for available updates by comparing installed versions with repository versions.
+    private func checkForUpdates() {
+        var updates: [String: SourceInfo] = [:]
+
+        for repository in repositories {
+            for repoSource in repository.sources {
+                // Check if this source is installed
+                guard let installed = installedSources.first(where: { $0.id == repoSource.id }) else {
+                    continue
+                }
+
+                // Compare versions
+                if isVersion(repoSource.version, newerThan: installed.info.version) {
+                    updates[repoSource.id] = repoSource
+                    Log.info(.sources, "Update available: \(repoSource.id) \(installed.info.version) -> \(repoSource.version)")
+                }
+            }
+        }
+
+        availableUpdates = updates
+        Log.debug(.sources, "Found \(updates.count) available updates")
+    }
+
+    /// Compares two semantic version strings.
+    /// - Parameters:
+    ///   - version1: The first version string.
+    ///   - version2: The second version string.
+    /// - Returns: True if version1 is newer than version2.
+    private func isVersion(_ version1: String, newerThan version2: String) -> Bool {
+        let v1Components = version1.split(separator: ".").compactMap { Int($0) }
+        let v2Components = version2.split(separator: ".").compactMap { Int($0) }
+
+        // Pad arrays to same length
+        let maxLength = max(v1Components.count, v2Components.count)
+        let v1Padded = v1Components + Array(repeating: 0, count: maxLength - v1Components.count)
+        let v2Padded = v2Components + Array(repeating: 0, count: maxLength - v2Components.count)
+
+        for (comp1, comp2) in zip(v1Padded, v2Padded) {
+            if comp1 > comp2 { return true }
+            if comp1 < comp2 { return false }
+        }
+
+        return false // Versions are equal
+    }
+
+    /// Adds the default repository on first launch.
+    private func addDefaultRepositoryIfNeeded() async {
         let userDefaults = UserDefaults.standard
 
-        // Check if bundled sources have already been installed
-        guard !userDefaults.bool(forKey: Constants.bundledSourcesInstalledKey) else {
-            Log.debug(.sources, "Bundled sources already installed, skipping")
+        // Check if default repository has already been added
+        guard !userDefaults.bool(forKey: Constants.defaultRepositoryAddedKey) else {
+            Log.debug(.sources, "Default repository already added, skipping")
             return
         }
 
-        Log.info(.sources, "Installing bundled sources for first launch")
+        Log.info(.sources, "Adding default repository for first launch")
 
-        for sourceName in Constants.bundledSources {
-            // Check if source is already installed (user might have installed it manually)
-            let destinationPath = sourcesDirectory.appendingPathComponent("\(sourceName).js")
-            if fileManager.fileExists(atPath: destinationPath.path) {
-                Log.debug(.sources, "Source '\(sourceName)' already exists, skipping")
-                continue
-            }
-
-            // Find the bundled source in the app bundle
-            // Note: Xcode flattens resources to the bundle root, so we don't use subdirectory
-            guard let bundledURL = Bundle.main.url(forResource: sourceName,
-                                                   withExtension: "js") else {
-                Log.warning(.sources, "Bundled source '\(sourceName)' not found in bundle")
-                continue
-            }
-
-            // Copy to sources directory
-            do {
-                try fileManager.copyItem(at: bundledURL, to: destinationPath)
-                Log.info(.sources, "Installed bundled source: \(sourceName)")
-            } catch {
-                Log.error(.sources, "Failed to install bundled source '\(sourceName)': \(error)")
-            }
+        guard let url = URL(string: Constants.defaultRepositoryURL) else {
+            Log.error(.sources, "Invalid default repository URL")
+            return
         }
 
-        // Mark bundled sources as installed
-        userDefaults.set(true, forKey: Constants.bundledSourcesInstalledKey)
+        do {
+            try await addRepository(url: url)
+            Log.info(.sources, "Successfully added default repository")
+        } catch {
+            Log.error(.sources, "Failed to add default repository: \(error)")
+        }
+
+        // Mark default repository as added (even if it failed, to avoid repeated attempts)
+        userDefaults.set(true, forKey: Constants.defaultRepositoryAddedKey)
     }
 
     private func loadSource(from path: URL) async throws -> InstalledSource {
