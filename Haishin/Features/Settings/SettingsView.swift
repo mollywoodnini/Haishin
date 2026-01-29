@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -26,7 +26,6 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 appearanceSection
-                contentSection
                 syncSection
                 aboutSection
             }
@@ -51,16 +50,6 @@ struct SettingsView: View {
         }
     }
 
-    private var contentSection: some View {
-        Section {
-            Toggle("Show NSFW sources", isOn: $userPreferences.showNSFW)
-        } header: {
-            Text("Content")
-        } footer: {
-            Text("NSFW (adult) content will be hidden when disabled.")
-        }
-    }
-
     private var syncSection: some View {
         Section {
             Toggle("iCloud Sync", isOn: $cloudSyncService.isSyncEnabled)
@@ -69,7 +58,7 @@ struct SettingsView: View {
             Text("Sync")
         } footer: {
             if cloudSyncService.isCloudAvailable {
-                Text("Sync your subscriptions, watch progress, and recently watched anime across your devices.")
+                Text("Sync your subscriptions, watch progress, and recently watched videos across your devices.")
             } else {
                 Text("Sign in to iCloud in Settings to enable sync.")
             }

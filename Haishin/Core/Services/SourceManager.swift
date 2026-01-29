@@ -2,14 +2,25 @@
 //  SourceManager.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
 
-/// Manages anime sources including installation, loading, and execution.
+/// Manages video sources including installation, loading, and execution.
 @Observable
 final class SourceManager: SourceManaging {
+
+    //#################################################################################
+    // MARK: - Constants
+    //#################################################################################
+
+    private struct Constants {
+        static let defaultRepositoryAddedKey = "defaultRepositoryAdded"
+        static let repositoryURLsKey = "repositoryURLs"
+        static let defaultRepositoryURL = "https://raw.githubusercontent.com/mollywoodnini/Haishin-example-sources/main/manifest.json"
+    }
+
 
     //#################################################################################
     // MARK: - Properties
@@ -23,6 +34,9 @@ final class SourceManager: SourceManaging {
 
     /// Available source repositories.
     private(set) var repositories: [SourceRepository] = []
+
+    /// Sources that have updates available (keyed by source ID).
+    private(set) var availableUpdates: [String: SourceInfo] = [:]
 
     /// Whether sources are currently being loaded.
     private(set) var isLoading = false
@@ -72,10 +86,13 @@ final class SourceManager: SourceManaging {
         do {
             jsRuntime = try JSRuntime(networkClient: networkClient)
 
+            // Add default repository on first launch
+            await addDefaultRepositoryIfNeeded()
+
             let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
                                                                    includingPropertiesForKeys: nil)
                 .filter { $0.pathExtension == "js" }
-                // Sort so that files with proper names (e.g., "animeworld.js") come before
+                // Sort so that files with proper names (e.g., "archive.org") come before
                 // UUID-named files, ensuring we keep the correctly named one
                 .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
@@ -120,11 +137,6 @@ final class SourceManager: SourceManaging {
             }
 
             installedSources = sources
-            
-            // Auto-select if there's exactly one source and none is currently selected
-            if sources.count == 1, UserPreferences.shared.selectedSourceId == nil {
-                UserPreferences.shared.selectedSourceId = sources.first?.id
-            }
         } catch {
             lastError = error
             Log.error(.sources, "Failed to load sources: \(error)")
@@ -134,7 +146,7 @@ final class SourceManager: SourceManaging {
     /// Adds a source repository.
     /// - Parameter url: URL to the repository manifest.
     func addRepository(url: URL) async throws {
-        let data = try await networkClient.fetch(url: url)
+        let data = try await networkClient.fetch(url: url, headers: nil, ignoreCache: true)
         let manifest = try Self.decode(RepositoryManifest.self, from: data)
 
         let repository = SourceRepository(name: manifest.name,
@@ -143,6 +155,128 @@ final class SourceManager: SourceManaging {
 
         if !repositories.contains(where: { $0.url == url }) {
             repositories.append(repository)
+            saveRepositoryURLs()
+            checkForUpdates()
+        }
+    }
+
+    /// Removes a repository.
+    /// - Parameter repository: The repository to remove.
+    func removeRepository(_ repository: SourceRepository) {
+        repositories.removeAll { $0.url == repository.url }
+        saveRepositoryURLs()
+        checkForUpdates()
+    }
+
+    /// Refreshes all repositories to check for new sources and updates.
+    func refreshRepositories() async {
+        Log.info(.sources, "Refreshing \(repositories.count) repositories")
+
+        let urls = repositories.map { $0.url }
+        repositories.removeAll()
+
+        for url in urls {
+            do {
+                try await addRepository(url: url)
+                Log.debug(.sources, "Refreshed repository: \(url)")
+            } catch {
+                Log.error(.sources, "Failed to refresh repository \(url): \(error)")
+            }
+        }
+
+        checkForUpdates()
+    }
+
+    /// Loads saved repositories from UserDefaults.
+    func loadSavedRepositories() async {
+        let userDefaults = UserDefaults.standard
+        guard let urlStrings = userDefaults.stringArray(forKey: Constants.repositoryURLsKey) else {
+            Log.debug(.sources, "No saved repositories found")
+            return
+        }
+
+        Log.info(.sources, "Loading \(urlStrings.count) saved repositories")
+
+        for urlString in urlStrings {
+            guard let url = URL(string: urlString) else {
+                Log.warning(.sources, "Invalid repository URL: \(urlString)")
+                continue
+            }
+
+            do {
+                try await addRepository(url: url)
+                Log.debug(.sources, "Loaded repository: \(url)")
+            } catch {
+                Log.error(.sources, "Failed to load repository \(url): \(error)")
+            }
+        }
+    }
+
+    /// Checks if an update is available for a source.
+    /// - Parameter sourceId: The source ID to check.
+    /// - Returns: The new version info if an update is available, nil otherwise.
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo? {
+        availableUpdates[sourceId]
+    }
+
+    /// Updates a source to the latest version from its repository.
+    /// - Parameter sourceId: The source ID to update.
+    func updateSource(sourceId: String) async throws {
+        guard let updateInfo = availableUpdates[sourceId] else {
+            Log.warning(.sources, "No update available for \(sourceId)")
+            return
+        }
+
+        // Find the repository containing this source
+        guard let repository = repositories.first(where: { repo in
+            repo.sources.contains { $0.id == sourceId }
+        }) else {
+            Log.error(.sources, "Repository not found for source \(sourceId)")
+            throw SourceError.sourceNotFound
+        }
+
+        Log.info(.sources, "Updating \(sourceId) to v\(updateInfo.version)")
+
+        // Download and install the new version (overwrites existing)
+        let scriptURL = repository.url
+            .deletingLastPathComponent()
+            .appendingPathComponent("sources/\(sourceId).js")
+
+        let scriptData = try await networkClient.fetch(url: scriptURL)
+
+        guard let script = String(data: scriptData, encoding: .utf8) else {
+            throw SourceError.invalidScript
+        }
+
+        // Save the script (overwriting existing)
+        let localPath = sourcesDirectory.appendingPathComponent("\(sourceId).js")
+        try script.write(to: localPath, atomically: true, encoding: .utf8)
+
+        // Reload the source
+        let updatedSource = try await loadSource(from: localPath)
+
+        // Update the installed sources list
+        if let index = installedSources.firstIndex(where: { $0.id == sourceId }) {
+            installedSources[index] = updatedSource
+        }
+
+        // Remove from available updates
+        availableUpdates.removeValue(forKey: sourceId)
+
+        Log.info(.sources, "Successfully updated \(sourceId) to v\(updateInfo.version)")
+    }
+
+    /// Updates all sources that have updates available.
+    func updateAllSources() async {
+        let sourceIds = Array(availableUpdates.keys)
+        Log.info(.sources, "Updating \(sourceIds.count) sources")
+
+        for sourceId in sourceIds {
+            do {
+                try await updateSource(sourceId: sourceId)
+            } catch {
+                Log.error(.sources, "Failed to update \(sourceId): \(error)")
+            }
         }
     }
 
@@ -168,9 +302,6 @@ final class SourceManager: SourceManaging {
         // Load the source
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
-        
-        // Automatically select the newly installed source
-        selectSource(sourceId: installedSource.id)
     }
     /// - Parameter urlString: The URL to the source JavaScript file (can be HTTP/HTTPS or file:// URL).
     func installSource(fromURL urlString: String) async throws {
@@ -235,9 +366,6 @@ final class SourceManager: SourceManaging {
         let installedSource = try await loadSource(from: localPath)
         installedSources.append(installedSource)
         
-        // Automatically select the newly installed source
-        selectSource(sourceId: installedSource.id)
-        
         Log.info(.sources, "Installation complete!")
     }
 
@@ -259,19 +387,7 @@ final class SourceManager: SourceManaging {
             Log.debug(.sources, "Deleted file: \(actualPath.lastPathComponent)")
         }
 
-        // Check if we're removing the selected source
-        let wasSelected = UserPreferences.shared.selectedSourceId == sourceId
-        
         installedSources.removeAll { $0.id == sourceId }
-        
-        // If the uninstalled source was selected, auto-select the first remaining source
-        if wasSelected {
-            if let firstSource = installedSources.first {
-                selectSource(sourceId: firstSource.id)
-            } else {
-                UserPreferences.shared.selectedSourceId = nil
-            }
-        }
         
         // Clean up the JS source
         Task {
@@ -280,89 +396,54 @@ final class SourceManager: SourceManaging {
         }
     }
 
-    /// Selects a source as the active source.
-    /// - Parameter sourceId: The source ID to select.
-    func selectSource(sourceId: String) {
-        guard installedSources.contains(where: { $0.id == sourceId }) else {
-            Log.warning(.sources, "Source '\(sourceId)' not found")
-            return
-        }
-        
-        UserPreferences.shared.selectedSourceId = sourceId
-        
-        // Update isEnabled on all sources
-        for index in installedSources.indices {
-            installedSources[index].isEnabled = (installedSources[index].id == sourceId)
-        }
-        
-        Log.info(.sources, "Selected source: \(sourceId)")
-    }
-
-    /// Gets the popular anime from a source.
+    /// Gets the entry videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        // For JavaScript sources, getFeatured() maps to getPopular
+    /// - Returns: List of video previews.
+    func getEntryVideos(sourceId: String, page: Int) async throws -> [VideoPreview] {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
-        let featured = try await jsSource.getFeatured()
-        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
+        let entryVideos = try await jsSource.getEntryVideos()
+        return entryVideos.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Gets the latest anime from a source.
-    /// - Parameters:
-    ///   - sourceId: The source to query.
-    ///   - page: Page number.
-    /// - Returns: List of anime previews.
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        // For JavaScript sources, we use getFeatured() for both popular and latest
-        // Individual sources can differentiate in their implementation
-        guard let jsSource = jsSources[sourceId] else {
-            throw SourceError.sourceNotFound
-        }
-        
-        let featured = try await jsSource.getFeatured()
-        return featured.map { convertToAnimePreview($0, sourceId: sourceId) }
-    }
-
-    /// Searches for anime in a source.
+    /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.
     ///   - query: Search query.
     ///   - page: Page number.
-    /// - Returns: List of matching anime previews.
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview] {
+    /// - Returns: List of matching video previews.
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
         let searchResult = try await jsSource.search(query: query, page: page)
-        return searchResult.results.map { convertToAnimePreview($0, sourceId: sourceId) }
+        return searchResult.results.map { convertToVideoPreview($0, sourceId: sourceId) }
     }
 
-    /// Gets full anime details.
+    /// Gets full video details.
     /// - Parameters:
     ///   - sourceId: The source.
-    ///   - url: The anime details URL.
-    /// - Returns: Full anime information.
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime {
+    ///   - url: The video details URL.
+    /// - Returns: Full video information.
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }
         
-        guard let animeUrl = URL(string: url) else {
+        guard let videoUrl = URL(string: url) else {
             throw SourceError.invalidResponse
         }
         
-        // Extract anime ID from URL (typically the last path component)
-        let animeId = animeUrl.lastPathComponent
+        // Extract video ID from URL (typically the last path component)
+        let videoId = videoUrl.lastPathComponent
         
-        let details = try await jsSource.getAnimeDetails(animeId: animeId, animeUrl: animeUrl)
-        return try convertToAnime(details, sourceId: sourceId, detailsURL: url)
+        let details = try await jsSource.getVideoDetails(videoId: videoId, videoUrl: videoUrl)
+        return try convertToVideo(details, sourceId: sourceId, detailsURL: url)
     }
 
     /// Gets video sources for an episode.
@@ -381,7 +462,7 @@ final class SourceManager: SourceManaging {
         }
         
         // For now, use the first available server (in a real app, let user choose)
-        // We'll need to get anime details first to know available servers
+        // We'll need to get video details first to know available servers
         // For simplicity, we'll use "default" as server name
         let streams = try await jsSource.getEpisodeStreams(episodeId: episodeId,
                                                             episodeUrl: episodeUrl,
@@ -400,6 +481,86 @@ final class SourceManager: SourceManaging {
             try? fileManager.createDirectory(at: sourcesDirectory,
                                              withIntermediateDirectories: true)
         }
+    }
+
+    /// Saves repository URLs to UserDefaults for persistence.
+    private func saveRepositoryURLs() {
+        let urls = repositories.map { $0.url.absoluteString }
+        UserDefaults.standard.set(urls, forKey: Constants.repositoryURLsKey)
+        Log.debug(.sources, "Saved \(urls.count) repository URLs")
+    }
+
+    /// Checks for available updates by comparing installed versions with repository versions.
+    private func checkForUpdates() {
+        var updates: [String: SourceInfo] = [:]
+
+        for repository in repositories {
+            for repoSource in repository.sources {
+                // Check if this source is installed
+                guard let installed = installedSources.first(where: { $0.id == repoSource.id }) else {
+                    continue
+                }
+
+                // Compare versions
+                if isVersion(repoSource.version, newerThan: installed.info.version) {
+                    updates[repoSource.id] = repoSource
+                    Log.info(.sources, "Update available: \(repoSource.id) \(installed.info.version) -> \(repoSource.version)")
+                }
+            }
+        }
+
+        availableUpdates = updates
+        Log.debug(.sources, "Found \(updates.count) available updates")
+    }
+
+    /// Compares two semantic version strings.
+    /// - Parameters:
+    ///   - version1: The first version string.
+    ///   - version2: The second version string.
+    /// - Returns: True if version1 is newer than version2.
+    private func isVersion(_ version1: String, newerThan version2: String) -> Bool {
+        let v1Components = version1.split(separator: ".").compactMap { Int($0) }
+        let v2Components = version2.split(separator: ".").compactMap { Int($0) }
+
+        // Pad arrays to same length
+        let maxLength = max(v1Components.count, v2Components.count)
+        let v1Padded = v1Components + Array(repeating: 0, count: maxLength - v1Components.count)
+        let v2Padded = v2Components + Array(repeating: 0, count: maxLength - v2Components.count)
+
+        for (comp1, comp2) in zip(v1Padded, v2Padded) {
+            if comp1 > comp2 { return true }
+            if comp1 < comp2 { return false }
+        }
+
+        return false // Versions are equal
+    }
+
+    /// Adds the default repository on first launch.
+    private func addDefaultRepositoryIfNeeded() async {
+        let userDefaults = UserDefaults.standard
+
+        // Check if default repository has already been added
+        guard !userDefaults.bool(forKey: Constants.defaultRepositoryAddedKey) else {
+            Log.debug(.sources, "Default repository already added, skipping")
+            return
+        }
+
+        Log.info(.sources, "Adding default repository for first launch")
+
+        guard let url = URL(string: Constants.defaultRepositoryURL) else {
+            Log.error(.sources, "Invalid default repository URL")
+            return
+        }
+
+        do {
+            try await addRepository(url: url)
+            Log.info(.sources, "Successfully added default repository")
+        } catch {
+            Log.error(.sources, "Failed to add default repository: \(error)")
+        }
+
+        // Mark default repository as added (even if it failed, to avoid repeated attempts)
+        userDefaults.set(true, forKey: Constants.defaultRepositoryAddedKey)
     }
 
     private func loadSource(from path: URL) async throws -> InstalledSource {
@@ -421,30 +582,26 @@ final class SourceManager: SourceManaging {
         let attributes = try fileManager.attributesOfItem(atPath: path.path)
         let installedAt = attributes[.creationDate] as? Date ?? Date()
         
-        // Check if this source is the currently selected one
-        let isSelected = UserPreferences.shared.selectedSourceId == jsSource.info.id
-
         return InstalledSource(info: jsSource.info,
                                scriptPath: path,
-                               isEnabled: isSelected,
                                installedAt: installedAt)
     }
 
     // MARK: - Conversion Methods
     
-    /// Converts a JSAnimePreview to AnimePreview
-    private func convertToAnimePreview(_ jsPreview: JSAnimePreview, sourceId: String) -> AnimePreview {
-        return AnimePreview(id: jsPreview.id,
+    /// Converts a JSVideoPreview to VideoPreview
+    private func convertToVideoPreview(_ jsPreview: JSVideoPreview, sourceId: String) -> VideoPreview {
+        return VideoPreview(id: jsPreview.id,
                             title: jsPreview.title.decodingHTMLEntities(),
-                            coverURL: URL(string: jsPreview.coverUrl),
+                            coverURL: jsPreview.coverUrl.flatMap { URL(string: $0) },
                             sourceId: sourceId,
                             detailsURL: jsPreview.url)
     }
     
-    /// Converts JSAnimeDetails to Anime
-    private func convertToAnime(_ jsDetails: JSAnimeDetails,
+    /// Converts JSVideoDetails to Video
+    private func convertToVideo(_ jsDetails: JSVideoDetails,
                                 sourceId: String,
-                                detailsURL: String) throws -> Anime {
+                                detailsURL: String) throws -> Video {
         // Convert episodes from server-grouped to flat list
         // For now, use the first available server's episodes
         let episodes: [Episode]
@@ -483,12 +640,12 @@ final class SourceManager: SourceManaging {
             status = .unknown
         }
         
-        return Anime(id: jsDetails.id,
+        return Video(id: jsDetails.id,
                      title: jsDetails.title.decodingHTMLEntities(),
                      alternativeTitles: jsDetails.englishTitle.map { [$0.decodingHTMLEntities()] } ?? [],
-                     coverURL: URL(string: jsDetails.coverUrl),
+                     coverURL: jsDetails.coverUrl.flatMap { URL(string: $0) },
                      bannerURL: nil, // JS sources don't typically provide banner
-                     synopsis: jsDetails.synopsis.decodingHTMLEntities(),
+                     synopsis: jsDetails.synopsis?.decodingHTMLEntities(),
                      genres: jsDetails.genres,
                      status: status,
                      year: extractYear(from: jsDetails.releaseDate),

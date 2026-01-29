@@ -2,7 +2,7 @@
 //  MockSourceManager.swift
 //  HaishinTests
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
@@ -17,6 +17,7 @@ final class MockSourceManager: SourceManaging {
 
     var installedSources: [InstalledSource] = []
     var repositories: [SourceRepository] = []
+    var availableUpdates: [String: SourceInfo] = [:]
     var isLoading = false
     var lastError: Error?
 
@@ -25,17 +26,14 @@ final class MockSourceManager: SourceManaging {
     // MARK: - Stub Configuration
     //#################################################################################
 
-    /// Stub for getPopular responses.
-    var getPopularResult: Result<[AnimePreview], Error> = .success([])
-
-    /// Stub for getLatest responses.
-    var getLatestResult: Result<[AnimePreview], Error> = .success([])
+    /// Stub for getEntryVideos responses.
+    var getEntryVideosResult: Result<[VideoPreview], Error> = .success([])
 
     /// Stub for search responses.
-    var searchResult: Result<[AnimePreview], Error> = .success([])
+    var searchResult: Result<[VideoPreview], Error> = .success([])
 
-    /// Stub for getAnimeDetails responses.
-    var getAnimeDetailsResult: Result<Anime, Error> = .failure(MockError.notConfigured)
+    /// Stub for getVideoDetails responses.
+    var getVideoDetailsResult: Result<Video, Error> = .failure(MockError.notConfigured)
 
     /// Stub for getVideoSources responses.
     var getVideoSourcesResult: Result<PlaybackInfo, Error> = .failure(MockError.notConfigured)
@@ -66,17 +64,8 @@ final class MockSourceManager: SourceManaging {
     /// Source IDs passed to uninstallSource.
     var uninstalledSourceIds: [String] = []
 
-    /// Number of times selectSource was called.
-    var selectSourceCallCount = 0
-
-    /// Source IDs passed to selectSource.
-    var selectedSourceIds: [String] = []
-
-    /// Number of times getPopular was called.
-    var getPopularCallCount = 0
-
-    /// Number of times getLatest was called.
-    var getLatestCallCount = 0
+    /// Number of times getEntryVideos was called.
+    var getEntryVideosCallCount = 0
 
     /// Number of times search was called.
     var searchCallCount = 0
@@ -84,11 +73,26 @@ final class MockSourceManager: SourceManaging {
     /// Queries passed to search.
     var searchQueries: [String] = []
 
-    /// Number of times getAnimeDetails was called.
-    var getAnimeDetailsCallCount = 0
+    /// Number of times getVideoDetails was called.
+    var getVideoDetailsCallCount = 0
 
     /// Number of times getVideoSources was called.
     var getVideoSourcesCallCount = 0
+
+    /// Number of times loadSavedRepositories was called.
+    var loadSavedRepositoriesCallCount = 0
+
+    /// Number of times removeRepository was called.
+    var removeRepositoryCallCount = 0
+
+    /// Number of times refreshRepositories was called.
+    var refreshRepositoriesCallCount = 0
+
+    /// Number of times updateSource was called.
+    var updateSourceCallCount = 0
+
+    /// Number of times updateAllSources was called.
+    var updateAllSourcesCallCount = 0
 
 
     //#################################################################################
@@ -99,9 +103,22 @@ final class MockSourceManager: SourceManaging {
         loadInstalledSourcesCallCount += 1
     }
 
+    func loadSavedRepositories() async {
+        loadSavedRepositoriesCallCount += 1
+    }
+
     func addRepository(url: URL) async throws {
         addRepositoryCallCount += 1
         addRepositoryURLs.append(url)
+    }
+
+    func removeRepository(_ repository: SourceRepository) {
+        removeRepositoryCallCount += 1
+        repositories.removeAll { $0.url == repository.url }
+    }
+
+    func refreshRepositories() async {
+        refreshRepositoriesCallCount += 1
     }
 
     func installSource(_ source: SourceInfo, from repository: SourceRepository) async throws {
@@ -119,34 +136,32 @@ final class MockSourceManager: SourceManaging {
         installedSources.removeAll { $0.id == sourceId }
     }
 
-    func selectSource(sourceId: String) {
-        selectSourceCallCount += 1
-        selectedSourceIds.append(sourceId)
-        // Update isEnabled on all sources
-        for index in installedSources.indices {
-            installedSources[index].isEnabled = (installedSources[index].id == sourceId)
-        }
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo? {
+        availableUpdates[sourceId]
     }
 
-    func getPopular(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        getPopularCallCount += 1
-        return try getPopularResult.get()
+    func updateSource(sourceId: String) async throws {
+        updateSourceCallCount += 1
     }
 
-    func getLatest(sourceId: String, page: Int) async throws -> [AnimePreview] {
-        getLatestCallCount += 1
-        return try getLatestResult.get()
+    func updateAllSources() async {
+        updateAllSourcesCallCount += 1
     }
 
-    func search(sourceId: String, query: String, page: Int) async throws -> [AnimePreview] {
+    func getEntryVideos(sourceId: String, page: Int) async throws -> [VideoPreview] {
+        getEntryVideosCallCount += 1
+        return try getEntryVideosResult.get()
+    }
+
+    func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {
         searchCallCount += 1
         searchQueries.append(query)
         return try searchResult.get()
     }
 
-    func getAnimeDetails(sourceId: String, url: String) async throws -> Anime {
-        getAnimeDetailsCallCount += 1
-        return try getAnimeDetailsResult.get()
+    func getVideoDetails(sourceId: String, url: String) async throws -> Video {
+        getVideoDetailsCallCount += 1
+        return try getVideoDetailsResult.get()
     }
 
     func getVideoSources(sourceId: String, episodeId: String, url: String) async throws -> PlaybackInfo {
@@ -180,8 +195,6 @@ final class MockUserPreferences: UserPreferencesProtocol {
     //#################################################################################
 
     var appearance: AppearanceMode = .system
-    var selectedSourceId: String?
-    var showNSFW: Bool = false
 
 
     //#################################################################################
@@ -198,8 +211,6 @@ final class MockUserPreferences: UserPreferencesProtocol {
     func clearAll() {
         clearAllCallCount += 1
         appearance = .system
-        selectedSourceId = nil
-        showNSFW = false
     }
 }
 
@@ -216,9 +227,9 @@ final class MockDownloadService: DownloadServiceProtocol {
     // MARK: - Properties
     //#################################################################################
 
-    var downloadedAnime: [DownloadedAnime] = []
+    var downloadedVideo: [DownloadedVideo] = []
     var activeDownloads: [DownloadedEpisode] = []
-    var totalDownloadsCount: Int { downloadedAnime.flatMap(\.episodes).count }
+    var totalDownloadsCount: Int { downloadedVideo.flatMap(\.episodes).count }
 
 
     //#################################################################################
@@ -239,9 +250,9 @@ final class MockDownloadService: DownloadServiceProtocol {
         setSourceManagerCallCount += 1
     }
 
-    func startDownload(animeId: Int,
-                       animeTitle: String,
-                       animeCoverURL: URL?,
+    func startDownload(videoId: String,
+                       videoTitle: String,
+                       videoCoverURL: URL?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -263,71 +274,12 @@ final class MockDownloadService: DownloadServiceProtocol {
         nil
     }
 
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode] {
-        downloadedAnime.first { $0.id == animeId }?.episodes ?? []
+    func getDownloads(forVideoId videoId: String) -> [DownloadedEpisode] {
+        downloadedVideo.first { $0.id == videoId }?.episodes ?? []
     }
 
-    func removeAllDownloads(forAnimeId animeId: Int) {
-        downloadedAnime.removeAll { $0.id == animeId }
-    }
-}
-
-
-//#################################################################################
-// MARK: - MockAniListService
-//#################################################################################
-
-/// Mock implementation of AniListServicing for testing.
-final class MockAniListService: AniListServicing, @unchecked Sendable {
-
-    //#################################################################################
-    // MARK: - Stub Configuration
-    //#################################################################################
-
-    nonisolated(unsafe) var fetchThisWeekResult: Result<[RecommendingItem], Error> = .success([])
-    nonisolated(unsafe) var fetchTrendingResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    nonisolated(unsafe) var fetchSeasonalResult: Result<PaginatedResponse, Error> = .success(PaginatedResponse(items: [], hasNextPage: false, currentPage: 1))
-    nonisolated(unsafe) var fetchAnimeDetailsResult: Result<AniListAnimeDetail, Error> = .failure(MockError.notConfigured)
-
-
-    //#################################################################################
-    // MARK: - Call Tracking
-    //#################################################################################
-
-    nonisolated(unsafe) var fetchThisWeekCallCount = 0
-    nonisolated(unsafe) var fetchTrendingCallCount = 0
-    nonisolated(unsafe) var fetchTrendingPages: [Int] = []
-    nonisolated(unsafe) var fetchSeasonalCallCount = 0
-    nonisolated(unsafe) var fetchSeasonalPages: [Int] = []
-    nonisolated(unsafe) var fetchAnimeDetailsCallCount = 0
-    nonisolated(unsafe) var fetchAnimeDetailsIds: [Int] = []
-
-
-    //#################################################################################
-    // MARK: - AniListServicing Methods
-    //#################################################################################
-
-    func fetchThisWeek(showNSFW: Bool) async throws -> [RecommendingItem] {
-        fetchThisWeekCallCount += 1
-        return try fetchThisWeekResult.get()
-    }
-
-    func fetchTrending(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
-        fetchTrendingCallCount += 1
-        fetchTrendingPages.append(page)
-        return try fetchTrendingResult.get()
-    }
-
-    func fetchSeasonal(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
-        fetchSeasonalCallCount += 1
-        fetchSeasonalPages.append(page)
-        return try fetchSeasonalResult.get()
-    }
-
-    func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail {
-        fetchAnimeDetailsCallCount += 1
-        fetchAnimeDetailsIds.append(id)
-        return try fetchAnimeDetailsResult.get()
+    func removeAllDownloads(forVideoId videoId: String) {
+        downloadedVideo.removeAll { $0.id == videoId }
     }
 }
 
@@ -339,54 +291,37 @@ final class MockAniListService: AniListServicing, @unchecked Sendable {
 /// Factory for creating test data.
 enum TestFixtures {
 
-    /// Creates a sample RecommendingItem for testing.
-    static func makeRecommendingItem(id: String = "1",
-                                      title: String = "Test Anime",
-                                      anilistId: Int = 12345) -> RecommendingItem {
-        RecommendingItem(id: id,
-                         title: title,
-                         subtitle: "Studio Name",
-                         caption: "Ep. 1",
-                         isCaptionHighlighted: false,
-                         synopsis: "A test anime synopsis.",
-                         coverURL: URL(string: "https://example.com/cover.jpg"),
-                         anilistId: anilistId,
-                         airDate: nil,
-                         episodeNumber: 1,
-                         totalEpisodes: 12)
-    }
-
-    /// Creates a sample AnimePreview for testing.
-    static func makeAnimePreview(id: String = "1",
-                                  title: String = "Test Anime",
-                                  sourceId: String = "test-source") -> AnimePreview {
-        AnimePreview(id: id,
+    /// Creates a sample VideoPreview for testing.
+    static func makeVideoPreview(id: String = "1",
+                                  title: String = "Test Video",
+                                  sourceId: String = "test-source") -> VideoPreview {
+        VideoPreview(id: id,
                      title: title,
                      coverURL: nil,
                      sourceId: sourceId,
-                     detailsURL: "/anime/\(id)")
+                     detailsURL: "/video/\(id)")
     }
 
-    /// Creates a sample Anime for testing.
-    static func makeAnime(id: String = "1",
-                          title: String = "Test Anime",
-                          sourceId: String = "test-source") -> Anime {
+    /// Creates a sample Video for testing.
+    static func makeVideo(id: String = "1",
+                          title: String = "Test Video",
+                          sourceId: String = "test-source") -> Video {
         let episode = makeEpisode()
         let episodeRange = EpisodeRange(id: "range-1",
                                         title: "1 - 1",
                                         episodes: [episode])
-        return Anime(id: id,
+        return Video(id: id,
                      title: title,
                      alternativeTitles: [],
                      coverURL: nil,
                      bannerURL: nil,
-                     synopsis: "A test anime for unit testing.",
+                     synopsis: "A test video for unit testing.",
                      genres: ["Action", "Comedy"],
                      status: .ongoing,
                      year: 2024,
                      rating: "PG-13",
                      sourceId: sourceId,
-                     detailsURL: "/anime/\(id)",
+                     detailsURL: "/video/\(id)",
                      episodes: [episode],
                      episodeRanges: [episodeRange])
     }
@@ -418,11 +353,9 @@ enum TestFixtures {
 
     /// Creates a sample InstalledSource for testing.
     static func makeInstalledSource(id: String = "test-source",
-                                     name: String = "Test Source",
-                                     isEnabled: Bool = true) -> InstalledSource {
+                                     name: String = "Test Source") -> InstalledSource {
         InstalledSource(info: makeSourceInfo(id: id, name: name),
                         scriptPath: URL(fileURLWithPath: "/tmp/\(id).js"),
-                        isEnabled: isEnabled,
                         installedAt: Date())
     }
 
@@ -453,48 +386,9 @@ enum TestFixtures {
     }
 
     /// Creates a sample LibraryItem for testing.
-    static func makeLibraryItem(anime: AnimePreview? = nil,
+    static func makeLibraryItem(video: VideoPreview? = nil,
                                  category: LibraryCategory = .watching) -> LibraryItem {
-        LibraryItem(anime: anime ?? makeAnimePreview(),
+        LibraryItem(video: video ?? makeVideoPreview(),
                     category: category)
-    }
-
-    /// Creates a sample AniListAnimeDetail for testing.
-    static func makeAniListAnimeDetail(id: Int = 12345,
-                                        title: String = "Test Anime") -> AniListAnimeDetail {
-        AniListAnimeDetail(
-            id: id,
-            title: title,
-            romajiTitle: "Tesuto Anime",
-            nativeTitle: "テストアニメ",
-            englishTitle: title,
-            coverURL: URL(string: "https://example.com/cover.jpg"),
-            bannerURL: URL(string: "https://example.com/banner.jpg"),
-            synopsis: "A test anime synopsis for testing.",
-            genres: ["Action", "Comedy"],
-            averageScore: 85,
-            meanScore: 84,
-            popularity: 10000,
-            favourites: 500,
-            status: .releasing,
-            format: .tv,
-            episodes: 12,
-            duration: 24,
-            season: .winter,
-            seasonYear: 2026,
-            startDate: AniListDate(year: 2026, month: 1, day: 1),
-            endDate: nil,
-            source: "MANGA",
-            countryOfOrigin: "JP",
-            studios: [AniListStudio(id: 1, name: "Test Studio", isAnimationStudio: true)],
-            characters: [],
-            relations: [],
-            recommendations: [],
-            externalLinks: [],
-            trailer: nil,
-            tags: [],
-            nextAiringEpisode: nil,
-            siteUrl: URL(string: "https://anilist.co/anime/12345")
-        )
     }
 }

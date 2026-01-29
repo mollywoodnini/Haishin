@@ -9,6 +9,7 @@ import AVKit
 import SwiftUI
 
 #if os(iOS)
+import AVFoundation
 
 /// Handles UIKit-based presentation of AVPlayerViewController for proper PiP support.
 /// AVPlayerViewController must be presented directly via UIKit (not embedded in SwiftUI)
@@ -188,6 +189,11 @@ final class VideoPlayerPresenter: NSObject {
         playerVC.allowsPictureInPicturePlayback = true
         playerVC.canStartPictureInPictureAutomaticallyFromInline = true
         playerVC.updatesNowPlayingInfoCenter = false
+
+        // Log PiP diagnostic information
+        let isPiPSupported = AVPictureInPictureController.isPictureInPictureSupported()
+        Log.info(.playback, "PiP Diagnostic - isPictureInPictureSupported: \(isPiPSupported)")
+        Log.info(.playback, "PiP Diagnostic - allowsPictureInPicturePlayback: \(playerVC.allowsPictureInPicturePlayback)")
 
         self.playerViewController = playerVC
 

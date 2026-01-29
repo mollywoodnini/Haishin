@@ -2,7 +2,7 @@
 //  InstalledSourceRow.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Kingfisher
@@ -16,7 +16,7 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     private let source: InstalledSource
-    private let onSelect: () -> Void
+    private let hasUpdate: Bool
     private let onDelete: () -> Void
 
 
@@ -25,12 +25,13 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     /// Creates a new installed source row.
-    /// - Parameter source: The installed source to display.
-    /// - Parameter onSelect: Closure called when the row is tapped to select this source.
-    /// - Parameter onDelete: Closure called when the delete action is triggered.
-    init(source: InstalledSource, onSelect: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    /// - Parameters:
+    ///   - source: The installed source to display.
+    ///   - hasUpdate: Whether an update is available for this source.
+    ///   - onDelete: Closure called when the delete action is triggered.
+    init(source: InstalledSource, hasUpdate: Bool = false, onDelete: @escaping () -> Void) {
         self.source = source
-        self.onSelect = onSelect
+        self.hasUpdate = hasUpdate
         self.onDelete = onDelete
     }
 
@@ -40,18 +41,15 @@ struct InstalledSourceRow: View {
     //#################################################################################
 
     var body: some View {
-        Button {
-            onSelect()
-        } label: {
-            HStack(spacing: .spacingS) {
-                iconView
-                infoView
-                Spacer()
-                checkmarkView
+        HStack(spacing: .spacingS) {
+            iconView
+            infoView
+            Spacer()
+            if hasUpdate {
+                updateBadge
             }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 onDelete()
@@ -93,12 +91,9 @@ struct InstalledSourceRow: View {
         }
     }
 
-    @ViewBuilder
-    private var checkmarkView: some View {
-        if source.isEnabled {
-            Image(systemName: "checkmark")
-                .foregroundStyle(.tint)
-                .fontWeight(.semibold)
-        }
+    private var updateBadge: some View {
+        Image(systemName: "arrow.up.circle.fill")
+            .foregroundStyle(.blue)
+            .imageScale(.medium)
     }
 }

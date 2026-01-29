@@ -2,12 +2,12 @@
 //  Source.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
 
-/// Metadata about an external anime source.
+/// Metadata about an external video source.
 struct SourceInfo: Identifiable, Hashable, Codable, Sendable {
 
     //#################################################################################
@@ -84,9 +84,6 @@ struct InstalledSource: Identifiable, Hashable {
 
     /// Path to the installed JavaScript file.
     let scriptPath: URL
-
-    /// Whether the source is currently enabled.
-    var isEnabled: Bool
 
     /// Date when the source was installed.
     let installedAt: Date

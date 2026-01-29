@@ -2,7 +2,7 @@
 //  LibraryView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - LibraryView
 //#################################################################################
 
-/// The library view showing recents, subscribed anime, and downloads.
+/// The library view showing recents, subscribed videos, and downloads.
 struct LibraryView: View {
 
     //#################################################################################
@@ -38,14 +38,12 @@ struct LibraryView: View {
          subscriptionService: SubscriptionServiceProtocol,
          sourceManager: SourceManaging,
          downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol,
-         aniListService: AniListServicing) {
+         userPreferences: UserPreferencesProtocol) {
         self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
                                                                subscriptionService: subscriptionService,
                                                                sourceManager: sourceManager,
                                                                downloadService: downloadService,
-                                                               userPreferences: userPreferences,
-                                                               aniListService: aniListService))
+                                                               userPreferences: userPreferences))
     }
 
 
@@ -113,6 +111,5 @@ struct LibraryView: View {
                 subscriptionService: SubscriptionService.shared,
                 sourceManager: SourceManager.shared,
                 downloadService: DownloadService.shared,
-                userPreferences: UserPreferences.shared,
-                aniListService: AniListService())
+                userPreferences: UserPreferences.shared)
 }

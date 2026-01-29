@@ -2,7 +2,7 @@
 //  SourcesViewModelTests.swift
 //  HaishinTests
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
@@ -187,27 +187,5 @@ struct SourcesViewModelTests {
 
         // Then
         #expect(sut.isInstalled(sourceInfo) == false)
-    }
-
-
-    //#################################################################################
-    // MARK: - selectSource Tests
-    //#################################################################################
-
-    @Test("selectSource calls source manager with correct id")
-    func selectSource_callsSourceManagerWithCorrectId() {
-        let mockSourceManager = MockSourceManager()
-        let sut = SourcesViewModel(sourceManager: mockSourceManager)
-
-        // Given
-        let source = TestFixtures.makeInstalledSource()
-        mockSourceManager.installedSources = [source]
-
-        // When
-        sut.selectSource(source)
-
-        // Then
-        #expect(mockSourceManager.selectSourceCallCount == 1)
-        #expect(mockSourceManager.selectedSourceIds.first == source.id)
     }
 }

@@ -2,7 +2,7 @@
 //  DownloadService.swift
 //  Haishin
 //
-//  Created by Haishin on 25.01.26.
+//  Created by Tan Nghia La on 25.01.26.
 //
 
 import Foundation
@@ -83,8 +83,8 @@ struct DownloadedEpisode: Identifiable, Codable, Equatable, Hashable {
     /// Unique identifier for the download.
     let id: String
 
-    /// The anime ID this episode belongs to.
-    let animeId: Int
+    /// The video ID this episode belongs to.
+    let videoId: String
 
     /// The episode ID from the source.
     let episodeId: String
@@ -119,16 +119,16 @@ struct DownloadedEpisode: Identifiable, Codable, Equatable, Hashable {
 
 
 //#################################################################################
-// MARK: - DownloadedAnime
+// MARK: - DownloadedVideo
 //#################################################################################
 
-/// Represents an anime with downloaded episodes.
-struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
+/// Represents a video with downloaded episodes.
+struct DownloadedVideo: VideoProtocol, Codable, Equatable {
 
-    /// The anime ID (from AniList).
-    let id: Int
+    /// The video ID.
+    let id: String
 
-    /// The anime title.
+    /// The video title.
     let title: String
 
     /// URL to the cover image.
@@ -140,7 +140,7 @@ struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
     /// The source name for display.
     let sourceName: String
 
-    /// All downloaded episodes for this anime.
+    /// All downloaded episodes for this video.
     var episodes: [DownloadedEpisode]
 
     /// Number of episodes currently downloading.
@@ -168,6 +168,8 @@ struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
 }
 
 
+
+
 //#################################################################################
 // MARK: - DownloadServiceProtocol
 //#################################################################################
@@ -175,8 +177,8 @@ struct DownloadedAnime: Identifiable, Codable, Equatable, Hashable {
 /// Protocol for download management.
 @MainActor
 protocol DownloadServiceProtocol: AnyObject {
-    /// All downloaded anime.
-    var downloadedAnime: [DownloadedAnime] { get }
+    /// All downloaded videos.
+    var downloadedVideo: [DownloadedVideo] { get }
 
     /// All active downloads.
     var activeDownloads: [DownloadedEpisode] { get }
@@ -188,9 +190,9 @@ protocol DownloadServiceProtocol: AnyObject {
     func setSourceManager(_ sourceManager: SourceManaging)
 
     /// Starts downloading an episode.
-    func startDownload(animeId: Int,
-                       animeTitle: String,
-                       animeCoverURL: URL?,
+    func startDownload(videoId: String,
+                       videoTitle: String,
+                       videoCoverURL: URL?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -207,11 +209,11 @@ protocol DownloadServiceProtocol: AnyObject {
     /// Gets the download state for an episode.
     func getDownloadState(episodeId: String) -> DownloadState?
 
-    /// Gets all downloads for an anime.
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode]
+    /// Gets all downloads for a video.
+    func getDownloads(forVideoId videoId: String) -> [DownloadedEpisode]
 
-    /// Removes all downloads for an anime.
-    func removeAllDownloads(forAnimeId animeId: Int)
+    /// Removes all downloads for a video.
+    func removeAllDownloads(forVideoId videoId: String)
 }
 
 
@@ -230,7 +232,7 @@ final class DownloadService: DownloadServiceProtocol {
 
     private struct Constants {
         static let episodesStorageKey = "downloadedEpisodes"
-        static let animeStorageKey = "downloadedAnimeMetadata"
+        static let videoStorageKey = "downloadedVideoMetadata"
         static let downloadsDirectory = "Downloads"
     }
 
@@ -242,8 +244,8 @@ final class DownloadService: DownloadServiceProtocol {
     /// Shared instance for app-wide use.
     static let shared = DownloadService()
 
-    /// All downloaded anime grouped.
-    private(set) var downloadedAnime: [DownloadedAnime] = []
+    /// All downloaded videos grouped.
+    private(set) var downloadedVideo: [DownloadedVideo] = []
 
     /// All active downloads.
     var activeDownloads: [DownloadedEpisode] {
@@ -292,9 +294,9 @@ final class DownloadService: DownloadServiceProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func startDownload(animeId: Int,
-                       animeTitle: String,
-                       animeCoverURL: URL?,
+    func startDownload(videoId: String,
+                       videoTitle: String,
+                       videoCoverURL: URL?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -312,7 +314,7 @@ final class DownloadService: DownloadServiceProtocol {
 
         let downloadId = UUID().uuidString
         let downloadedEpisode = DownloadedEpisode(id: downloadId,
-                                                   animeId: animeId,
+                                                   videoId: videoId,
                                                    episodeId: episodeId,
                                                    episodeNumber: episodeNumber,
                                                    episodeTitle: episodeTitle,
@@ -325,9 +327,9 @@ final class DownloadService: DownloadServiceProtocol {
                                                    completedAt: nil)
 
         allEpisodes.append(downloadedEpisode)
-        updateGroupedAnime(animeId: animeId,
-                           title: animeTitle,
-                           coverURL: animeCoverURL,
+        updateGroupedVideo(videoId: videoId,
+                           title: videoTitle,
+                           coverURL: videoCoverURL,
                            sourceId: sourceId,
                            sourceName: sourceName)
         saveDownloads()
@@ -346,9 +348,9 @@ final class DownloadService: DownloadServiceProtocol {
 
         // Remove the cancelled download entirely
         if let index = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
-            let animeId = allEpisodes[index].animeId
+            let videoId = allEpisodes[index].videoId
             allEpisodes.remove(at: index)
-            refreshGroupedAnime(forAnimeId: animeId)
+            refreshGroupedVideo(forVideoId: videoId)
             saveDownloads()
         }
     }
@@ -359,7 +361,7 @@ final class DownloadService: DownloadServiceProtocol {
 
         if let index = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
             let episode = allEpisodes[index]
-            let animeId = episode.animeId
+            let videoId = episode.videoId
 
             // Delete local file if exists
             if let filePath = episode.localFilePath {
@@ -367,7 +369,7 @@ final class DownloadService: DownloadServiceProtocol {
             }
 
             allEpisodes.remove(at: index)
-            refreshGroupedAnime(forAnimeId: animeId)
+            refreshGroupedVideo(forVideoId: videoId)
             saveDownloads()
         }
     }
@@ -376,12 +378,12 @@ final class DownloadService: DownloadServiceProtocol {
         allEpisodes.first { $0.episodeId == episodeId }?.state
     }
 
-    func getDownloads(forAnimeId animeId: Int) -> [DownloadedEpisode] {
-        allEpisodes.filter { $0.animeId == animeId }
+    func getDownloads(forVideoId videoId: String) -> [DownloadedEpisode] {
+        allEpisodes.filter { $0.videoId == videoId }
     }
 
-    func removeAllDownloads(forAnimeId animeId: Int) {
-        let episodesToRemove = allEpisodes.filter { $0.animeId == animeId }
+    func removeAllDownloads(forVideoId videoId: String) {
+        let episodesToRemove = allEpisodes.filter { $0.videoId == videoId }
         for episode in episodesToRemove {
             removeDownload(episodeId: episode.episodeId)
         }
@@ -401,7 +403,7 @@ final class DownloadService: DownloadServiceProtocol {
 
         // Update state to downloading
         allEpisodes[index].state = .downloading(progress: 0)
-        refreshGroupedAnime(forAnimeId: allEpisodes[index].animeId)
+        refreshGroupedVideo(forVideoId: allEpisodes[index].videoId)
         saveDownloads()
 
         do {
@@ -426,11 +428,11 @@ final class DownloadService: DownloadServiceProtocol {
             try Task.checkCancellation()
 
             // Step 2: Create the destination file path
-            let animeDirectory = downloadsDirectory.appendingPathComponent("\(episode.animeId)")
-            try fileManager.createDirectory(at: animeDirectory, withIntermediateDirectories: true)
+            let videoDirectory = downloadsDirectory.appendingPathComponent("\(episode.videoId)")
+            try fileManager.createDirectory(at: videoDirectory, withIntermediateDirectories: true)
 
             let fileName = "\(episode.episodeNumber.replacingOccurrences(of: "/", with: "-")).mp4"
-            let destinationURL = animeDirectory.appendingPathComponent(fileName)
+            let destinationURL = videoDirectory.appendingPathComponent(fileName)
 
             // Remove existing file if present
             if fileManager.fileExists(atPath: destinationURL.path) {
@@ -451,7 +453,7 @@ final class DownloadService: DownloadServiceProtocol {
                 allEpisodes[currentIndex].state = .completed
                 allEpisodes[currentIndex].completedAt = Date()
                 allEpisodes[currentIndex].localFilePath = destinationURL.path
-                refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
+                refreshGroupedVideo(forVideoId: allEpisodes[currentIndex].videoId)
                 saveDownloads()
                 Log.info(.downloads, "Download completed: \(destinationURL.path)")
             }
@@ -462,7 +464,7 @@ final class DownloadService: DownloadServiceProtocol {
             Log.error(.downloads, "Download failed: \(error)")
             if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
                 allEpisodes[currentIndex].state = .failed(error: error.localizedDescription)
-                refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
+                refreshGroupedVideo(forVideoId: allEpisodes[currentIndex].videoId)
                 saveDownloads()
             }
         }
@@ -502,7 +504,7 @@ final class DownloadService: DownloadServiceProtocol {
                 let progress = expectedLength > 0 ? Double(downloadedBytes) / Double(expectedLength) : 0
                 if let currentIndex = allEpisodes.firstIndex(where: { $0.episodeId == episodeId }) {
                     allEpisodes[currentIndex].state = .downloading(progress: min(progress, 0.99))
-                    refreshGroupedAnime(forAnimeId: allEpisodes[currentIndex].animeId)
+                    refreshGroupedVideo(forVideoId: allEpisodes[currentIndex].videoId)
                 }
             }
         }
@@ -510,31 +512,31 @@ final class DownloadService: DownloadServiceProtocol {
         try downloadedData.write(to: destination)
     }
 
-    private func updateGroupedAnime(animeId: Int,
+    private func updateGroupedVideo(videoId: String,
                                      title: String,
                                      coverURL: URL?,
                                      sourceId: String,
                                      sourceName: String) {
-        if let index = downloadedAnime.firstIndex(where: { $0.id == animeId }) {
-            downloadedAnime[index].episodes = allEpisodes.filter { $0.animeId == animeId }
+        if let index = downloadedVideo.firstIndex(where: { $0.id == videoId }) {
+            downloadedVideo[index].episodes = allEpisodes.filter { $0.videoId == videoId }
         } else {
-            let anime = DownloadedAnime(id: animeId,
+            let video = DownloadedVideo(id: videoId,
                                          title: title,
                                          coverURL: coverURL,
                                          sourceId: sourceId,
                                          sourceName: sourceName,
-                                         episodes: allEpisodes.filter { $0.animeId == animeId })
-            downloadedAnime.append(anime)
+                                         episodes: allEpisodes.filter { $0.videoId == videoId })
+            downloadedVideo.append(video)
         }
     }
 
-    private func refreshGroupedAnime(forAnimeId animeId: Int) {
-        if let index = downloadedAnime.firstIndex(where: { $0.id == animeId }) {
-            let episodes = allEpisodes.filter { $0.animeId == animeId }
+    private func refreshGroupedVideo(forVideoId videoId: String) {
+        if let index = downloadedVideo.firstIndex(where: { $0.id == videoId }) {
+            let episodes = allEpisodes.filter { $0.videoId == videoId }
             if episodes.isEmpty {
-                downloadedAnime.remove(at: index)
+                downloadedVideo.remove(at: index)
             } else {
-                downloadedAnime[index].episodes = episodes
+                downloadedVideo[index].episodes = episodes
             }
         }
     }
@@ -546,26 +548,26 @@ final class DownloadService: DownloadServiceProtocol {
             allEpisodes = decodedEpisodes
         }
 
-        // Load anime metadata
-        if let animeData = userDefaults.data(forKey: Constants.animeStorageKey),
-           let decodedAnime = try? JSONDecoder().decode([DownloadedAnime].self, from: animeData) {
-            // Restore anime with their episodes
-            downloadedAnime = decodedAnime.compactMap { anime in
-                let episodes = allEpisodes.filter { $0.animeId == anime.id }
+        // Load video metadata
+        if let videoData = userDefaults.data(forKey: Constants.videoStorageKey),
+           let decodedVideo = try? JSONDecoder().decode([DownloadedVideo].self, from: videoData) {
+            // Restore videos with their episodes
+            downloadedVideo = decodedVideo.compactMap { video in
+                let episodes = allEpisodes.filter { $0.videoId == video.id }
                 guard !episodes.isEmpty else { return nil }
-                return DownloadedAnime(id: anime.id,
-                                        title: anime.title,
-                                        coverURL: anime.coverURL,
-                                        sourceId: anime.sourceId,
-                                        sourceName: anime.sourceName,
+                return DownloadedVideo(id: video.id,
+                                        title: video.title,
+                                        coverURL: video.coverURL,
+                                        sourceId: video.sourceId,
+                                        sourceName: video.sourceName,
                                         episodes: episodes)
             }
         } else {
-            // Fallback for legacy data without anime metadata
-            let grouped = Dictionary(grouping: allEpisodes) { $0.animeId }
-            downloadedAnime = grouped.compactMap { animeId, episodes in
+            // Fallback for legacy data without video metadata
+            let grouped = Dictionary(grouping: allEpisodes) { $0.videoId }
+            downloadedVideo = grouped.compactMap { videoId, episodes in
                 guard let first = episodes.first else { return nil }
-                return DownloadedAnime(id: animeId,
+                return DownloadedVideo(id: videoId,
                                         title: "Unknown",
                                         coverURL: nil,
                                         sourceId: first.sourceId,
@@ -581,9 +583,9 @@ final class DownloadService: DownloadServiceProtocol {
             userDefaults.set(episodesEncoded, forKey: Constants.episodesStorageKey)
         }
 
-        // Save anime metadata
-        if let animeEncoded = try? JSONEncoder().encode(downloadedAnime) {
-            userDefaults.set(animeEncoded, forKey: Constants.animeStorageKey)
+        // Save video metadata
+        if let videoEncoded = try? JSONEncoder().encode(downloadedVideo) {
+            userDefaults.set(videoEncoded, forKey: Constants.videoStorageKey)
         }
     }
 }

@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -24,24 +24,20 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            BrowseView(sourceManager: sourceManager)
-                .tabItem {
-                    Label(Tab.browse.title, systemImage: Tab.browse.icon)
-                }
-                .tag(Tab.browse)
-
             LibraryView(watchProgressService: WatchProgressService.shared,
                         subscriptionService: SubscriptionService.shared,
                         sourceManager: sourceManager,
                         downloadService: DownloadService.shared,
-                        userPreferences: UserPreferences.shared,
-                        aniListService: AniListService())
+                        userPreferences: UserPreferences.shared)
                 .tabItem {
                     Label(Tab.library.title, systemImage: Tab.library.icon)
                 }
                 .tag(Tab.library)
 
-            SearchView(sourceManager: sourceManager)
+            SearchView(sourceManager: sourceManager,
+                       watchProgressService: WatchProgressService.shared,
+                       subscriptionService: SubscriptionService.shared,
+                       downloadService: DownloadService.shared)
                 .tabItem {
                     Label(Tab.search.title, systemImage: Tab.search.icon)
                 }

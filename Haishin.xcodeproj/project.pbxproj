@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		180D9C6B2F264BBD0010A1C9 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 180D9C6A2F264BBD0010A1C9 /* Kingfisher */; };
+		1897A6E02F2AA4F50044D3C4 /* Atlantis in Frameworks */ = {isa = PBXBuildFile; productRef = 1897A6DF2F2AA4F50044D3C4 /* Atlantis */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,9 +26,22 @@
 		185F71A82F25298500C60C1E /* HaishinTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HaishinTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1897A6E22F2AA5460044D3C4 /* Exceptions for "Haishin" folder in "Haishin" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 185F719A2F25298200C60C1E /* Haishin */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		185F719D2F25298200C60C1E /* Haishin */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1897A6E22F2AA5460044D3C4 /* Exceptions for "Haishin" folder in "Haishin" target */,
+			);
 			path = Haishin;
 			sourceTree = "<group>";
 		};
@@ -43,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1897A6E02F2AA4F50044D3C4 /* Atlantis in Frameworks */,
 				180D9C6B2F264BBD0010A1C9 /* Kingfisher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -96,6 +111,7 @@
 			name = Haishin;
 			packageProductDependencies = (
 				180D9C6A2F264BBD0010A1C9 /* Kingfisher */,
+				1897A6DF2F2AA4F50044D3C4 /* Atlantis */,
 			);
 			productName = Haishin;
 			productReference = 185F719B2F25298200C60C1E /* Haishin.app */;
@@ -154,6 +170,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				180D9C692F264BBD0010A1C9 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				1897A6DE2F2AA4F50044D3C4 /* XCRemoteSwiftPackageReference "atlantis" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 185F719C2F25298200C60C1E /* Products */;
@@ -341,8 +358,10 @@
 				DEVELOPMENT_TEAM = 7P98753C95;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Haishin/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Haishin;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Atlantis would use Bonjour Service to discover Proxyman app from your local network. Atlantis uses it to transfer the data from your iOS app to Proxyman macOS for debugging purposes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = "audio picture-in-picture";
@@ -378,8 +397,10 @@
 				DEVELOPMENT_TEAM = 7P98753C95;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Haishin/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Haishin;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Atlantis would use Bonjour Service to discover Proxyman app from your local network. Atlantis uses it to transfer the data from your iOS app to Proxyman macOS for debugging purposes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = "audio picture-in-picture";
@@ -489,6 +510,14 @@
 				minimumVersion = 8.6.2;
 			};
 		};
+		1897A6DE2F2AA4F50044D3C4 /* XCRemoteSwiftPackageReference "atlantis" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ProxymanApp/atlantis";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.32.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -496,6 +525,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 180D9C692F264BBD0010A1C9 /* XCRemoteSwiftPackageReference "Kingfisher" */;
 			productName = Kingfisher;
+		};
+		1897A6DF2F2AA4F50044D3C4 /* Atlantis */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1897A6DE2F2AA4F50044D3C4 /* XCRemoteSwiftPackageReference "atlantis" */;
+			productName = Atlantis;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -2,7 +2,7 @@
 //  SubscribedListView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - SubscribedListView
 //#################################################################################
 
-/// A list view displaying subscribed anime.
+/// A list view displaying subscribed videos.
 struct SubscribedListView: View {
 
     //#################################################################################
@@ -20,7 +20,9 @@ struct SubscribedListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
-    @State private var tappedAnime: SubscribedAnime?
+    @State private var tappedVideo: SubscribedVideo?
+    @State private var selectedViewModel: EpisodeListViewModel?
+    @State private var showNoSourceAlert = false
 
 
     //#################################################################################
@@ -40,27 +42,28 @@ struct SubscribedListView: View {
 
     var body: some View {
         Group {
-            if viewModel.subscribedAnime.isEmpty {
+            if viewModel.subscribedVideo.isEmpty {
                 ContentUnavailableView {
                     Label("No Subscriptions", systemImage: "bell")
                 } description: {
-                    Text("Anime you subscribe to will appear here.")
+                    Text("Videos you subscribe to will appear here.")
                 }
             } else {
                 List {
-                    ForEach(viewModel.subscribedAnime) { anime in
-                        AnimeListRowButton(mode: .subscribed(anime),
-                                           item: anime) { tappedAnime = $0 }
+                    ForEach(viewModel.subscribedVideo) { video in
+                        VideoRowButton(mode: .subscribed(video),
+                                       sourceName: viewModel.sourceName(for: video.sourceId),
+                                       item: video) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let anime = viewModel.subscribedAnime[index]
-                            viewModel.unsubscribe(id: anime.id)
+                            let video = viewModel.subscribedVideo[index]
+                            viewModel.unsubscribe(id: video.id)
                         }
                     }
                 }
-                .navigationDestination(item: $tappedAnime) { anime in
-                    AnimeDetailView(viewModel: viewModel.makeAnimeDetailViewModel(subscribedAnime: anime))
+                .navigationDestination(item: $selectedViewModel) { episodeViewModel in
+                    EpisodeListView(viewModel: episodeViewModel)
                 }
                 .listStyle(.plain)
             }
@@ -69,6 +72,20 @@ struct SubscribedListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.refresh()
+        }
+        .onChange(of: tappedVideo) { _, newValue in
+            guard let video = newValue else { return }
+            if let episodeViewModel = viewModel.makeEpisodeListViewModel(video: video) {
+                selectedViewModel = episodeViewModel
+            } else {
+                showNoSourceAlert = true
+            }
+            tappedVideo = nil
+        }
+        .alert("Source Not Available", isPresented: $showNoSourceAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The source used for this subscription is no longer installed. Please reinstall the source or subscribe again with a different source.")
         }
     }
 }

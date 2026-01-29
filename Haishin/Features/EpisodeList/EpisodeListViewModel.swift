@@ -2,7 +2,7 @@
 //  EpisodeListViewModel.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Foundation
@@ -12,12 +12,27 @@ import Foundation
 // MARK: - EpisodeListMode
 //#################################################################################
 
-/// The mode for displaying episodes.
+/// The mode for displaying episodes with associated model data.
 enum EpisodeListMode {
     /// Online mode - fetches episodes from a source.
-    case online
+    /// - Parameters:
+    ///   - video: The video to display.
+    ///   - detailsURL: Optional details URL for direct source navigation.
+    case online(video: any VideoProtocol, detailsURL: String?)
     /// Offline mode - displays downloaded episodes.
-    case offline
+    case offline(DownloadedVideo)
+
+    /// Returns whether this is online mode.
+    var isOnline: Bool {
+        if case .online = self { return true }
+        return false
+    }
+
+    /// Returns whether this is offline mode.
+    var isOffline: Bool {
+        if case .offline = self { return true }
+        return false
+    }
 }
 
 
@@ -28,7 +43,22 @@ enum EpisodeListMode {
 /// ViewModel for managing episode fetching and playback state.
 @Observable
 @MainActor
-final class EpisodeListViewModel {
+final class EpisodeListViewModel: Identifiable, Hashable {
+
+    //#################################################################################
+    // MARK: - Identifiable & Hashable
+    //#################################################################################
+
+    nonisolated let id = UUID()
+
+    nonisolated static func == (lhs: EpisodeListViewModel, rhs: EpisodeListViewModel) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    nonisolated func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
 
     //#################################################################################
     // MARK: - Properties
@@ -37,26 +67,8 @@ final class EpisodeListViewModel {
     /// The display mode for the episode list.
     let mode: EpisodeListMode
 
-    /// The anime ID.
-    let animeId: Int
-
-    /// The anime title.
-    let animeTitle: String
-
-    /// The anime cover URL.
-    let animeCoverURL: URL?
-
-    /// The AniList anime details (only available in online mode).
-    private let aniListAnime: AniListAnimeDetail?
-
-    /// The downloaded anime (only available in offline mode).
-    private let downloadedAnime: DownloadedAnime?
-
-    /// The selected source ID.
-    let sourceId: String?
-
-    /// The matched anime from the source (online mode).
-    private(set) var sourceAnime: Anime?
+    /// The matched video from the source (online mode).
+    private(set) var sourceVideo: Video?
 
     /// Episodes converted from downloaded episodes (offline mode).
     private(set) var offlineEpisodes: [Episode] = []
@@ -67,140 +79,115 @@ final class EpisodeListViewModel {
     /// The last error that occurred.
     private(set) var error: Error?
 
-    /// Whether the user is subscribed to this anime.
+    /// Whether the user is subscribed to this video.
     private(set) var isSubscribed = false
 
     /// Watch progress for each episode, keyed by episode ID.
     private(set) var watchProgressMap: [String: WatchProgress] = [:]
 
-    /// The currently selected source ID from user preferences.
-    var selectedSourceId: String? {
-        get { userPreferences?.selectedSourceId }
-        set { userPreferences?.selectedSourceId = newValue }
-    }
-
-    private let sourceManager: SourceManaging?
+    private let sourceManager: SourceManaging
     private let watchProgressService: WatchProgressServiceProtocol
-    private let subscriptionService: SubscriptionServiceProtocol?
+    private let subscriptionService: SubscriptionServiceProtocol
     private let downloadService: DownloadServiceProtocol
-    private var userPreferences: UserPreferencesProtocol?
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new episodes view model for online mode.
+    /// Creates a new episodes view model.
     /// - Parameters:
-    ///   - aniListAnime: The AniList anime details.
-    ///   - sourceId: The selected source ID.
+    ///   - mode: The display mode (online or offline) with associated data.
     ///   - sourceManager: The source manager for fetching episodes.
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
-    ///   - userPreferences: The user preferences for source selection.
-    init(aniListAnime: AniListAnimeDetail,
-         sourceId: String,
+    init(mode: EpisodeListMode,
          sourceManager: SourceManaging,
          watchProgressService: WatchProgressServiceProtocol,
          subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol) {
-        self.mode = .online
-        self.animeId = aniListAnime.id
-        self.animeTitle = aniListAnime.title
-        self.animeCoverURL = aniListAnime.coverURL
-        self.aniListAnime = aniListAnime
-        self.downloadedAnime = nil
-        self.sourceId = sourceId
+         downloadService: DownloadServiceProtocol) {
+        self.mode = mode
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
         self.downloadService = downloadService
-        self.userPreferences = userPreferences
-        self.isSubscribed = subscriptionService.isSubscribed(id: aniListAnime.id)
+
+        switch mode {
+        case .online(let video, _):
+            self.isSubscribed = subscriptionService.isSubscribed(id: video.id)
+
+        case .offline(let downloadedVideo):
+            self.isSubscribed = subscriptionService.isSubscribed(id: downloadedVideo.id)
+            self.offlineEpisodes = downloadedVideo.episodes
+                .filter { $0.state.isCompleted }
+                .sorted { $0.episodeNumber < $1.episodeNumber }
+                .map { downloadedEpisode in
+                    Episode(id: downloadedEpisode.episodeId,
+                            number: downloadedEpisode.episodeNumber,
+                            title: downloadedEpisode.episodeTitle,
+                            thumbnailURL: nil,
+                            url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
+                            duration: nil)
+                }
+        }
     }
-
-    /// Creates a new episodes view model for offline mode.
-    /// - Parameters:
-    ///   - downloadedAnime: The downloaded anime to display.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - downloadService: The service for managing downloads.
-    init(downloadedAnime: DownloadedAnime,
-         watchProgressService: WatchProgressServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self.mode = .offline
-        self.animeId = downloadedAnime.id
-        self.animeTitle = downloadedAnime.title
-        self.animeCoverURL = downloadedAnime.coverURL
-        self.aniListAnime = nil
-        self.downloadedAnime = downloadedAnime
-        self.sourceId = downloadedAnime.sourceId
-        self.sourceManager = nil
-        self.watchProgressService = watchProgressService
-        self.subscriptionService = nil
-        self.downloadService = downloadService
-        self.userPreferences = nil
-        self.isSubscribed = false
-
-        // Convert downloaded episodes to Episode model
-        self.offlineEpisodes = downloadedAnime.episodes
-            .filter { $0.state.isCompleted }
-            .sorted { ($0.episodeNumber) < ($1.episodeNumber) }
-            .map { downloadedEpisode in
-                Episode(id: downloadedEpisode.episodeId,
-                        number: downloadedEpisode.episodeNumber,
-                        title: downloadedEpisode.episodeTitle,
-                        thumbnailURL: nil,
-                        url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
-                        duration: nil)
-            }
-    }
-
-    /// Creates a new episodes view model for source search results.
-    /// - Parameters:
-    ///   - animePreview: The anime preview from source search.
-    ///   - sourceManager: The source manager for fetching episodes.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - downloadService: The service for managing downloads.
-    init(animePreview: AnimePreview,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self.mode = .online
-        self.animeId = animePreview.id.hashValue
-        self.animeTitle = animePreview.title
-        self.animeCoverURL = animePreview.coverURL
-        self.aniListAnime = nil
-        self.downloadedAnime = nil
-        self.sourceId = animePreview.sourceId
-        self.sourceManager = sourceManager
-        self.watchProgressService = watchProgressService
-        self.subscriptionService = nil
-        self.downloadService = downloadService
-        self.userPreferences = nil
-        self.isSubscribed = false
-        self._animePreviewDetailsURL = animePreview.detailsURL
-    }
-
-    /// The details URL for direct source navigation (when initialized with AnimePreview).
-    private var _animePreviewDetailsURL: String?
 
 
     //#################################################################################
     // MARK: - Public Computed Properties
     //#################################################################################
 
+    /// The video ID.
+    var videoId: String {
+        switch mode {
+        case .online(let video, _):
+            return video.id
+        case .offline(let downloadedVideo):
+            return downloadedVideo.id
+        }
+    }
+
+    /// The video title.
+    var videoTitle: String {
+        switch mode {
+        case .online(let video, _):
+            return video.title
+        case .offline(let downloadedVideo):
+            return downloadedVideo.title
+        }
+    }
+
+    /// The video cover URL.
+    var videoCoverURL: URL? {
+        switch mode {
+        case .online(let video, _):
+            return video.coverURL
+        case .offline(let downloadedVideo):
+            return downloadedVideo.coverURL
+        }
+    }
+
+    /// The source ID for this video.
+    var sourceId: String {
+        switch mode {
+        case .online(let video, _):
+            return video.sourceId
+        case .offline(let downloadedVideo):
+            return downloadedVideo.sourceId
+        }
+    }
+
     /// Returns the list of installed sources for the source picker.
     var installedSources: [InstalledSource] {
-        sourceManager?.installedSources ?? []
+        sourceManager.installedSources
     }
 
     /// Returns the episodes to display based on mode.
     var episodes: [Episode] {
         switch mode {
         case .online:
-            return sourceAnime?.episodes ?? []
+            return sourceVideo?.episodes ?? []
         case .offline:
             return offlineEpisodes
         }
@@ -208,7 +195,12 @@ final class EpisodeListViewModel {
 
     /// Returns the source name for display.
     var sourceName: String? {
-        downloadedAnime?.sourceName
+        switch mode {
+        case .online:
+            return sourceManager.installedSources.first { $0.id == sourceId }?.info.name
+        case .offline(let downloadedVideo):
+            return downloadedVideo.sourceName
+        }
     }
 
 
@@ -233,7 +225,7 @@ final class EpisodeListViewModel {
 
     /// Reloads watch progress from the service.
     func loadWatchProgress() {
-        let allProgress = watchProgressService.getAllProgress(animeId: animeId)
+        let allProgress = watchProgressService.getAllProgress(videoId: videoId)
         var progressMap: [String: WatchProgress] = [:]
         for progress in allProgress {
             progressMap[progress.episodeId] = progress
@@ -241,23 +233,18 @@ final class EpisodeListViewModel {
         watchProgressMap = progressMap
     }
 
-    /// Toggles the subscription status for this anime.
+    /// Toggles the subscription status for this video.
     func toggleSubscription() {
-        guard let aniListAnime, let subscriptionService else { return }
-
         if isSubscribed {
-            subscriptionService.unsubscribe(id: aniListAnime.id)
+            subscriptionService.unsubscribe(id: videoId)
         } else {
-            subscriptionService.subscribe(id: aniListAnime.id,
-                                          title: aniListAnime.title,
-                                          coverURL: aniListAnime.coverURL)
+            subscriptionService.subscribe(id: videoId,
+                                          title: videoTitle,
+                                          coverURL: videoCoverURL,
+                                          sourceId: sourceId)
         }
+        
         isSubscribed.toggle()
-    }
-
-    /// Clears the selected source when it's invalid.
-    func clearSelectedSource() {
-        userPreferences?.selectedSourceId = nil
     }
 
     /// Returns the episode to continue watching, or nil if no progress exists.
@@ -309,21 +296,19 @@ final class EpisodeListViewModel {
     /// Starts downloading an episode (online mode only).
     /// - Parameter episode: The episode to download.
     func startDownload(episode: Episode) {
-        guard mode == .online,
-              let sourceId,
-              let aniListAnime,
-              let source = sourceManager?.installedSources.first(where: { $0.id == sourceId }) else {
+        guard mode.isOnline,
+              let sourceName else {
             return
         }
 
-        downloadService.startDownload(animeId: aniListAnime.id,
-                                       animeTitle: aniListAnime.title,
-                                       animeCoverURL: aniListAnime.coverURL,
+        downloadService.startDownload(videoId: videoId,
+                                       videoTitle: videoTitle,
+                                       videoCoverURL: videoCoverURL,
                                        episodeId: episode.id,
                                        episodeNumber: episode.number,
                                        episodeTitle: episode.title,
                                        sourceId: sourceId,
-                                       sourceName: source.info.name,
+                                       sourceName: sourceName,
                                        sourceURL: episode.url)
     }
 
@@ -336,14 +321,14 @@ final class EpisodeListViewModel {
     /// Deletes a downloaded episode (offline mode only).
     /// - Parameter episodeId: The episode ID to delete.
     func deleteDownload(episodeId: String) {
-        guard mode == .offline else { return }
+        guard mode.isOffline else { return }
         downloadService.removeDownload(episodeId: episodeId)
 
         // Update local episodes list
         offlineEpisodes.removeAll { $0.id == episodeId }
     }
 
-    /// Checks if the anime has any remaining downloaded episodes.
+    /// Checks if the video has any remaining downloaded episodes.
     var hasDownloadedEpisodes: Bool {
         !offlineEpisodes.isEmpty
     }
@@ -358,13 +343,13 @@ final class EpisodeListViewModel {
     /// - Returns: A new `VideoPlayerViewModel` for the episode.
     func makeVideoPlayerViewModel(episode: Episode) -> VideoPlayerViewModel {
         VideoPlayerViewModel(episode: episode,
-                             animeId: animeId,
-                             animeTitle: animeTitle,
-                             animeCoverURL: animeCoverURL,
-                             sourceId: sourceId ?? "",
+                             videoId: videoId,
+                             videoTitle: videoTitle,
+                             videoCoverURL: videoCoverURL,
+                             sourceId: sourceId,
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
-                             isOfflineMode: mode == .offline)
+                             isOfflineMode: mode.isOffline)
     }
 
     /// Returns the next episode after the given episode, if available.
@@ -387,14 +372,15 @@ final class EpisodeListViewModel {
     //#################################################################################
 
     private func loadOnlineEpisodes() async {
+        // Extract details URL from mode
+        guard case .online(_, let directDetailsURL) = mode else { return }
+
         // Skip if already loaded
-        guard sourceAnime == nil else {
+        guard sourceVideo == nil else {
             // Just reload watch progress in case it changed
             loadWatchProgress()
             return
         }
-
-        guard let sourceManager, let sourceId else { return }
 
         isLoading = true
         error = nil
@@ -409,15 +395,15 @@ final class EpisodeListViewModel {
         do {
             let detailsURL: String
             
-            // If we have a direct details URL from AnimePreview, use it
-            if let directURL = _animePreviewDetailsURL {
+            // If we have a direct details URL from VideoPreview, use it
+            if let directURL = directDetailsURL {
                 detailsURL = directURL
             } else {
                 // Generate search queries with fallbacks
                 let searchQueries = generateSearchQueries()
 
                 // Try each query until we find results
-                var searchResults: [AnimePreview] = []
+                var searchResults: [VideoPreview] = []
                 var bestQuery = ""
 
                 for query in searchQueries {
@@ -434,7 +420,7 @@ final class EpisodeListViewModel {
 
                 // Find the best matching result using title similarity
                 guard let bestMatch = findBestMatch(in: searchResults, for: bestQuery) else {
-                    error = EpisodesError.animeNotFound
+                    error = EpisodesError.videoNotFound
                     isLoading = false
                     return
                 }
@@ -442,10 +428,10 @@ final class EpisodeListViewModel {
                 detailsURL = bestMatch.detailsURL
             }
 
-            // Fetch full anime details with episodes
-            let anime = try await sourceManager.getAnimeDetails(sourceId: sourceId,
+            // Fetch full video details with episodes
+            let video = try await sourceManager.getVideoDetails(sourceId: sourceId,
                                                                 url: detailsURL)
-            sourceAnime = anime
+            sourceVideo = video
             loadWatchProgress()
             isLoading = false
         } catch {
@@ -456,8 +442,8 @@ final class EpisodeListViewModel {
 
     private func loadOfflineEpisodes() {
         // Refresh from download service in case of updates
-        if let currentDownloadedAnime = downloadService.downloadedAnime.first(where: { $0.id == animeId }) {
-            offlineEpisodes = currentDownloadedAnime.episodes
+        if let currentDownloadedVideo = downloadService.downloadedVideo.first(where: { $0.id == videoId }) {
+            offlineEpisodes = currentDownloadedVideo.episodes
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
                 .map { downloadedEpisode in
@@ -475,50 +461,19 @@ final class EpisodeListViewModel {
     /// Generates a list of search queries to try, with fallback strategies.
     /// - Returns: Array of search query strings ordered by priority.
     private func generateSearchQueries() -> [String] {
-        guard let aniListAnime else { return [] }
-
         var queries: [String] = []
+        
+        // Use the stored videoTitle
+        queries.append(videoTitle)
 
-        // 1. Primary title (English or Romaji)
-        queries.append(aniListAnime.title)
-
-        // 2. Alternative titles (Romaji, Native, English)
-        if let romaji = aniListAnime.romajiTitle, romaji != aniListAnime.title {
-            queries.append(romaji)
-        }
-
-        if let english = aniListAnime.englishTitle, english != aniListAnime.title {
-            queries.append(english)
-        }
-
-        if let native = aniListAnime.nativeTitle, native != aniListAnime.title {
-            queries.append(native)
-        }
-
-        // 3. Remove "Season X" and replace with just the number
-        let seasonVariation = removeSeasonKeyword(from: aniListAnime.title)
-        if seasonVariation != aniListAnime.title {
+        // Try season and part variations on the title
+        let seasonVariation = removeSeasonKeyword(from: videoTitle)
+        if seasonVariation != videoTitle {
             queries.append(seasonVariation)
         }
 
-        // Try season variation on alternative titles too
-        if let romaji = aniListAnime.romajiTitle {
-            let romajiSeasonVariation = removeSeasonKeyword(from: romaji)
-            if romajiSeasonVariation != romaji && !queries.contains(romajiSeasonVariation) {
-                queries.append(romajiSeasonVariation)
-            }
-        }
-
-        if let english = aniListAnime.englishTitle {
-            let englishSeasonVariation = removeSeasonKeyword(from: english)
-            if englishSeasonVariation != english && !queries.contains(englishSeasonVariation) {
-                queries.append(englishSeasonVariation)
-            }
-        }
-
-        // 4. Remove "Part X" variations
-        let partVariation = removePartKeyword(from: aniListAnime.title)
-        if partVariation != aniListAnime.title && !queries.contains(partVariation) {
+        let partVariation = removePartKeyword(from: videoTitle)
+        if partVariation != videoTitle && !queries.contains(partVariation) {
             queries.append(partVariation)
         }
 
@@ -557,12 +512,12 @@ final class EpisodeListViewModel {
         return modifiedTitle
     }
 
-    /// Finds the best matching anime from search results using title similarity.
+    /// Finds the best matching video from search results using title similarity.
     /// - Parameters:
     ///   - results: The search results to search through.
     ///   - query: The original search query.
-    /// - Returns: The best matching AnimePreview, or nil if no results.
-    private func findBestMatch(in results: [AnimePreview], for query: String) -> AnimePreview? {
+    /// - Returns: The best matching VideoPreview, or nil if no results.
+    private func findBestMatch(in results: [VideoPreview], for query: String) -> VideoPreview? {
         guard !results.isEmpty else { return nil }
 
         // If only one result, return it
@@ -571,7 +526,7 @@ final class EpisodeListViewModel {
         }
 
         // Calculate similarity scores for each result
-        let scoredResults = results.map { result -> (preview: AnimePreview, score: Double) in
+        let scoredResults = results.map { result -> (preview: VideoPreview, score: Double) in
             let score = query.similarityScore(to: result.title)
             return (result, score)
         }
@@ -593,13 +548,13 @@ final class EpisodeListViewModel {
 //#################################################################################
 
 enum EpisodesError: LocalizedError {
-    case animeNotFound
+    case videoNotFound
     case sourceNotFoundHint
 
     var errorDescription: String? {
         switch self {
-        case .animeNotFound:
-            return "Could not find this anime on the selected source."
+        case .videoNotFound:
+            return "Could not find this video on the selected source."
         case .sourceNotFoundHint:
             return "The selected source is no longer installed. Please select a different source or reinstall it."
         }

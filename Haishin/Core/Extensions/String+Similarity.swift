@@ -2,7 +2,7 @@
 //  String+Similarity.swift
 //  Haishin
 //
-//  Created by Haishin on 25.01.26.
+//  Created by Tan Nghia La on 25.01.26.
 //
 
 import Foundation
@@ -37,7 +37,7 @@ extension String {
         // Calculate character-level similarity using Levenshtein
         let levenshteinSimilarity = normalizedLevenshteinSimilarity(to: other)
 
-        // Weight word similarity higher as it handles anime title variations better
+        // Weight word similarity higher as it handles title variations better
         return (wordSimilarity * 0.6) + (levenshteinSimilarity * 0.4)
     }
 

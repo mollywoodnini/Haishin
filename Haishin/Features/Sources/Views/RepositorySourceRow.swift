@@ -2,7 +2,7 @@
 //  RepositorySourceRow.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import Kingfisher
@@ -17,6 +17,7 @@ struct RepositorySourceRow: View {
 
     private let source: SourceInfo
     private let isInstalled: Bool
+    private let hasUpdate: Bool
     private let onInstall: () -> Void
 
 
@@ -25,12 +26,18 @@ struct RepositorySourceRow: View {
     //#################################################################################
 
     /// Creates a new repository source row.
-    /// - Parameter source: The source info to display.
-    /// - Parameter isInstalled: Whether the source is already installed.
-    /// - Parameter onInstall: Closure called when the install button is tapped.
-    init(source: SourceInfo, isInstalled: Bool, onInstall: @escaping () -> Void) {
+    /// - Parameters:
+    ///   - source: The source info to display.
+    ///   - isInstalled: Whether the source is already installed.
+    ///   - hasUpdate: Whether an update is available for this source.
+    ///   - onInstall: Closure called when the install button is tapped.
+    init(source: SourceInfo,
+         isInstalled: Bool,
+         hasUpdate: Bool = false,
+         onInstall: @escaping () -> Void) {
         self.source = source
         self.isInstalled = isInstalled
+        self.hasUpdate = hasUpdate
         self.onInstall = onInstall
     }
 
@@ -93,8 +100,13 @@ struct RepositorySourceRow: View {
     @ViewBuilder
     private var actionView: some View {
         if isInstalled {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+            if hasUpdate {
+                Image(systemName: "arrow.up.circle.fill")
+                    .foregroundStyle(.blue)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
         } else {
             Button {
                 onInstall()

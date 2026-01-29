@@ -2,13 +2,13 @@
 //  SourcesView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// View for managing anime sources.
+/// View for managing video sources.
 struct SourcesView: View {
 
     //#################################################################################
@@ -41,6 +41,10 @@ struct SourcesView: View {
     var body: some View {
         NavigationStack {
             List {
+                if viewModel.hasUpdates {
+                    updatesSection
+                }
+
                 installedSourcesSection
 
                 if !viewModel.repositories.isEmpty {
@@ -48,6 +52,16 @@ struct SourcesView: View {
                 }
             }
             .navigationTitle("Sources")
+            .navigationDestination(for: InstalledSource.self) { source in
+                SourceDetailView(source: source,
+                                 sourceManager: viewModel.sourceManager,
+                                 watchProgressService: WatchProgressService.shared,
+                                 subscriptionService: SubscriptionService.shared,
+                                 downloadService: DownloadService.shared)
+            }
+            .refreshable {
+                await viewModel.refreshRepositories()
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
@@ -68,10 +82,25 @@ struct SourcesView: View {
                         } label: {
                             Label("Install from Files", systemImage: "doc.badge.plus")
                         }
+
+                        if viewModel.hasUpdates {
+                            Divider()
+
+                            Button {
+                                Task {
+                                    await viewModel.updateAllSources()
+                                }
+                            } label: {
+                                Label("Update All (\(viewModel.updateCount))", systemImage: "arrow.down.circle.fill")
+                            }
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .task {
+                await viewModel.loadRepositories()
             }
             .alert("Add Repository", isPresented: $showingAddRepository) {
                 TextField("Repository URL", text: $repositoryURL)
@@ -138,6 +167,32 @@ struct SourcesView: View {
     // MARK: - Subviews
     //#################################################################################
 
+    private var updatesSection: some View {
+        Section {
+            ForEach(viewModel.installedSources.filter { viewModel.getAvailableUpdate(for: $0.id) != nil }) { source in
+                if let update = viewModel.getAvailableUpdate(for: source.id) {
+                    UpdateAvailableRow(source: source,
+                                       newVersion: update.version) {
+                        Task {
+                            await viewModel.updateSource(sourceId: source.id)
+                        }
+                    }
+                }
+            }
+        } header: {
+            HStack {
+                Text("Updates Available")
+                Spacer()
+                Button("Update All") {
+                    Task {
+                        await viewModel.updateAllSources()
+                    }
+                }
+                .font(.caption)
+            }
+        }
+    }
+
     private var installedSourcesSection: some View {
         Section {
             if viewModel.installedSources.isEmpty {
@@ -149,10 +204,10 @@ struct SourcesView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(viewModel.installedSources) { source in
-                    InstalledSourceRow(source: source) {
-                        viewModel.selectSource(source)
-                    } onDelete: {
-                        viewModel.uninstallSource(source)
+                    NavigationLink(value: source) {
+                        InstalledSourceRow(source: source,
+                                           hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil,
+                                           onDelete: { viewModel.uninstallSource(source) })
                     }
                 }
             }
@@ -166,15 +221,67 @@ struct SourcesView: View {
             Section {
                 ForEach(repo.sources) { source in
                     RepositorySourceRow(source: source,
-                                        isInstalled: viewModel.isInstalled(source)) {
+                                        isInstalled: viewModel.isInstalled(source),
+                                        hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil) {
                         Task {
                             await viewModel.installSource(source, from: repo)
                         }
                     }
                 }
             } header: {
-                Text(repo.name)
+                HStack {
+                    Text(repo.name)
+                    Spacer()
+                    Button {
+                        viewModel.removeRepository(repo)
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                    }
+                }
             }
+        }
+    }
+}
+
+
+//#################################################################################
+// MARK: - UpdateAvailableRow
+//#################################################################################
+
+/// A row displaying an available update.
+private struct UpdateAvailableRow: View {
+
+    private let source: InstalledSource
+    private let newVersion: String
+    private let onUpdate: () -> Void
+
+    init(source: InstalledSource, newVersion: String, onUpdate: @escaping () -> Void) {
+        self.source = source
+        self.newVersion = newVersion
+        self.onUpdate = onUpdate
+    }
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(source.info.name)
+                    .font(.body)
+
+                Text("v\(source.info.version) → v\(newVersion)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                onUpdate()
+            } label: {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundStyle(.blue)
+            }
+            .buttonStyle(.plain)
         }
     }
 }

@@ -2,7 +2,7 @@
 //  EpisodeListView.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -21,7 +21,6 @@ struct EpisodeListView: View {
 
     @State private var viewModel: EpisodeListViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showingSourcePicker = false
     @State private var expandedRanges: Set<String> = []
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
@@ -38,43 +37,6 @@ struct EpisodeListView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    /// Creates a new episodes view for online mode.
-    /// - Parameters:
-    ///   - aniListAnime: The AniList anime details.
-    ///   - sourceId: The selected source ID.
-    ///   - sourceManager: The shared source manager.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - downloadService: The download service.
-    ///   - userPreferences: The user preferences.
-    init(aniListAnime: AniListAnimeDetail,
-         sourceId: String,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol,
-         userPreferences: UserPreferencesProtocol) {
-        self._viewModel = State(initialValue: EpisodeListViewModel(aniListAnime: aniListAnime,
-                                                                   sourceId: sourceId,
-                                                                   sourceManager: sourceManager,
-                                                                   watchProgressService: watchProgressService,
-                                                                   subscriptionService: subscriptionService,
-                                                                   downloadService: downloadService,
-                                                                   userPreferences: userPreferences))
-    }
-
-    /// Creates a new episodes view for offline mode (downloaded episodes).
-    /// - Parameter downloadedAnime: The downloaded anime to display.
-    /// - Parameter watchProgressService: The service for accessing watch progress.
-    /// - Parameter downloadService: The download service.
-    init(downloadedAnime: DownloadedAnime,
-         watchProgressService: WatchProgressServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self._viewModel = State(initialValue: EpisodeListViewModel(downloadedAnime: downloadedAnime,
-                                                                   watchProgressService: watchProgressService,
-                                                                   downloadService: downloadService))
-    }
-
 
     //#################################################################################
     // MARK: - Body
@@ -82,40 +44,27 @@ struct EpisodeListView: View {
 
     var body: some View {
         Group {
-            switch viewModel.mode {
-            case .online:
+            if viewModel.mode.isOnline {
                 onlineModeContent
-            case .offline:
+            } else {
                 offlineModeContent
             }
         }
-        .navigationTitle(viewModel.mode == .offline ? "Downloads" : "Episodes")
+        .navigationTitle(viewModel.mode.isOffline ? "Downloads" : "Episodes")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if viewModel.mode == .online {
+            if viewModel.mode.isOnline {
                 ToolbarItem(placement: .primaryAction) {
                     onlineToolbarMenu
                 }
             }
-        }
-        .sheet(isPresented: $showingSourcePicker) {
-            SourcePickerView(animeTitle: viewModel.animeTitle,
-                             selectedSourceId: Binding(
-                                get: { viewModel.selectedSourceId },
-                                set: { viewModel.selectedSourceId = $0 }
-                             ),
-                             onSourceSelected: {
-                                 showingSourcePicker = false
-                                 dismiss()
-                             },
-                             sources: viewModel.installedSources)
         }
         .task {
             await viewModel.loadEpisodes()
         }
         .onChange(of: viewModel.hasDownloadedEpisodes) { _, hasEpisodes in
             // Dismiss if all episodes have been deleted in offline mode
-            if viewModel.mode == .offline && !hasEpisodes {
+            if viewModel.mode.isOffline && !hasEpisodes {
                 dismiss()
             }
         }
@@ -181,12 +130,12 @@ struct EpisodeListView: View {
     @ViewBuilder
     private var onlineModeContent: some View {
         ZStack {
-            if viewModel.isLoading && viewModel.sourceAnime == nil {
+            if viewModel.isLoading && viewModel.sourceVideo == nil {
                 loadingView
             } else if let error = viewModel.error {
                 errorView(error: error)
-            } else if let anime = viewModel.sourceAnime {
-                onlineEpisodesListView(anime: anime)
+            } else if let video = viewModel.sourceVideo {
+                onlineEpisodesListView(video: video)
             } else {
                 Color.clear
             }
@@ -195,14 +144,6 @@ struct EpisodeListView: View {
 
     private var onlineToolbarMenu: some View {
         Menu {
-            Button {
-                showingSourcePicker = true
-            } label: {
-                Label("Change Source", systemImage: "arrow.triangle.2.circlepath")
-            }
-
-            Divider()
-
             Button {
                 viewModel.toggleSubscription()
             } label: {
@@ -276,9 +217,8 @@ struct EpisodeListView: View {
                 .padding(.horizontal, .spacingL)
 
             if isSourceNotFound {
-                Button("Select Different Source") {
-                    viewModel.clearSelectedSource()
-                    showingSourcePicker = true
+                Button("Go Back") {
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
             } else {
@@ -293,33 +233,34 @@ struct EpisodeListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func onlineEpisodesListView(anime: Anime) -> some View {
-        let hasMultipleRanges = anime.episodeRanges.count > 1
+    private func onlineEpisodesListView(video: Video) -> some View {
+        let hasMultipleRanges = video.episodeRanges.count > 1
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 // Prefer AniList/preview cover URL, fallback to source cover if needed
-                EpisodeListHeaderView(title: anime.title,
-                                      coverURL: viewModel.animeCoverURL ?? anime.coverURL,
-                                      subtitle: anime.genres.isEmpty ? nil : anime.genres.joined(separator: ", "),
-                                      episodeCount: anime.episodes.count)
+                EpisodeListHeaderView(title: video.title,
+                                      sourceName: viewModel.sourceName,
+                                      coverURL: viewModel.videoCoverURL ?? video.coverURL,
+                                      subtitle: video.genres.isEmpty ? nil : video.genres.joined(separator: ", "),
+                                      episodeCount: video.episodes.count)
 
-                if let continueEpisode = viewModel.getContinueWatchingEpisode(from: anime.episodes) {
+                if let continueEpisode = viewModel.getContinueWatchingEpisode(from: video.episodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
                         playEpisode(continueEpisode)
                     }
                 }
 
                 if hasMultipleRanges {
-                    onlineEpisodeRangesView(ranges: anime.episodeRanges)
+                    onlineEpisodeRangesView(ranges: video.episodeRanges)
                 } else {
-                    onlineFlatEpisodesListView(episodes: anime.episodes)
+                    onlineFlatEpisodesListView(episodes: video.episodes)
                 }
             }
             .padding(.spacingS)
         }
         .onAppear {
-            if let firstRange = anime.episodeRanges.first {
+            if let firstRange = video.episodeRanges.first {
                 expandedRanges.insert(firstRange.id)
             }
         }
@@ -387,9 +328,10 @@ struct EpisodeListView: View {
     private var offlineEpisodesListView: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
-                EpisodeListHeaderView(title: viewModel.animeTitle,
-                                      coverURL: viewModel.animeCoverURL,
-                                      subtitle: viewModel.sourceName,
+                EpisodeListHeaderView(title: viewModel.videoTitle,
+                                      sourceName: viewModel.sourceName,
+                                      coverURL: viewModel.videoCoverURL,
+                                      subtitle: nil,
                                       episodeCount: viewModel.offlineEpisodes.count)
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {

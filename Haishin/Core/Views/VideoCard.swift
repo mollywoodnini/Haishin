@@ -1,8 +1,8 @@
 //
-//  StandardAnimeCard.swift
+//  VideoCard.swift
 //  Haishin
 //
-//  Created by Haishin on 24.01.26.
+//  Created by Tan Nghia La on 24.01.26.
 //
 
 import SwiftUI
@@ -13,8 +13,8 @@ import Kingfisher
 // MARK: - SizingMode
 //#################################################################################
 
-/// Defines how a StandardAnimeCard should size itself.
-enum StandardAnimeCardSizingMode {
+/// Defines how a StandardVideoCard should size itself.
+enum StandardVideoCardSizingMode {
     /// Fixed width card, suitable for horizontal scroll sections.
     case fixed
     /// Flexible width card that fills available space, suitable for grids.
@@ -23,21 +23,20 @@ enum StandardAnimeCardSizingMode {
 
 
 //#################################################################################
-// MARK: - StandardAnimeCard
+// MARK: - VideoCard
 //#################################################################################
 
-/// A standard anime card for horizontal sections showing cover and title.
-struct StandardAnimeCard: View {
+/// A standard video card for horizontal sections showing cover and title.
+struct VideoCard: View {
 
     //#################################################################################
     // MARK: - Constants
     //#################################################################################
 
     private struct Constants {
-        static let cardWidth: CGFloat = 140
-        static let imageHeight: CGFloat = 200
         static let imageAspectRatio: CGFloat = 2 / 3
-        static let textHeight: CGFloat = 60
+        static let fixedWidth: CGFloat = 140
+        static let fixedImageHeight: CGFloat = 210
     }
 
 
@@ -49,32 +48,20 @@ struct StandardAnimeCard: View {
     private let coverURL: URL?
     private let totalEpisodes: Int?
     private let subtitle: String?
-    private let sizingMode: StandardAnimeCardSizingMode
+    private let sizingMode: StandardVideoCardSizingMode
 
 
     //#################################################################################
     // MARK: - Initialization
     //#################################################################################
 
-    /// Creates a new standard anime card from a recommending item.
+    /// Creates a new standard video card from a video preview.
     /// - Parameters:
-    ///   - item: The recommending item to display.
+    ///   - videoPreview: The video preview to display.
     ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
-    init(item: RecommendingItem, sizingMode: StandardAnimeCardSizingMode = .fixed) {
-        self.title = item.title
-        self.coverURL = item.coverURL
-        self.totalEpisodes = item.totalEpisodes
-        self.subtitle = item.subtitle
-        self.sizingMode = sizingMode
-    }
-
-    /// Creates a new standard anime card from an anime preview.
-    /// - Parameters:
-    ///   - animePreview: The anime preview to display.
-    ///   - sizingMode: The sizing mode for the card. Defaults to `.fixed`.
-    init(animePreview: AnimePreview, sizingMode: StandardAnimeCardSizingMode = .fixed) {
-        self.title = animePreview.title
-        self.coverURL = animePreview.coverURL
+    init(videoPreview: VideoPreview, sizingMode: StandardVideoCardSizingMode = .fixed) {
+        self.title = videoPreview.title
+        self.coverURL = videoPreview.coverURL
         self.totalEpisodes = nil
         self.subtitle = nil
         self.sizingMode = sizingMode
@@ -89,8 +76,9 @@ struct StandardAnimeCard: View {
         VStack(alignment: .leading, spacing: .spacingXXS) {
             imageView
             textView
+            Spacer()
         }
-        .modifier(CardWidthModifier(sizingMode: sizingMode, width: Constants.cardWidth))
+        .frame(width: sizingMode == .fixed ? Constants.fixedWidth : nil)
     }
 
 
@@ -110,11 +98,9 @@ struct StandardAnimeCard: View {
                                 .foregroundStyle(.secondary)
                         }
                 }
-                .aspectRatio(contentMode: .fill)
-                .modifier(ImageFrameModifier(sizingMode: sizingMode,
-                                             fixedWidth: Constants.cardWidth,
-                                             fixedHeight: Constants.imageHeight,
-                                             aspectRatio: Constants.imageAspectRatio))
+                .aspectRatio(Constants.imageAspectRatio, contentMode: .fill)
+                .frame(width: sizingMode == .fixed ? Constants.fixedWidth : nil,
+                       height: sizingMode == .fixed ? Constants.fixedImageHeight : nil)
                 .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
 
@@ -149,49 +135,6 @@ struct StandardAnimeCard: View {
             }
 
             Spacer(minLength: 0)
-        }
-        .frame(height: Constants.textHeight)
-    }
-}
-
-
-//#################################################################################
-// MARK: - CardWidthModifier
-//#################################################################################
-
-/// A view modifier that applies width constraints based on sizing mode.
-private struct CardWidthModifier: ViewModifier {
-    let sizingMode: StandardAnimeCardSizingMode
-    let width: CGFloat
-
-    func body(content: Content) -> some View {
-        switch sizingMode {
-        case .fixed:
-            content.frame(width: width)
-        case .flexible:
-            content.frame(maxWidth: .infinity)
-        }
-    }
-}
-
-
-//#################################################################################
-// MARK: - ImageFrameModifier
-//#################################################################################
-
-/// A view modifier that applies image frame constraints based on sizing mode.
-private struct ImageFrameModifier: ViewModifier {
-    let sizingMode: StandardAnimeCardSizingMode
-    let fixedWidth: CGFloat
-    let fixedHeight: CGFloat
-    let aspectRatio: CGFloat
-
-    func body(content: Content) -> some View {
-        switch sizingMode {
-        case .fixed:
-            content.frame(width: fixedWidth, height: fixedHeight)
-        case .flexible:
-            content.aspectRatio(aspectRatio, contentMode: .fit)
         }
     }
 }
