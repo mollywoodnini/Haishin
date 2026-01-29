@@ -209,7 +209,7 @@ final class VideoPlayerViewModel {
             let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.playback, mode: .moviePlayback)
             try audioSession.setActive(true)
-            Log.debug(.playback, "Audio session configured for playback")
+            Log.debug(.playback, "Audio session configured - category: \(audioSession.category.rawValue), mode: \(audioSession.mode.rawValue)")
         } catch {
             Log.error(.playback, "Failed to configure audio session: \(error)")
         }
