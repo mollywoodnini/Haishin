@@ -21,6 +21,9 @@ protocol SourceManaging: AnyObject {
     /// Available source repositories.
     var repositories: [SourceRepository] { get }
 
+    /// Sources that have updates available (keyed by source ID).
+    var availableUpdates: [String: SourceInfo] { get }
+
     /// Whether sources are currently being loaded.
     var isLoading: Bool { get }
 
@@ -35,9 +38,19 @@ protocol SourceManaging: AnyObject {
     /// Loads all installed sources.
     func loadInstalledSources() async
 
+    /// Loads saved repositories from UserDefaults.
+    func loadSavedRepositories() async
+
     /// Adds a source repository.
     /// - Parameter url: URL to the repository manifest.
     func addRepository(url: URL) async throws
+
+    /// Removes a repository.
+    /// - Parameter repository: The repository to remove.
+    func removeRepository(_ repository: SourceRepository)
+
+    /// Refreshes all repositories to check for new sources and updates.
+    func refreshRepositories() async
 
     /// Installs a source from a repository.
     /// - Parameters:
@@ -52,6 +65,18 @@ protocol SourceManaging: AnyObject {
     /// Uninstalls a source.
     /// - Parameter sourceId: The source ID to uninstall.
     func uninstallSource(sourceId: String) throws
+
+    /// Checks if an update is available for a source.
+    /// - Parameter sourceId: The source ID to check.
+    /// - Returns: The new version info if an update is available, nil otherwise.
+    func getAvailableUpdate(for sourceId: String) -> SourceInfo?
+
+    /// Updates a source to the latest version from its repository.
+    /// - Parameter sourceId: The source ID to update.
+    func updateSource(sourceId: String) async throws
+
+    /// Updates all sources that have updates available.
+    func updateAllSources() async
 
     /// Gets the popular videos from a source.
     /// - Parameters:
