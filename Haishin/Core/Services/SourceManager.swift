@@ -396,12 +396,12 @@ final class SourceManager: SourceManaging {
         }
     }
 
-    /// Gets the popular videos from a source.
+    /// Gets the entry videos from a source.
     /// - Parameters:
     ///   - sourceId: The source to query.
     ///   - page: Page number.
     /// - Returns: List of video previews.
-    func getPopular(sourceId: String, page: Int) async throws -> [VideoPreview] {
+    func getEntryVideos(sourceId: String, page: Int) async throws -> [VideoPreview] {
         guard let jsSource = jsSources[sourceId] else {
             throw SourceError.sourceNotFound
         }

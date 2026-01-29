@@ -176,14 +176,14 @@ struct SourceDetailViewModelTests {
     // MARK: - loadContent Tests
     //#################################################################################
 
-    @Test("loadContent calls source manager getPopular")
+    @Test("loadContent calls source manager getEntryVideos")
     func loadContent_callsSourceManager() async {
         let mockSourceManager = MockSourceManager()
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         await sut.loadContent()
 
-        #expect(mockSourceManager.getPopularCallCount == 1)
+        #expect(mockSourceManager.getEntryVideosCallCount == 1)
     }
 
     @Test("loadContent with success populates videos")
@@ -193,7 +193,7 @@ struct SourceDetailViewModelTests {
             TestFixtures.makeVideoPreview(id: "1", title: "Video 1"),
             TestFixtures.makeVideoPreview(id: "2", title: "Video 2")
         ]
-        mockSourceManager.getPopularResult = .success(videos)
+        mockSourceManager.getEntryVideosResult = .success(videos)
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         await sut.loadContent()
@@ -206,7 +206,7 @@ struct SourceDetailViewModelTests {
     @Test("loadContent with success clears error")
     func loadContent_withSuccess_clearsError() async {
         let mockSourceManager = MockSourceManager()
-        mockSourceManager.getPopularResult = .success([])
+        mockSourceManager.getEntryVideosResult = .success([])
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         await sut.loadContent()
@@ -217,7 +217,7 @@ struct SourceDetailViewModelTests {
     @Test("loadContent with failure sets error")
     func loadContent_withFailure_setsError() async {
         let mockSourceManager = MockSourceManager()
-        mockSourceManager.getPopularResult = .failure(MockError.testError)
+        mockSourceManager.getEntryVideosResult = .failure(MockError.testError)
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         await sut.loadContent()
@@ -228,7 +228,7 @@ struct SourceDetailViewModelTests {
     @Test("loadContent with failure keeps videos empty")
     func loadContent_withFailure_keepsVideosEmpty() async {
         let mockSourceManager = MockSourceManager()
-        mockSourceManager.getPopularResult = .failure(MockError.testError)
+        mockSourceManager.getEntryVideosResult = .failure(MockError.testError)
         let sut = makeSUT(sourceManager: mockSourceManager)
 
         await sut.loadContent()
@@ -264,7 +264,7 @@ struct SourceDetailViewModelTests {
         await sut.loadContent()
         await sut.loadContent()
 
-        #expect(mockSourceManager.getPopularCallCount == 1)
+        #expect(mockSourceManager.getEntryVideosCallCount == 1)
     }
 
     @Test("loadContent with forceRefresh reloads even when already loaded")
@@ -275,7 +275,7 @@ struct SourceDetailViewModelTests {
         await sut.loadContent()
         await sut.loadContent(forceRefresh: true)
 
-        #expect(mockSourceManager.getPopularCallCount == 2)
+        #expect(mockSourceManager.getEntryVideosCallCount == 2)
     }
 
 

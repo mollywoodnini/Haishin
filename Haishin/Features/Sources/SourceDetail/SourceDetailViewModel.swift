@@ -79,7 +79,7 @@ final class SourceDetailViewModel {
         error = nil
 
         do {
-            let loadedVideos = try await sourceManager.getPopular(sourceId: source.id, page: 1)
+            let loadedVideos = try await sourceManager.getEntryVideos(sourceId: source.id, page: 1)
             videos = loadedVideos
         } catch {
             self.error = error
