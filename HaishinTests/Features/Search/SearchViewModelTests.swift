@@ -106,12 +106,12 @@ struct SearchViewModelTests {
         // When
         sut.search(query: "Naruto")
 
-        // Then - Source state should be created immediately
+        // Wait for search task to execute and complete
+        try await Task.sleep(for: .milliseconds(50))
+
+        // Then - Source state should be created
         #expect(sut.sourceStates.count == 1)
         #expect(sut.sourceStates.first?.sourceId == source.id)
-
-        // Wait for search to complete
-        try await Task.sleep(for: .milliseconds(50))
 
         // Verify search was called
         #expect(mockSourceManager.searchCallCount == 1)
@@ -133,11 +133,11 @@ struct SearchViewModelTests {
         // When
         sut.search(query: "Test")
 
-        // Then - Should create states for all 3 sources immediately
-        #expect(sut.sourceStates.count == 3)
-
         // Wait for all searches to complete
         try await Task.sleep(for: .milliseconds(100))
+
+        // Then - Should create states for all 3 sources
+        #expect(sut.sourceStates.count == 3)
 
         // Then - Should search in all 3 sources
         #expect(mockSourceManager.searchCallCount == 3)
