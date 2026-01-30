@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      changelog:
+        description: 'Changelog for TestFlight (used when uploading)'
+        required: false
+        default: 'Test build from workflow dispatch'
+        type: string
 
 jobs:
   test-build:
@@ -64,7 +69,7 @@ jobs:
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
           bundle exec fastlane release \
-            changelog:"Test build from workflow dispatch"
+            changelog:"${{ inputs.changelog }}"
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
