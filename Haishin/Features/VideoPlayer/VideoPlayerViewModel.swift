@@ -44,6 +44,9 @@ final class VideoPlayerViewModel {
     /// The video cover URL for recents tracking.
     let videoCoverURL: URL?
 
+    /// The direct URL to the video details page.
+    let detailsURL: String?
+
     /// The source ID to fetch streams from.
     let sourceId: String
 
@@ -86,6 +89,9 @@ final class VideoPlayerViewModel {
     /// Callback when episode playback finishes (for external handling like auto-advance).
     var onEpisodeFinished: ((Episode) -> Void)?
 
+    /// Callback when all video sources fail during playback.
+    var onAllSourcesFailed: ((Error) -> Void)?
+
     private let sourceManager: SourceManaging?
     private let watchProgressService: WatchProgressServiceProtocol
     private var allSources: [VideoSource] = []
@@ -108,6 +114,7 @@ final class VideoPlayerViewModel {
     ///   - videoId: The video ID for progress tracking.
     ///   - videoTitle: The video title for recents tracking.
     ///   - videoCoverURL: The video cover URL for recents tracking.
+    ///   - detailsURL: The direct URL to the video details page.
     ///   - sourceId: The source ID to fetch streams from.
     ///   - sourceManager: The source manager for fetching video sources (nil for offline mode).
     ///   - watchProgressService: The service for persisting watch progress.
@@ -116,6 +123,7 @@ final class VideoPlayerViewModel {
          videoId: String,
          videoTitle: String,
          videoCoverURL: URL?,
+         detailsURL: String?,
          sourceId: String,
          sourceManager: SourceManaging?,
          watchProgressService: WatchProgressServiceProtocol,
@@ -124,6 +132,7 @@ final class VideoPlayerViewModel {
         self.videoId = videoId
         self.videoTitle = videoTitle
         self.videoCoverURL = videoCoverURL
+        self.detailsURL = detailsURL
         self.sourceId = sourceId
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
@@ -316,21 +325,54 @@ final class VideoPlayerViewModel {
         // Setup Now Playing info for lock screen / control center
         setupNowPlayingInfo()
 
-        // Seek to saved position if we have one
+        // Start playback - seeking to saved position happens once the player is ready
+        player?.play()
+
+        // If we have a saved position, seek once the player is ready
         if currentTime > 0 {
-            let seekTime = CMTime(seconds: currentTime, preferredTimescale: 600)
-            let savedTime = currentTime
-            player?.seek(to: seekTime) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.player?.play()
-                    Log.debug(.playback, "Resumed playback at \(Int(savedTime))s")
-                }
-            }
-        } else {
-            player?.play()
+            seekWhenReady(to: currentTime)
         }
 
         Log.info(.playback, "Playback started")
+    }
+
+    private func seekWhenReady(to seconds: TimeInterval) {
+        guard let player, let currentItem = player.currentItem else { return }
+
+        // If already ready, seek immediately
+        if currentItem.status == .readyToPlay {
+            performSeek(to: seconds)
+            return
+        }
+
+        // Otherwise, observe the status and seek when ready
+        playerItemObserver?.cancel()
+        playerItemObserver = currentItem.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                switch status {
+                case .readyToPlay:
+                    self?.performSeek(to: seconds)
+                    // Re-setup the failure observer after seeking
+                    if let item = self?.player?.currentItem {
+                        self?.observePlayerItem(item)
+                    }
+                case .failed:
+                    self?.handlePlaybackFailure(currentItem.error)
+                default:
+                    break
+                }
+            }
+    }
+
+    private func performSeek(to seconds: TimeInterval) {
+        let seekTime = CMTime(seconds: seconds, preferredTimescale: 600)
+        player?.seek(to: seekTime, toleranceBefore: .zero, toleranceAfter: .zero) { finished in
+            guard finished else { return }
+            Task { @MainActor in
+                Log.debug(.playback, "Resumed playback at \(Int(seconds))s")
+            }
+        }
     }
 
     private func setupTimeObserver() {
@@ -399,6 +441,7 @@ final class VideoPlayerViewModel {
                                                title: videoTitle,
                                                coverURL: videoCoverURL,
                                                sourceId: sourceId,
+                                               detailsURL: detailsURL,
                                                episodeNumber: episode.number)
 
         Log.debug(.playback, "Saved progress: \(Int(self.currentProgress * 100))% for '\(self.videoTitle)'")
@@ -498,7 +541,9 @@ final class VideoPlayerViewModel {
 
         guard currentSourceIndex < allSources.count else {
             Log.warning(.playback, "All sources exhausted, no more fallbacks available")
-            error = VideoPlayerError.allSourcesFailed
+            let allSourcesError = VideoPlayerError.allSourcesFailed
+            error = allSourcesError
+            onAllSourcesFailed?(allSourcesError)
             return
         }
 

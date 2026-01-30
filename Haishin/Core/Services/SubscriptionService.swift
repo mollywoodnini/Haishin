@@ -27,6 +27,9 @@ struct SubscribedVideo: VideoProtocol, Codable, Equatable {
     /// The source ID used to fetch episodes.
     let sourceId: String
 
+    /// The direct URL to the video details page (for direct navigation without search).
+    let detailsURL: String?
+
     /// Date when the user subscribed.
     var subscribedAt: Date
 }
@@ -48,7 +51,8 @@ protocol SubscriptionServiceProtocol {
     ///   - title: The video title.
     ///   - coverURL: The cover image URL.
     ///   - sourceId: The source ID used to fetch episodes.
-    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String)
+    ///   - detailsURL: The direct URL to the video details page.
+    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?)
 
     /// Unsubscribes from a video.
     func unsubscribe(id: String)
@@ -113,7 +117,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         loadAllSubscribed().sorted { $0.subscribedAt > $1.subscribedAt }
     }
 
-    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String) {
+    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?) {
         var allSubscribed = loadAllSubscribed()
 
         guard !allSubscribed.contains(where: { $0.id == id }) else { return }
@@ -122,6 +126,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
                                               title: title,
                                               coverURL: coverURL,
                                               sourceId: sourceId,
+                                              detailsURL: detailsURL,
                                               subscribedAt: Date())
         allSubscribed.append(newSubscription)
         persistAllSubscribed(allSubscribed)

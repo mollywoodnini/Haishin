@@ -55,12 +55,14 @@ struct SourceDetailViewModelTests {
                                title: String,
                                coverURL: URL?,
                                sourceId: String,
+                               detailsURL: String?,
                                episodeNumber: String?) {
             if let index = recentVideo.firstIndex(where: { $0.id == id }) {
                 recentVideo[index] = RecentVideo(id: id,
                                                  title: title,
                                                  coverURL: coverURL,
                                                  sourceId: sourceId,
+                                                 detailsURL: detailsURL,
                                                  lastWatchedAt: Date(),
                                                  lastEpisodeNumber: episodeNumber)
             } else {
@@ -68,6 +70,7 @@ struct SourceDetailViewModelTests {
                                                title: title,
                                                coverURL: coverURL,
                                                sourceId: sourceId,
+                                               detailsURL: detailsURL,
                                                lastWatchedAt: Date(),
                                                lastEpisodeNumber: episodeNumber))
             }
@@ -90,12 +93,13 @@ struct SourceDetailViewModelTests {
             subscribedVideo
         }
 
-        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String) {
+        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?) {
             guard !isSubscribed(id: id) else { return }
             subscribedVideo.append(SubscribedVideo(id: id,
                                                    title: title,
                                                    coverURL: coverURL,
                                                    sourceId: sourceId,
+                                                   detailsURL: detailsURL,
                                                    subscribedAt: Date()))
         }
 

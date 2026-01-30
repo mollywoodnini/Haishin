@@ -137,6 +137,9 @@ struct DownloadedVideo: VideoProtocol, Codable, Equatable {
     /// The source ID used for downloads.
     let sourceId: String
 
+    /// The direct URL to the video details page.
+    let detailsURL: String?
+
     /// The source name for display.
     let sourceName: String
 
@@ -193,6 +196,7 @@ protocol DownloadServiceProtocol: AnyObject {
     func startDownload(videoId: String,
                        videoTitle: String,
                        videoCoverURL: URL?,
+                       videoDetailsURL: String?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -297,6 +301,7 @@ final class DownloadService: DownloadServiceProtocol {
     func startDownload(videoId: String,
                        videoTitle: String,
                        videoCoverURL: URL?,
+                       videoDetailsURL: String?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
@@ -331,6 +336,7 @@ final class DownloadService: DownloadServiceProtocol {
                            title: videoTitle,
                            coverURL: videoCoverURL,
                            sourceId: sourceId,
+                           detailsURL: videoDetailsURL,
                            sourceName: sourceName)
         saveDownloads()
 
@@ -516,6 +522,7 @@ final class DownloadService: DownloadServiceProtocol {
                                      title: String,
                                      coverURL: URL?,
                                      sourceId: String,
+                                     detailsURL: String?,
                                      sourceName: String) {
         if let index = downloadedVideo.firstIndex(where: { $0.id == videoId }) {
             downloadedVideo[index].episodes = allEpisodes.filter { $0.videoId == videoId }
@@ -524,6 +531,7 @@ final class DownloadService: DownloadServiceProtocol {
                                          title: title,
                                          coverURL: coverURL,
                                          sourceId: sourceId,
+                                         detailsURL: detailsURL,
                                          sourceName: sourceName,
                                          episodes: allEpisodes.filter { $0.videoId == videoId })
             downloadedVideo.append(video)
@@ -559,6 +567,7 @@ final class DownloadService: DownloadServiceProtocol {
                                         title: video.title,
                                         coverURL: video.coverURL,
                                         sourceId: video.sourceId,
+                                        detailsURL: video.detailsURL,
                                         sourceName: video.sourceName,
                                         episodes: episodes)
             }
@@ -571,6 +580,7 @@ final class DownloadService: DownloadServiceProtocol {
                                         title: "Unknown",
                                         coverURL: nil,
                                         sourceId: first.sourceId,
+                                        detailsURL: nil,
                                         sourceName: first.sourceName,
                                         episodes: episodes)
             }

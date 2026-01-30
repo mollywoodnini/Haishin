@@ -124,7 +124,8 @@ final class LibraryViewModel {
         guard sourceManager.installedSources.contains(where: { $0.id == video.sourceId }) else {
             return nil
         }
-        return EpisodeListViewModel(mode: .online(video: video, detailsURL: nil),
+
+        return EpisodeListViewModel(mode: .online(video: video),
                                     sourceManager: sourceManager,
                                     watchProgressService: watchProgressService,
                                     subscriptionService: subscriptionService,

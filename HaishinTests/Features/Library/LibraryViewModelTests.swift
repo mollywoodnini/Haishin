@@ -55,12 +55,14 @@ struct LibraryViewModelTests {
                                title: String,
                                coverURL: URL?,
                                sourceId: String,
+                               detailsURL: String?,
                                episodeNumber: String?) {
             if let index = recentVideo.firstIndex(where: { $0.id == id }) {
                 recentVideo[index] = RecentVideo(id: id,
                                                  title: title,
                                                  coverURL: coverURL,
                                                  sourceId: sourceId,
+                                                 detailsURL: detailsURL,
                                                  lastWatchedAt: Date(),
                                                  lastEpisodeNumber: episodeNumber)
             } else {
@@ -68,6 +70,7 @@ struct LibraryViewModelTests {
                                                title: title,
                                                coverURL: coverURL,
                                                sourceId: sourceId,
+                                               detailsURL: detailsURL,
                                                lastWatchedAt: Date(),
                                                lastEpisodeNumber: episodeNumber))
             }
@@ -90,12 +93,13 @@ struct LibraryViewModelTests {
             subscribedVideo
         }
 
-        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String) {
+        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?) {
             guard !isSubscribed(id: id) else { return }
             subscribedVideo.append(SubscribedVideo(id: id,
                                                    title: title,
                                                    coverURL: coverURL,
                                                    sourceId: sourceId,
+                                                   detailsURL: detailsURL,
                                                    subscribedAt: Date()))
         }
 
@@ -143,6 +147,7 @@ struct LibraryViewModelTests {
                         title: "Test Video",
                         coverURL: nil,
                         sourceId: "test-source",
+                        detailsURL: nil,
                         lastWatchedAt: Date(),
                         lastEpisodeNumber: "1")
         ]
@@ -160,6 +165,7 @@ struct LibraryViewModelTests {
                             title: "Subscribed Video",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             subscribedAt: Date())
         ]
         let sut = makeSUT(subscriptionService: mockSubscription)
@@ -176,6 +182,7 @@ struct LibraryViewModelTests {
                             title: "Downloaded Video",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             sourceName: "Test Source",
                             episodes: [])
         ]
@@ -195,9 +202,9 @@ struct LibraryViewModelTests {
         let mockWatchProgress = MockWatchProgressService()
         mockWatchProgress.recentVideo = [
             RecentVideo(id: "1", title: "Video 1", coverURL: nil, sourceId: "test-source",
-                        lastWatchedAt: Date(), lastEpisodeNumber: nil),
+                        detailsURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil),
             RecentVideo(id: "2", title: "Video 2", coverURL: nil, sourceId: "test-source",
-                        lastWatchedAt: Date(), lastEpisodeNumber: nil)
+                        detailsURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil)
         ]
         let sut = makeSUT(watchProgressService: mockWatchProgress)
 
@@ -221,11 +228,11 @@ struct LibraryViewModelTests {
         let mockSubscription = MockSubscriptionService()
         mockSubscription.subscribedVideo = [
             SubscribedVideo(id: "1", title: "Video 1", coverURL: nil, sourceId: "test-source",
-                            subscribedAt: Date()),
+                            detailsURL: nil, subscribedAt: Date()),
             SubscribedVideo(id: "2", title: "Video 2", coverURL: nil, sourceId: "test-source",
-                            subscribedAt: Date()),
+                            detailsURL: nil, subscribedAt: Date()),
             SubscribedVideo(id: "3", title: "Video 3", coverURL: nil, sourceId: "test-source",
-                            subscribedAt: Date())
+                            detailsURL: nil, subscribedAt: Date())
         ]
         let sut = makeSUT(subscriptionService: mockSubscription)
 
@@ -266,7 +273,7 @@ struct LibraryViewModelTests {
         // Add video to mock service
         mockWatchProgress.recentVideo = [
             RecentVideo(id: "1", title: "New Video", coverURL: nil, sourceId: "test-source",
-                        lastWatchedAt: Date(), lastEpisodeNumber: nil)
+                        detailsURL: nil, lastWatchedAt: Date(), lastEpisodeNumber: nil)
         ]
 
         // Refresh
@@ -286,7 +293,7 @@ struct LibraryViewModelTests {
         // Add video to mock service
         mockSubscription.subscribedVideo = [
             SubscribedVideo(id: "1", title: "New Subscription", coverURL: nil, sourceId: "test-source",
-                            subscribedAt: Date())
+                            detailsURL: nil, subscribedAt: Date())
         ]
 
         // Refresh
@@ -309,6 +316,7 @@ struct LibraryViewModelTests {
                             title: "New Download",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             sourceName: "Test Source",
                             episodes: [])
         ]
@@ -333,12 +341,14 @@ struct LibraryViewModelTests {
                             title: "Video 1",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             sourceName: "Test Source",
                             episodes: []),
             DownloadedVideo(id: "2",
                             title: "Video 2",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             sourceName: "Test Source",
                             episodes: [])
         ]
@@ -360,6 +370,7 @@ struct LibraryViewModelTests {
                             title: "Video 1",
                             coverURL: nil,
                             sourceId: "test-source",
+                            detailsURL: nil,
                             sourceName: "Test Source",
                             episodes: [])
         ]

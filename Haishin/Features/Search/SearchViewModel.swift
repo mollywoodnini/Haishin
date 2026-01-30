@@ -195,7 +195,7 @@ final class SearchViewModel {
     /// - Returns: A new `EpisodeListViewModel` for the video.
     @MainActor
     func makeEpisodeListViewModel(for videoPreview: VideoPreview) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .online(video: videoPreview, detailsURL: videoPreview.detailsURL),
+        EpisodeListViewModel(mode: .online(video: videoPreview),
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              subscriptionService: subscriptionService,

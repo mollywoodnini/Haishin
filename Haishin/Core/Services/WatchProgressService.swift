@@ -65,6 +65,9 @@ struct RecentVideo: VideoProtocol, Codable, Equatable {
     /// The source ID used to fetch this video.
     let sourceId: String
 
+    /// The direct URL to the video details page.
+    let detailsURL: String?
+
     /// Date when the video was last watched.
     var lastWatchedAt: Date
 
@@ -106,8 +109,14 @@ protocol WatchProgressServiceProtocol {
     ///   - title: The video title.
     ///   - coverURL: The cover image URL.
     ///   - sourceId: The source ID used to fetch this video.
+    ///   - detailsURL: The direct URL to the video details page.
     ///   - episodeNumber: The last watched episode number.
-    func updateRecentVideo(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?)
+    func updateRecentVideo(id: String,
+                           title: String,
+                           coverURL: URL?,
+                           sourceId: String,
+                           detailsURL: String?,
+                           episodeNumber: String?)
 
     /// Gets the count of recent videos.
     func getRecentVideoCount() -> Int
@@ -199,7 +208,12 @@ final class WatchProgressService: WatchProgressServiceProtocol {
         loadAllRecentVideo().sorted { $0.lastWatchedAt > $1.lastWatchedAt }
     }
 
-    func updateRecentVideo(id: String, title: String, coverURL: URL?, sourceId: String, episodeNumber: String?) {
+    func updateRecentVideo(id: String,
+                           title: String,
+                           coverURL: URL?,
+                           sourceId: String,
+                           detailsURL: String?,
+                           episodeNumber: String?) {
         var allRecent = loadAllRecentVideo()
 
         if let index = allRecent.firstIndex(where: { $0.id == id }) {
@@ -210,6 +224,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
                                         title: title,
                                         coverURL: coverURL,
                                         sourceId: sourceId,
+                                        detailsURL: detailsURL,
                                         lastWatchedAt: Date(),
                                         lastEpisodeNumber: episodeNumber)
             allRecent.append(newRecent)

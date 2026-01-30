@@ -15,10 +15,8 @@ import Foundation
 /// The mode for displaying episodes with associated model data.
 enum EpisodeListMode {
     /// Online mode - fetches episodes from a source.
-    /// - Parameters:
-    ///   - video: The video to display.
-    ///   - detailsURL: Optional details URL for direct source navigation.
-    case online(video: any VideoProtocol, detailsURL: String?)
+    /// - Parameter video: The video to display.
+    case online(video: any VideoProtocol)
     /// Offline mode - displays downloaded episodes.
     case offline(DownloadedVideo)
 
@@ -114,7 +112,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         self.downloadService = downloadService
 
         switch mode {
-        case .online(let video, _):
+        case .online(let video):
             self.isSubscribed = subscriptionService.isSubscribed(id: video.id)
 
         case .offline(let downloadedVideo):
@@ -141,7 +139,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The video ID.
     var videoId: String {
         switch mode {
-        case .online(let video, _):
+        case .online(let video):
             return video.id
         case .offline(let downloadedVideo):
             return downloadedVideo.id
@@ -151,7 +149,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The video title.
     var videoTitle: String {
         switch mode {
-        case .online(let video, _):
+        case .online(let video):
             return video.title
         case .offline(let downloadedVideo):
             return downloadedVideo.title
@@ -161,7 +159,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The video cover URL.
     var videoCoverURL: URL? {
         switch mode {
-        case .online(let video, _):
+        case .online(let video):
             return video.coverURL
         case .offline(let downloadedVideo):
             return downloadedVideo.coverURL
@@ -171,7 +169,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// The source ID for this video.
     var sourceId: String {
         switch mode {
-        case .online(let video, _):
+        case .online(let video):
             return video.sourceId
         case .offline(let downloadedVideo):
             return downloadedVideo.sourceId
@@ -200,6 +198,18 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             return sourceManager.installedSources.first { $0.id == sourceId }?.info.name
         case .offline(let downloadedVideo):
             return downloadedVideo.sourceName
+        }
+    }
+
+    /// Returns the direct details URL for the video.
+    /// Prefers the URL from the loaded sourceVideo, falls back to the video's detailsURL.
+    var detailsURL: String? {
+        switch mode {
+        case .online(let video):
+            // Prefer the URL from the loaded sourceVideo, fall back to the video's URL
+            return sourceVideo?.detailsURL ?? video.detailsURL
+        case .offline(let downloadedVideo):
+            return downloadedVideo.detailsURL
         }
     }
 
@@ -241,7 +251,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             subscriptionService.subscribe(id: videoId,
                                           title: videoTitle,
                                           coverURL: videoCoverURL,
-                                          sourceId: sourceId)
+                                          sourceId: sourceId,
+                                          detailsURL: detailsURL)
         }
         
         isSubscribed.toggle()
@@ -304,6 +315,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         downloadService.startDownload(videoId: videoId,
                                        videoTitle: videoTitle,
                                        videoCoverURL: videoCoverURL,
+                                       videoDetailsURL: detailsURL,
                                        episodeId: episode.id,
                                        episodeNumber: episode.number,
                                        episodeTitle: episode.title,
@@ -346,6 +358,7 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                              videoId: videoId,
                              videoTitle: videoTitle,
                              videoCoverURL: videoCoverURL,
+                             detailsURL: detailsURL,
                              sourceId: sourceId,
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
@@ -372,8 +385,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     //#################################################################################
 
     private func loadOnlineEpisodes() async {
-        // Extract details URL from mode
-        guard case .online(_, let directDetailsURL) = mode else { return }
+        // Extract video from mode
+        guard case .online(let video) = mode else { return }
 
         // Skip if already loaded
         guard sourceVideo == nil else {
@@ -395,8 +408,8 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         do {
             let detailsURL: String
             
-            // If we have a direct details URL from VideoPreview, use it
-            if let directURL = directDetailsURL {
+            // If we have a direct details URL from the video, use it
+            if let directURL = video.detailsURL {
                 detailsURL = directURL
             } else {
                 // Generate search queries with fallbacks
@@ -419,19 +432,20 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 }
 
                 // Find the best matching result using title similarity
-                guard let bestMatch = findBestMatch(in: searchResults, for: bestQuery) else {
+                guard let bestMatch = findBestMatch(in: searchResults, for: bestQuery),
+                      let matchDetailsURL = bestMatch.detailsURL else {
                     error = EpisodesError.videoNotFound
                     isLoading = false
                     return
                 }
                 
-                detailsURL = bestMatch.detailsURL
+                detailsURL = matchDetailsURL
             }
 
             // Fetch full video details with episodes
-            let video = try await sourceManager.getVideoDetails(sourceId: sourceId,
-                                                                url: detailsURL)
-            sourceVideo = video
+            let loadedVideo = try await sourceManager.getVideoDetails(sourceId: sourceId,
+                                                                      url: detailsURL)
+            sourceVideo = loadedVideo
             loadWatchProgress()
             isLoading = false
         } catch {

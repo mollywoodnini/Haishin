@@ -99,7 +99,7 @@ final class SourceDetailViewModel {
     /// - Parameter videoPreview: The video preview to show episodes for.
     /// - Returns: A new `EpisodeListViewModel` for the video.
     func makeEpisodeListViewModel(for videoPreview: VideoPreview) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .online(video: videoPreview, detailsURL: videoPreview.detailsURL),
+        EpisodeListViewModel(mode: .online(video: videoPreview),
                              sourceManager: sourceManager,
                              watchProgressService: watchProgressService,
                              subscriptionService: subscriptionService,

@@ -77,6 +77,11 @@ final class VideoPlayerPresenter: NSObject {
             self?.onEpisodeFinished?(episode)
         }
 
+        // Set up the all sources failed callback to show an alert and dismiss
+        viewModel.onAllSourcesFailed = { [weak self] error in
+            self?.handleAllSourcesFailed(error: error)
+        }
+
         // Start loading the video
         loadingTask = Task {
             await viewModel.loadAndPlay()
@@ -157,6 +162,28 @@ final class VideoPlayerPresenter: NSObject {
     //#################################################################################
     // MARK: - Private Methods
     //#################################################################################
+
+    private func handleAllSourcesFailed(error: Error) {
+        Log.error(.playback, "All video sources failed during playback: \(error.localizedDescription)")
+
+        // Find the presented player controller to show the alert from
+        guard let playerVC = playerViewController else {
+            // Player not presented yet, just cleanup
+            cleanup()
+            onDismiss?()
+            return
+        }
+
+        let alert = UIAlertController(title: "Playback Error",
+                                      message: error.localizedDescription,
+                                      preferredStyle: .alert)
+
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            self?.dismiss(animated: true)
+        })
+
+        playerVC.present(alert, animated: true)
+    }
 
     private func waitForPlayerReady(_ player: AVPlayer) async {
         // If already ready, return immediately

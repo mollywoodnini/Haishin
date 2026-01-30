@@ -27,7 +27,7 @@ struct VideoPreview: VideoProtocol, Codable {
     let sourceId: String
 
     /// URL path to fetch full video details.
-    let detailsURL: String
+    let detailsURL: String?
 }
 
 
@@ -76,7 +76,7 @@ struct Video: VideoProtocol, Codable {
     let sourceId: String
 
     /// URL path used to fetch this video's details.
-    let detailsURL: String
+    let detailsURL: String?
 
     /// Available episodes (flat list for backward compatibility).
     let episodes: [Episode]

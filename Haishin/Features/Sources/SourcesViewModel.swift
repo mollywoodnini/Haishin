@@ -206,4 +206,40 @@ final class SourcesViewModel {
 
         await sourceManager.updateAllSources()
     }
+
+    #if DEBUG
+    /// Installs the GoGoAnime source from the examples directory.
+    /// This is only available in debug builds for testing purposes.
+    func installGoGoAnimeSource() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Get the path to the examples directory relative to the source root
+        // In development, we can use the known path from the repository
+        let possiblePaths = [
+            "/Users/a616047/Repositories/Private/Haishin/examples/gogoanime-source.js",
+            NSHomeDirectory() + "/Repositories/Private/Haishin/examples/gogoanime-source.js"
+        ]
+
+        var installedSuccessfully = false
+
+        for path in possiblePaths {
+            if FileManager.default.fileExists(atPath: path) {
+                do {
+                    try await sourceManager.installSource(fromURL: path)
+                    Log.info(.sources, "Successfully installed GoGoAnime source from: \(path)")
+                    installedSuccessfully = true
+                    break
+                } catch {
+                    Log.error(.sources, "Failed to install GoGoAnime source: \(error)")
+                    self.error = error
+                }
+            }
+        }
+
+        if !installedSuccessfully && self.error == nil {
+            Log.error(.sources, "GoGoAnime source file not found at any expected path")
+        }
+    }
+    #endif
 }

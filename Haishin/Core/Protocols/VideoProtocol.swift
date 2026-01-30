@@ -28,4 +28,7 @@ protocol VideoProtocol: Identifiable, Hashable {
 
     /// The source ID used to fetch this video.
     var sourceId: String { get }
+
+    /// The direct URL to the video details page (for direct navigation without search).
+    var detailsURL: String? { get }
 }

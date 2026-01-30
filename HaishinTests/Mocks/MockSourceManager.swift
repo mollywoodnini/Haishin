@@ -253,6 +253,7 @@ final class MockDownloadService: DownloadServiceProtocol {
     func startDownload(videoId: String,
                        videoTitle: String,
                        videoCoverURL: URL?,
+                       videoDetailsURL: String?,
                        episodeId: String,
                        episodeNumber: String,
                        episodeTitle: String?,
