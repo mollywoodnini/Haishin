@@ -22,6 +22,9 @@ final class VideoPlayerViewModel {
 
     private struct Constants {
         static let progressSaveInterval: TimeInterval = 5.0
+        /// Minimum progress (0.0-1.0) required to consider playback as legitimately finished.
+        /// If playback ends before this threshold, it's likely a stream error.
+        static let minimumCompletionProgress: Double = 0.85
     }
 
 
@@ -460,7 +463,23 @@ final class VideoPlayerViewModel {
     }
 
     private func handlePlaybackEnd() {
-        Log.info(.playback, "Episode \(self.episode.number) finished playing")
+        // Validate that we actually finished watching most of the episode.
+        // AVPlayerItemDidPlayToEndTime can fire prematurely due to streaming issues.
+        let actualProgress = duration > 0 ? currentTime / duration : 0
+
+        Log.info(.playback,
+                 "Playback end triggered for episode \(self.episode.number) at \(Int(actualProgress * 100))% progress")
+
+        if actualProgress < Constants.minimumCompletionProgress {
+            // This is likely a premature end due to streaming issues, not a real completion.
+            // Try the next source instead of advancing to the next episode.
+            Log.warning(.playback,
+                        "Premature playback end detected (only \(Int(actualProgress * 100))% watched). Treating as stream failure.")
+            tryNextSource()
+            return
+        }
+
+        Log.info(.playback, "Episode \(self.episode.number) legitimately finished playing")
 
         // Save final progress
         saveProgress()

@@ -236,7 +236,7 @@ struct SourcesView: View {
                         viewModel.removeRepository(repo)
                     } label: {
                         Image(systemName: "trash")
-                            .font(.caption)
+                            .font(.body)
                     }
                 }
             }
