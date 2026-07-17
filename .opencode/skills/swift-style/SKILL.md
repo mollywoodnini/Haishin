@@ -132,7 +132,7 @@ func configure() {
 
 ### Constants & Magic Numbers
 
-NEVER use magic numbers directly in code. Always store constants in a private struct at the top of type declarations:
+NEVER use magic numbers directly in code. Always store constants in a private enum at the top of type declarations:
 
 ```swift
 struct Example {
@@ -141,7 +141,7 @@ struct Example {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let animationDuration: TimeInterval = 0.3
         static let maxRetryCount: Int = 3
     }
