@@ -22,24 +22,42 @@ After getting the URL, fetch the website and infer metadata from meta tags:
 
 ### 2. Analyze the Website
 
-Use `webfetch` to identify:
+First determine if the site is server-rendered (HTML contains content) or **client-side rendered (SPA)**.
 
+#### For server-rendered sites
+Use `webfetch` to parse HTML for:
 - **Entry page pattern** — How are video cards structured? (article, div, li)
 - **Search URL pattern** — `/?s=`, `/search?q=`, `/api/search?`
 - **Video detail page** — Title, synopsis, cover, genres, episode list structure
-- **Stream extraction path** — This is the hardest part. Identify the player chain:
 
-  **Common player architectures (from existing sources):**
+#### For client-side rendered (SPA) sites
+The HTML is a shell with loading skeletons. All content comes from JavaScript API calls.
+- Fetch JS bundles (look for `/_next/static/chunks/*.js` in Next.js sites)
+- Search for `fetch(`, `axios`, `https://` API patterns in bundle source to discover endpoints
+- The API is often on a **separate domain** (e.g., `animedata.cfd`) — not the visible website
+- Common SPA frameworks: Next.js, Nuxt, React SPA, Vue SPA
 
-  | Pattern | Example | Extraction approach |
-  |---------|---------|-------------------|
-  | Direct `file:` URL in JWPlayer | gogoanime (n-bg/player.php) | Regex for `var fileUrl = "..."` or `sources: [{file:"..."}]` |
-  | Direct m3u8 API response | nasa-plus | Extract from JSON response meta |
-  | Direct download URL | archiveorg | Build from metadata identifier |
-  | Iframe to external provider | gogoanime (double_player → embtaku) | Follow iframe recursively |
-  | Iframe on same domain (nested player) | gogoanime (Blogger → n-bg/player.php) | Generic iframe fallback |
-  | Encrypted params in page HTML | gogoanime (enc1/enc2/enc3) | Base64 decode, XOR, or pass through to player page |
-  | Base64-encoded URL in attribute | Common | `atob()` decode |
+#### Stream extraction path
+This is the hardest part. Identify the player chain:
+
+**Common player architectures (from existing sources):**
+
+| Pattern | Example | Extraction approach |
+|---------|---------|-------------------|
+| Direct `file:` URL in JWPlayer | Nested player page on same domain | Regex for `var fileUrl = "..."` or `sources: [{file:"..."}]` |
+| Direct m3u8 API response | nasa-plus | Extract from JSON response meta |
+| Direct download URL | archiveorg | Build from metadata identifier |
+| Iframe to external provider | Player embed with URL params | Follow iframe recursively |
+| Iframe on same domain (nested player) | Encrypted params pointing to self-hosted player | Generic iframe fallback |
+| Encrypted params in page HTML | Player with enc1/enc2/enc3 params | Base64 decode, XOR, or pass through to player page |
+| Base64-encoded URL in attribute | Common | `atob()` decode |
+| **XOR-encrypted `window.__P` blob** in player page | Third-party embed player | Extract `__P`, XOR-decode with known key, get `src` field (direct m3u8) |
+
+The `window.__P` XOR pattern:
+- Player page contains `<script>window.__P="BASE64BLOB"</script>`
+- XOR key is embedded in the player JS (look for `OBF_KEY`, `deobfuscate`, `xor` functions)
+- Decode: `atob(blob)` → XOR with key → `decodeURIComponent(escape(result))` → `JSON.parse` → get `src` (m3u8)
+- Found by reading the player JS files (look for `OBF_KEY`, `deobfuscate`, `xor` functions)
 
 ### 3. Generate the Source File
 
@@ -72,17 +90,21 @@ getEntryVideos()
 #### Common Implementation Patterns (from 4 existing sources)
 
 **`search(query, page)`**
-- Fetch search page: `` `${baseUrl}/?s=${encodeURIComponent(query)}` ``
-- Parse results with regex matching the site's card structure
+- **Server-rendered**: Fetch search page: `` `${baseUrl}/?s=${encodeURIComponent(query)}` `` and parse HTML
+- **API-based**: POST to `` `${apiBase}/search` `` with JSON body `{title: query}` (or GET with query params)
+- Parse results — either from HTML cards or JSON array response
 - Return `{ results: [{ id, title, englishTitle?, coverUrl, url }], hasNextPage: boolean }`
 - Wrap in try/catch, return empty on error (app must not crash)
+- **Edge case**: API may be unreliable (522/timeout) — implement retry or return gracefully
 
 **`getVideoDetails(videoId, videoUrl)`**
-- Fetch the video/series page
-- Extract: title (`<h1 class="entry-title">`), synopsis, cover, status, genres
-- Parse episode list from HTML (look for episode links in a list/grid)
+- **Server-rendered**: Fetch the video/series page; extract title, synopsis, cover, status, genres from HTML
+- **API-based**: Fetch `` `${apiBase}/anime/{slug}` `` endpoint (slug = videoId or extracted from videoUrl)
+- Episodes are often in the same response (no pagination needed for API-based sources)
+- Store stream links from API response in a cache (`this.streamCache`) for later use in `getEpisodeStreams`
 - Return `{ id, title, englishTitle?, synopsis, coverUrl, status, genres, servers: {...}, episodes: {...} }`
 - If episodes span multiple pages, implement `episodeRanges` for pagination
+- **Edge case**: API items may have multiple slug fields — try `slugs[]`, `slug`, `id` in order
 
 **`getEpisodeStreams(episodeId, episodeUrl, server)`** — Most complex method
 - Fetch the episode page
@@ -94,7 +116,7 @@ getEntryVideos()
 - Extract video URL from JWPlayer config (`file:` key, `sources[]` array, `var fileUrl`)
 - Return `{ streams: [{ quality, url, type, headers? }], subtitles: [...] }`
 
-**Common video extraction sub-pipeline (from gogoanime):**
+**Common video extraction sub-pipeline:**
 
 ```
 1. Check URL params for direct base64-encoded video URLs
@@ -122,11 +144,30 @@ Key extraction regex patterns:
 /data-value\s*=\s*"([^"]+)"/
 // atob-encoded source
 /source\s*[=:]\s*atob\s*\(\s*'([^']+)'/
+// XOR-encrypted window.__P blob in player page
+/window\.__P\s*=\s*"([^"]+)"/
+// XOR key in player JS (e.g., OBF_KEY = '...')
+/OBF_KEY\s*=\s*['"]([^'"]+)['"]/
 ```
 
+XOR decode implementation:
+```javascript
+_decodeEncryptedBlob(blob) {
+    const key = "example-key";           // XOR key found in player JS
+    let xored = "";
+    const raw = atob(blob);
+    for (let i = 0; i < raw.length; i++) {
+        xored += String.fromCharCode(raw.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return JSON.parse(decodeURIComponent(escape(xored)));
+}
+
+
 **`getEntryVideos()`**
-- Fetch homepage or browse page
-- Parse the first page of content (recently added, popular, etc.)
+- **Server-rendered**: Fetch homepage or browse page; parse video cards from HTML
+- **API-based**: Fetch `` `${apiBase}/home` `` — iterate known sections (`featured`, `trending`, `popular`, `latestAnime`)
+- Use `Array.isArray()` to guard against mixed-type responses (some sections may be objects, not arrays)
+- Handle nested wrappers: item may be `{anime: {title, slug, image}}` or a flat object
 - Return `[{ id, title, coverUrl, url }]` — up to 20 items
 - Wrap in try/catch, return `[]` on error
 
@@ -137,6 +178,7 @@ Key extraction regex patterns:
 - **Async/await** — All methods must be `async`; use `await fetch(...)`.
 - **Error handling** — Wrap each method in try/catch. Never throw from the top level — return empty results or `{ streams: [], subtitles: [] }` so the app shows "no streams" gracefully instead of crashing.
 - **Headers** — Include `User-Agent` on all requests. Add `Referer`, `Origin`, `Accept` as needed.
+- **Stream Referer** — HLS streams often require a specific `Referer` header to avoid 403 errors. Set `Referer` to the embed / player page domain in stream headers.
 - **Console logging** — Use `console.log` extensively; prefix logs with the source name for clarity.
 - **No external dependencies** — All logic in a single `.js` file.
 - **Iframe traversal** — After checking known iframe patterns, add a generic fallback that follows any iframe on the same domain (common for nested player pages).
@@ -162,7 +204,10 @@ Study these files for real-world patterns:
 | `examples/example-source.js` | Minimal template with method shapes and JSDoc |
 | `examples/nasa-plus.js` | REST API-based source (WordPress JSON API) |
 | `examples/archiveorg-cartoons.js` | API-based with pagination and grouping |
-| `examples/gogoanime-source.js` | Complex HTML scraping with iframe traversal, encrypted params, nested players, and multi-server support |
+| `examples/example-source.js` | Minimal template with method shapes and JSDoc |
+| `examples/nasa-plus.js` | REST API-based source (WordPress JSON API) |
+| `examples/archiveorg-cartoons.js` | API-based with pagination and grouping |
+| `examples/test-script.mjs` | How sources are validated at runtime |
 | `examples/test-script.mjs` | How sources are validated at runtime |
 
 ### 7. Output
