@@ -6,12 +6,14 @@ This file provides high-level project guidance. Detailed rules are delegated to 
 
 - **swift-style** — All Swift code formatting, style, and documentation conventions.
 - **new-feature** — Scaffolds new MVVM features with Views/, ViewModel, and test files.
+- **add-source** — Creates a new Haishin JavaScript source by live-scraping a target website. Fetches the site, analyzes HTML structure, and generates a complete source.js following the JS source contract.
 
 ## Agents
 
 - **swift-dev** — Primary development agent for writing Swift/SwiftUI code. Loads skills proactively.
 - **code-reviewer** — Read-only subagent for diff-based code reviews against project style and architecture.
 - **test-writer** — Subagent for writing ViewModel unit tests following Haishin conventions.
+- **source-adder** — Expert in Haishin app architecture, web scraping, and JavaScript. Fetches target websites, analyzes HTML structure, and generates complete source.js files following the Haishin JS source contract. Uses the `add-source` skill.
 
 ## Architecture
 
@@ -38,6 +40,7 @@ This file provides high-level project guidance. Detailed rules are delegated to 
 - `/review-diff` — Review all Swift changes between current branch and a base branch.
 - `/create-feature` — Scaffold a new MVVM feature (ViewModel + View + tests) using the `new-feature` skill.
 - `/check-tests` — Verify a ViewModel has a corresponding test file with proper coverage.
+- `/add-source` — Creates a new Haishin JavaScript source by live-scraping a target website. Fetches the site, analyzes HTML structure, and generates a complete source.js following the JS source contract.
 
 ## Plugins
 
