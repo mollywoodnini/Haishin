@@ -25,6 +25,7 @@ struct EpisodeListView: View {
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
     @State private var showingVideoError = false
+    @State private var jsRuntimeLog = JSRuntimeLogCollector.shared
 
 
     //#################################################################################
@@ -88,6 +89,7 @@ struct EpisodeListView: View {
     //#################################################################################
 
     private func playEpisode(_ episode: Episode) {
+        JSRuntimeLogCollector.shared.clear()
         let playerViewModel = viewModel.makeVideoPlayerViewModel(episode: episode)
 
         VideoPlayerPresenter.shared.present(
@@ -181,6 +183,29 @@ struct EpisodeListView: View {
                 Text("Loading video...")
                     .font(.headline)
                     .foregroundStyle(.white)
+
+                if !jsRuntimeLog.messages.isEmpty {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 2) {
+                                ForEach(Array(jsRuntimeLog.messages.enumerated()), id: \.offset) { index, message in
+                                    Text(message)
+                                        .font(.caption2)
+                                        .foregroundStyle(.white.opacity(0.8))
+                                        .fontDesign(.monospaced)
+                                        .id(index)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 180)
+                        .padding(.horizontal, .spacingS)
+                        .onChange(of: jsRuntimeLog.messages.count) { _, _ in
+                            withAnimation {
+                                proxy.scrollTo(jsRuntimeLog.messages.count - 1, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
 
                 Button {
                     cancelVideoLoading()

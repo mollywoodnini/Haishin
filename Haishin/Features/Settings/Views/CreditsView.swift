@@ -47,7 +47,7 @@ struct CreditsView: View {
 //#################################################################################
 
 /// A row displaying a single credit with name, description, and optional link.
-private enum CreditRow: View {
+private struct CreditRow: View {
 
     //#################################################################################
     // MARK: - Properties

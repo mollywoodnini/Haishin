@@ -246,6 +246,7 @@ actor JSRuntime {
         // Inject console.log
         let consoleLog: @convention(block) (String) -> Void = { message in
             Log.debug(.sources, "console.log: \(message)")
+            JSRuntimeLogCollector.shared.append(category: "configure", message: "console.log: \(message)")
         }
         context.setObject(consoleLog,
                           forKeyedSubscript: "_consoleLog" as NSString)
@@ -310,6 +311,7 @@ actor JSRuntime {
         Log.debug(.sources, "handleFetch called")
         Log.debug(.sources, "URL: \(urlString)")
         Log.debug(.sources, "Options: \(optionsJson)")
+        JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Fetching: \(urlString)")
         
         do {
             guard let url = URL(string: urlString) else {
@@ -349,11 +351,13 @@ actor JSRuntime {
                 Log.debug(.sources, "Response status: \(statusCode)")
                 Log.debug(.sources, "Response length: \(text.count) chars")
                 Log.debug(.sources, "Response preview: \(String(text.prefix(300)))...")
+                JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Response \(statusCode), \(text.count) chars")
 
                 // Check if the response is a challenge page (typically 403 with challenge HTML)
                 if statusCode == 403 || ChallengeResolver.isChallengePage(text) {
                     Log.notice(.sources, "*** CHALLENGE PAGE DETECTED for \(host) (status: \(statusCode)) ***")
                     Log.debug(.sources, "Starting challenge resolution...")
+                    JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Challenge page detected for \(host)")
 
                     // Resolve the challenge using WebView (must be on MainActor)
                     try await resolveChallengeOnMainActor(for: url)
@@ -388,6 +392,7 @@ actor JSRuntime {
                 } else if statusCode >= 200 && statusCode < 300 {
                     // Success, not a challenge page
                     Log.debug(.sources, "Not a challenge page, returning result")
+                    JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Not a challenge page, returning result")
                     resolveFetch(id: id, result: text)
                 } else {
                     // Other error
@@ -397,10 +402,12 @@ actor JSRuntime {
             } else {
                 // Host already resolved or no host, just fetch
                 Log.debug(.sources, "Host already resolved or no host, fetching directly...")
+                JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Host already resolved, fetching directly")
                 let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
                 let text = String(data: data, encoding: .utf8) ?? ""
                 Log.debug(.sources, "Response status: \(statusCode)")
                 Log.debug(.sources, "Response length: \(text.count) chars")
+                JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Response \(statusCode), \(text.count) chars")
                 
                 if statusCode >= 200 && statusCode < 300 {
                     resolveFetch(id: id, result: text)
