@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "references": {
+    "docs": {
+      "path": "Documentation",
+      "description": "Project documentation and design guidelines"
+    },
+    "examples": {
+      "path": "examples",
+      "description": "Example code and usage patterns"
+    }
+  },
+  "skills": {
+    "paths": [".opencode/skills"]
+  }
+}
