@@ -114,12 +114,14 @@ struct EpisodeRangeSectionView: View {
     private var episodesList: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(range.episodes) { episode in
-                EpisodeRowView(episode: episode,
-                               progress: watchProgressMap[episode.id],
-                               downloadState: getDownloadState(episode.id),
-                               onTap: { onEpisodeTap(episode) },
-                               onDownload: { onDownload(episode) },
-                               onCancelDownload: { onCancelDownload(episode.id) })
+                EpisodeRowView(
+                    episode: episode,
+                    progress: watchProgressMap[episode.id],
+                    downloadState: getDownloadState(episode.id),
+                    onTap: { onEpisodeTap(episode) },
+                    onDownload: { onDownload(episode) },
+                    onCancelDownload: { onCancelDownload(episode.id) }
+                )
 
                 if episode.id != range.episodes.last?.id {
                     Divider()

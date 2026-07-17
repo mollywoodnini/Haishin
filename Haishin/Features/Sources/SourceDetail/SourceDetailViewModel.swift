@@ -53,11 +53,13 @@ final class SourceDetailViewModel {
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
-    init(source: InstalledSource,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
+    init(
+        source: InstalledSource,
+        sourceManager: SourceManaging,
+        watchProgressService: WatchProgressServiceProtocol,
+        subscriptionService: SubscriptionServiceProtocol,
+        downloadService: DownloadServiceProtocol
+    ) {
         self.source = source
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
@@ -99,10 +101,12 @@ final class SourceDetailViewModel {
     /// - Parameter videoPreview: The video preview to show episodes for.
     /// - Returns: A new `EpisodeListViewModel` for the video.
     func makeEpisodeListViewModel(for videoPreview: VideoPreview) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .online(video: videoPreview),
-                             sourceManager: sourceManager,
-                             watchProgressService: watchProgressService,
-                             subscriptionService: subscriptionService,
-                             downloadService: downloadService)
+        EpisodeListViewModel(
+            mode: .online(video: videoPreview),
+            sourceManager: sourceManager,
+            watchProgressService: watchProgressService,
+            subscriptionService: subscriptionService,
+            downloadService: downloadService
+        )
     }
 }

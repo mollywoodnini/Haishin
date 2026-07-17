@@ -24,20 +24,24 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            LibraryView(watchProgressService: WatchProgressService.shared,
-                        subscriptionService: SubscriptionService.shared,
-                        sourceManager: sourceManager,
-                        downloadService: DownloadService.shared,
-                        userPreferences: UserPreferences.shared)
+            LibraryView(
+                watchProgressService: WatchProgressService.shared,
+                subscriptionService: SubscriptionService.shared,
+                sourceManager: sourceManager,
+                downloadService: DownloadService.shared,
+                userPreferences: UserPreferences.shared
+            )
                 .tabItem {
                     Label(Tab.library.title, systemImage: Tab.library.icon)
                 }
                 .tag(Tab.library)
 
-            SearchView(sourceManager: sourceManager,
-                       watchProgressService: WatchProgressService.shared,
-                       subscriptionService: SubscriptionService.shared,
-                       downloadService: DownloadService.shared)
+            SearchView(
+                sourceManager: sourceManager,
+                watchProgressService: WatchProgressService.shared,
+                subscriptionService: SubscriptionService.shared,
+                downloadService: DownloadService.shared
+            )
                 .tabItem {
                     Label(Tab.search.title, systemImage: Tab.search.icon)
                 }

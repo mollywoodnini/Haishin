@@ -95,8 +95,18 @@ struct SubtitlePickerView: View {
         Color.black
         SubtitlePickerView(
             subtitles: [
-                Subtitle(id: "1", language: "en", label: "English", url: URL(string: "https://example.com")!),
-                Subtitle(id: "2", language: "ja", label: "Japanese", url: URL(string: "https://example.com")!)
+                Subtitle(
+                    id: "1",
+                    language: "en",
+                    label: "English",
+                    url: URL(string: "https://example.com")!
+                ),
+                Subtitle(
+                    id: "2",
+                    language: "ja",
+                    label: "Japanese",
+                    url: URL(string: "https://example.com")!
+                )
             ],
             selectedSubtitle: nil,
             onSelect: { _ in }

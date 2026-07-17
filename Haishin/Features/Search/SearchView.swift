@@ -41,14 +41,20 @@ struct SearchView: View {
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
-    init(sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self._viewModel = State(initialValue: SearchViewModel(sourceManager: sourceManager,
-                                                              watchProgressService: watchProgressService,
-                                                              subscriptionService: subscriptionService,
-                                                              downloadService: downloadService))
+    init(
+        sourceManager: SourceManaging,
+        watchProgressService: WatchProgressServiceProtocol,
+        subscriptionService: SubscriptionServiceProtocol,
+        downloadService: DownloadServiceProtocol
+    ) {
+        self._viewModel = State(
+            initialValue: SearchViewModel(
+                sourceManager: sourceManager,
+                watchProgressService: watchProgressService,
+                subscriptionService: subscriptionService,
+                downloadService: downloadService
+            )
+        )
     }
 
 
@@ -216,8 +222,10 @@ struct SearchView: View {
 //#################################################################################
 
 #Preview {
-    SearchView(sourceManager: SourceManager(),
-               watchProgressService: WatchProgressService.shared,
-               subscriptionService: SubscriptionService.shared,
-               downloadService: DownloadService.shared)
+    SearchView(
+        sourceManager: SourceManager(),
+        watchProgressService: WatchProgressService.shared,
+        subscriptionService: SubscriptionService.shared,
+        downloadService: DownloadService.shared
+    )
 }

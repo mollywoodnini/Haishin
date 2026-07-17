@@ -53,11 +53,13 @@ struct SourcesView: View {
             }
             .navigationTitle("Sources")
             .navigationDestination(for: InstalledSource.self) { source in
-                SourceDetailView(source: source,
-                                 sourceManager: viewModel.sourceManager,
-                                 watchProgressService: WatchProgressService.shared,
-                                 subscriptionService: SubscriptionService.shared,
-                                 downloadService: DownloadService.shared)
+                SourceDetailView(
+                    source: source,
+                    sourceManager: viewModel.sourceManager,
+                    watchProgressService: WatchProgressService.shared,
+                    subscriptionService: SubscriptionService.shared,
+                    downloadService: DownloadService.shared
+                )
             }
             .refreshable {
                 await viewModel.refreshRepositories()
@@ -138,9 +140,11 @@ struct SourcesView: View {
             } message: {
                 Text("Enter the URL to a source JavaScript file.")
             }
-            .fileImporter(isPresented: $showingFilePicker,
-                          allowedContentTypes: [.javaScript],
-                          allowsMultipleSelection: false) { result in
+            .fileImporter(
+                isPresented: $showingFilePicker,
+                allowedContentTypes: [.javaScript],
+                allowsMultipleSelection: false
+            ) { result in
                 Log.debug(.sources, "File picker result received")
                 switch result {
                 case .success(let urls):
@@ -171,8 +175,10 @@ struct SourcesView: View {
         Section {
             ForEach(viewModel.installedSources.filter { viewModel.getAvailableUpdate(for: $0.id) != nil }) { source in
                 if let update = viewModel.getAvailableUpdate(for: source.id) {
-                    UpdateAvailableRow(source: source,
-                                       newVersion: update.version) {
+                    UpdateAvailableRow(
+                        source: source,
+                        newVersion: update.version
+                    ) {
                         Task {
                             await viewModel.updateSource(sourceId: source.id)
                         }
@@ -205,9 +211,11 @@ struct SourcesView: View {
             } else {
                 ForEach(viewModel.installedSources) { source in
                     NavigationLink(value: source) {
-                        InstalledSourceRow(source: source,
-                                           hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil,
-                                           onDelete: { viewModel.uninstallSource(source) })
+                        InstalledSourceRow(
+                            source: source,
+                            hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil,
+                            onDelete: { viewModel.uninstallSource(source) }
+                        )
                     }
                 }
             }
@@ -220,9 +228,11 @@ struct SourcesView: View {
         ForEach(viewModel.repositories) { repo in
             Section {
                 ForEach(repo.sources) { source in
-                    RepositorySourceRow(source: source,
-                                        isInstalled: viewModel.isInstalled(source),
-                                        hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil) {
+                    RepositorySourceRow(
+                        source: source,
+                        isInstalled: viewModel.isInstalled(source),
+                        hasUpdate: viewModel.getAvailableUpdate(for: source.id) != nil
+                    ) {
                         Task {
                             await viewModel.installSource(source, from: repo)
                         }

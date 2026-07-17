@@ -55,10 +55,12 @@ struct VideoRowButton<T>: View {
             VideoRow(mode: mode, sourceName: sourceName)
         }
         .buttonStyle(.plain)
-        .listRowInsets(EdgeInsets(top: .spacingXS,
-                                  leading: .spacingS,
-                                  bottom: .spacingXS,
-                                  trailing: .spacingS))
+        .listRowInsets(EdgeInsets(
+            top: .spacingXS,
+            leading: .spacingS,
+            bottom: .spacingXS,
+            trailing: .spacingS
+        ))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
     }
@@ -181,10 +183,12 @@ struct VideoRow: View {
                 .frame(width: Constants.imageWidth, height: Constants.rowHeight)
                 .clipped()
                 .clipShape(
-                    UnevenRoundedRectangle(topLeadingRadius: .cornerRadiusM,
-                                           bottomLeadingRadius: .cornerRadiusM,
-                                           bottomTrailingRadius: 0,
-                                           topTrailingRadius: 0)
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: .cornerRadiusM,
+                        bottomLeadingRadius: .cornerRadiusM,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0
+                    )
                 )
 
             episodeBadge

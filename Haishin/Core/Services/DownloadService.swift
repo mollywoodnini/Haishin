@@ -193,16 +193,18 @@ protocol DownloadServiceProtocol: AnyObject {
     func setSourceManager(_ sourceManager: SourceManaging)
 
     /// Starts downloading an episode.
-    func startDownload(videoId: String,
-                       videoTitle: String,
-                       videoCoverURL: URL?,
-                       videoDetailsURL: String?,
-                       episodeId: String,
-                       episodeNumber: String,
-                       episodeTitle: String?,
-                       sourceId: String,
-                       sourceName: String,
-                       sourceURL: String)
+    func startDownload(
+        videoId: String,
+        videoTitle: String,
+        videoCoverURL: URL?,
+        videoDetailsURL: String?,
+        episodeId: String,
+        episodeNumber: String,
+        episodeTitle: String?,
+        sourceId: String,
+        sourceName: String,
+        sourceURL: String
+    )
 
     /// Cancels a download.
     func cancelDownload(episodeId: String)
@@ -280,8 +282,10 @@ final class DownloadService: DownloadServiceProtocol {
     /// - Parameters:
     ///   - userDefaults: The UserDefaults instance to use for persistence.
     ///   - fileManager: The FileManager instance to use for file operations.
-    init(userDefaults: UserDefaults = .standard,
-         fileManager: FileManager = .default) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        fileManager: FileManager = .default
+    ) {
         self.userDefaults = userDefaults
         self.fileManager = fileManager
         loadDownloads()
@@ -298,16 +302,18 @@ final class DownloadService: DownloadServiceProtocol {
     // MARK: - Public Methods
     //#################################################################################
 
-    func startDownload(videoId: String,
-                       videoTitle: String,
-                       videoCoverURL: URL?,
-                       videoDetailsURL: String?,
-                       episodeId: String,
-                       episodeNumber: String,
-                       episodeTitle: String?,
-                       sourceId: String,
-                       sourceName: String,
-                       sourceURL: String) {
+    func startDownload(
+        videoId: String,
+        videoTitle: String,
+        videoCoverURL: URL?,
+        videoDetailsURL: String?,
+        episodeId: String,
+        episodeNumber: String,
+        episodeTitle: String?,
+        sourceId: String,
+        sourceName: String,
+        sourceURL: String
+    ) {
         // Check if already downloading
         if let existing = allEpisodes.first(where: { $0.episodeId == episodeId }) {
             if existing.state.isActive {

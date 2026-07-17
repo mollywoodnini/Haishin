@@ -155,10 +155,12 @@ final class SubtitleRenderer {
                 if let startTime = currentStartTime, let endTime = currentEndTime, !currentText.isEmpty {
                     let text = currentText.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
                     if !text.isEmpty {
-                        cues.append(SubtitleCue(id: "cue-\(cueIndex)",
-                                                startTime: startTime,
-                                                endTime: endTime,
-                                                text: cleanSubtitleText(text)))
+                        cues.append(SubtitleCue(
+                            id: "cue-\(cueIndex)",
+                            startTime: startTime,
+                            endTime: endTime,
+                            text: cleanSubtitleText(text)
+                        ))
                         cueIndex += 1
                     }
                     currentStartTime = nil
@@ -174,10 +176,12 @@ final class SubtitleRenderer {
                 if let startTime = currentStartTime, let endTime = currentEndTime, !currentText.isEmpty {
                     let text = currentText.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
                     if !text.isEmpty {
-                        cues.append(SubtitleCue(id: "cue-\(cueIndex)",
-                                                startTime: startTime,
-                                                endTime: endTime,
-                                                text: cleanSubtitleText(text)))
+                        cues.append(SubtitleCue(
+                            id: "cue-\(cueIndex)",
+                            startTime: startTime,
+                            endTime: endTime,
+                            text: cleanSubtitleText(text)
+                        ))
                         cueIndex += 1
                     }
                     currentText = []
@@ -199,10 +203,12 @@ final class SubtitleRenderer {
         if let startTime = currentStartTime, let endTime = currentEndTime, !currentText.isEmpty {
             let text = currentText.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty {
-                cues.append(SubtitleCue(id: "cue-\(cueIndex)",
-                                        startTime: startTime,
-                                        endTime: endTime,
-                                        text: cleanSubtitleText(text)))
+                        cues.append(SubtitleCue(
+                            id: "cue-\(cueIndex)",
+                            startTime: startTime,
+                            endTime: endTime,
+                            text: cleanSubtitleText(text)
+                        ))
             }
         }
 

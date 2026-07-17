@@ -39,11 +39,13 @@ struct LibraryView: View {
          sourceManager: SourceManaging,
          downloadService: DownloadServiceProtocol,
          userPreferences: UserPreferencesProtocol) {
-        self._viewModel = State(initialValue: LibraryViewModel(watchProgressService: watchProgressService,
-                                                               subscriptionService: subscriptionService,
-                                                               sourceManager: sourceManager,
-                                                               downloadService: downloadService,
-                                                               userPreferences: userPreferences))
+        self._viewModel = State(initialValue: LibraryViewModel(
+            watchProgressService: watchProgressService,
+            subscriptionService: subscriptionService,
+            sourceManager: sourceManager,
+            downloadService: downloadService,
+            userPreferences: userPreferences
+        ))
     }
 
 
@@ -60,20 +62,24 @@ struct LibraryView: View {
                         NavigationLink {
                             RecentsListView(viewModel: viewModel)
                         } label: {
-                            LibraryCard(icon: "clock.fill",
-                                        title: "Recents",
-                                        count: viewModel.recentsCount,
-                                        color: .blue)
+                            LibraryCard(
+                                icon: "clock.fill",
+                                title: "Recents",
+                                count: viewModel.recentsCount,
+                                color: .blue
+                            )
                         }
                         .buttonStyle(.plain)
 
                         NavigationLink {
                             SubscribedListView(viewModel: viewModel)
                         } label: {
-                            LibraryCard(icon: "bell.fill",
-                                        title: "Subscribed",
-                                        count: viewModel.subscribedCount,
-                                        color: .orange)
+                            LibraryCard(
+                                icon: "bell.fill",
+                                title: "Subscribed",
+                                count: viewModel.subscribedCount,
+                                color: .orange
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -82,10 +88,12 @@ struct LibraryView: View {
                     NavigationLink {
                         DownloadsListView(viewModel: viewModel)
                     } label: {
-                        LibraryWideCard(icon: "arrow.down.circle.fill",
-                                        title: "Downloads",
-                                        count: viewModel.downloadsCount,
-                                        color: .green)
+                        LibraryWideCard(
+                            icon: "arrow.down.circle.fill",
+                            title: "Downloads",
+                            count: viewModel.downloadsCount,
+                            color: .green
+                        )
                     }
                     .buttonStyle(.plain)
 
@@ -107,9 +115,11 @@ struct LibraryView: View {
 //#################################################################################
 
 #Preview {
-    LibraryView(watchProgressService: WatchProgressService.shared,
-                subscriptionService: SubscriptionService.shared,
-                sourceManager: SourceManager.shared,
-                downloadService: DownloadService.shared,
-                userPreferences: UserPreferences.shared)
+    LibraryView(
+        watchProgressService: WatchProgressService.shared,
+        subscriptionService: SubscriptionService.shared,
+        sourceManager: SourceManager.shared,
+        downloadService: DownloadService.shared,
+        userPreferences: UserPreferences.shared
+    )
 }

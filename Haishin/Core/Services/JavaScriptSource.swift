@@ -31,9 +31,11 @@ final actor JavaScriptSource {
     ///   - script: The JavaScript source code to load.
     ///   - sourceId: Unique identifier for this source.
     ///   - runtime: The JavaScript runtime to use.
-    init(script: String,
-         sourceId: String,
-         runtime: JSRuntime) async throws {
+    init(
+        script: String,
+        sourceId: String,
+        runtime: JSRuntime
+    ) async throws {
         self.runtime = runtime
         self.sourceId = sourceId
         
@@ -55,9 +57,11 @@ final actor JavaScriptSource {
     ///   - page: The page number (1-indexed).
     /// - Returns: Search results with video previews.
     func search(query: String, page: Int = 1) async throws -> JSSearchResult {
-        let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.search",
-                                                              arguments: [query, page])
+        let jsonString = try await runtime.callAsyncFunction(
+            sourceId: sourceId,
+            functionName: "source.search",
+            arguments: [query, page]
+        )
         
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in search result")
@@ -72,9 +76,11 @@ final actor JavaScriptSource {
     ///   - videoUrl: Full URL to the video's page on the source website.
     /// - Returns: Detailed video information including episodes.
     func getVideoDetails(videoId: String, videoUrl: URL) async throws -> JSVideoDetails {
-        let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.getVideoDetails",
-                                                              arguments: [videoId, videoUrl.absoluteString])
+        let jsonString = try await runtime.callAsyncFunction(
+            sourceId: sourceId,
+            functionName: "source.getVideoDetails",
+            arguments: [videoId, videoUrl.absoluteString]
+        )
         
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in video details result")
@@ -89,12 +95,16 @@ final actor JavaScriptSource {
     ///   - episodeUrl: Full URL to the episode page.
     ///   - server: The server/provider identifier to use.
     /// - Returns: Streaming URLs and subtitle information.
-    func getEpisodeStreams(episodeId: String,
-                           episodeUrl: URL,
-                           server: String) async throws -> JSEpisodeStream {
-        let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.getEpisodeStreams",
-                                                              arguments: [episodeId, episodeUrl.absoluteString, server])
+    func getEpisodeStreams(
+        episodeId: String,
+        episodeUrl: URL,
+        server: String
+    ) async throws -> JSEpisodeStream {
+        let jsonString = try await runtime.callAsyncFunction(
+            sourceId: sourceId,
+            functionName: "source.getEpisodeStreams",
+            arguments: [episodeId, episodeUrl.absoluteString, server]
+        )
         
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in episode streams result")
@@ -106,9 +116,11 @@ final actor JavaScriptSource {
     /// Gets entry videos from the source (first glance of available content).
     /// - Returns: Array of video previews.
     func getEntryVideos() async throws -> [JSVideoPreview] {
-        let jsonString = try await runtime.callAsyncFunction(sourceId: sourceId,
-                                                              functionName: "source.getEntryVideos",
-                                                              arguments: [])
+        let jsonString = try await runtime.callAsyncFunction(
+            sourceId: sourceId,
+            functionName: "source.getEntryVideos",
+            arguments: []
+        )
         
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in entry videos result")

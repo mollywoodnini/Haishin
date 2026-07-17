@@ -51,9 +51,11 @@ struct SubscribedListView: View {
             } else {
                 List {
                     ForEach(viewModel.subscribedVideo) { video in
-                        VideoRowButton(mode: .subscribed(video),
-                                       sourceName: viewModel.sourceName(for: video.sourceId),
-                                       item: video) { tappedVideo = $0 }
+                        VideoRowButton(
+                            mode: .subscribed(video),
+                            sourceName: viewModel.sourceName(for: video.sourceId),
+                            item: video
+                        ) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {

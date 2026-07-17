@@ -145,11 +145,13 @@ final class SearchViewModel {
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
     ///   - debounceMilliseconds: The debounce delay in milliseconds (default 300).
-    init(sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol,
-         debounceMilliseconds: Int = 300) {
+    init(
+        sourceManager: SourceManaging,
+        watchProgressService: WatchProgressServiceProtocol,
+        subscriptionService: SubscriptionServiceProtocol,
+        downloadService: DownloadServiceProtocol,
+        debounceMilliseconds: Int = 300
+    ) {
         self.sourceManager = sourceManager
         self.watchProgressService = watchProgressService
         self.subscriptionService = subscriptionService
@@ -195,11 +197,13 @@ final class SearchViewModel {
     /// - Returns: A new `EpisodeListViewModel` for the video.
     @MainActor
     func makeEpisodeListViewModel(for videoPreview: VideoPreview) -> EpisodeListViewModel {
-        EpisodeListViewModel(mode: .online(video: videoPreview),
-                             sourceManager: sourceManager,
-                             watchProgressService: watchProgressService,
-                             subscriptionService: subscriptionService,
-                             downloadService: downloadService)
+        EpisodeListViewModel(
+            mode: .online(video: videoPreview),
+            sourceManager: sourceManager,
+            watchProgressService: watchProgressService,
+            subscriptionService: subscriptionService,
+            downloadService: downloadService
+        )
     }
 
     /// Adds a query to recent searches.
@@ -272,9 +276,11 @@ final class SearchViewModel {
                 do {
                     Log.debug(.sources, "Searching source '\(state.sourceName)' for: '\(query)'")
 
-                    let results = try await sourceManager.search(sourceId: state.sourceId,
-                                                                 query: query,
-                                                                 page: 1)
+                    let results = try await sourceManager.search(
+                        sourceId: state.sourceId,
+                        query: query,
+                        page: 1
+                    )
                     state.setResults(results)
                 } catch {
                     Log.error(.sources, "Search failed for \(state.sourceId): \(error)")

@@ -49,9 +49,11 @@ struct DownloadsListView: View {
             } else {
                 List {
                     ForEach(viewModel.downloadedVideo) { video in
-                        VideoRowButton(mode: .downloaded(video),
-                                       sourceName: viewModel.sourceName(for: video.sourceId),
-                                       item: video) { tappedVideo = $0 }
+                        VideoRowButton(
+                            mode: .downloaded(video),
+                            sourceName: viewModel.sourceName(for: video.sourceId),
+                            item: video
+                        ) { tappedVideo = $0 }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {

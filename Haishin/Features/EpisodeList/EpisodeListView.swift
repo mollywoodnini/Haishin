@@ -147,8 +147,10 @@ struct EpisodeListView: View {
             Button {
                 viewModel.toggleSubscription()
             } label: {
-                Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
-                      systemImage: viewModel.isSubscribed ? "bell.slash" : "bell")
+                Label(
+                    viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
+                    systemImage: viewModel.isSubscribed ? "bell.slash" : "bell"
+                )
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -239,11 +241,13 @@ struct EpisodeListView: View {
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
                 // Prefer AniList/preview cover URL, fallback to source cover if needed
-                EpisodeListHeaderView(title: video.title,
-                                      sourceName: viewModel.sourceName,
-                                      coverURL: viewModel.videoCoverURL ?? video.coverURL,
-                                      subtitle: video.genres.isEmpty ? nil : video.genres.joined(separator: ", "),
-                                      episodeCount: video.episodes.count)
+                EpisodeListHeaderView(
+                    title: video.title,
+                    sourceName: viewModel.sourceName,
+                    coverURL: viewModel.videoCoverURL ?? video.coverURL,
+                    subtitle: video.genres.isEmpty ? nil : video.genres.joined(separator: ", "),
+                    episodeCount: video.episodes.count
+                )
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: video.episodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
@@ -269,12 +273,14 @@ struct EpisodeListView: View {
     private func onlineFlatEpisodesListView(episodes: [Episode]) -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(episodes) { episode in
-                EpisodeRowView(episode: episode,
-                               progress: viewModel.watchProgressMap[episode.id],
-                               downloadState: viewModel.getDownloadState(for: episode.id),
-                               onTap: { playEpisode(episode) },
-                               onDownload: { viewModel.startDownload(episode: episode) },
-                               onCancelDownload: { viewModel.cancelDownload(episodeId: episode.id) })
+                EpisodeRowView(
+                    episode: episode,
+                    progress: viewModel.watchProgressMap[episode.id],
+                    downloadState: viewModel.getDownloadState(for: episode.id),
+                    onTap: { playEpisode(episode) },
+                    onDownload: { viewModel.startDownload(episode: episode) },
+                    onCancelDownload: { viewModel.cancelDownload(episodeId: episode.id) }
+                )
 
                 if episode.id != episodes.last?.id {
                     Divider()
@@ -289,20 +295,22 @@ struct EpisodeListView: View {
     private func onlineEpisodeRangesView(ranges: [EpisodeRange]) -> some View {
         LazyVStack(alignment: .leading, spacing: .spacingS) {
             ForEach(ranges) { range in
-                EpisodeRangeSectionView(range: range,
-                                        isExpanded: expandedRanges.contains(range.id),
-                                        watchProgressMap: viewModel.watchProgressMap,
-                                        onToggle: {
-                                            if expandedRanges.contains(range.id) {
-                                                expandedRanges.remove(range.id)
-                                            } else {
-                                                expandedRanges.insert(range.id)
-                                            }
-                                        },
-                                        getDownloadState: { viewModel.getDownloadState(for: $0) },
-                                        onEpisodeTap: { playEpisode($0) },
-                                        onDownload: { viewModel.startDownload(episode: $0) },
-                                        onCancelDownload: { viewModel.cancelDownload(episodeId: $0) })
+                EpisodeRangeSectionView(
+                    range: range,
+                    isExpanded: expandedRanges.contains(range.id),
+                    watchProgressMap: viewModel.watchProgressMap,
+                    onToggle: {
+                        if expandedRanges.contains(range.id) {
+                            expandedRanges.remove(range.id)
+                        } else {
+                            expandedRanges.insert(range.id)
+                        }
+                    },
+                    getDownloadState: { viewModel.getDownloadState(for: $0) },
+                    onEpisodeTap: { playEpisode($0) },
+                    onDownload: { viewModel.startDownload(episode: $0) },
+                    onCancelDownload: { viewModel.cancelDownload(episodeId: $0) }
+                )
             }
         }
     }
@@ -328,11 +336,13 @@ struct EpisodeListView: View {
     private var offlineEpisodesListView: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: .spacingM) {
-                EpisodeListHeaderView(title: viewModel.videoTitle,
-                                      sourceName: viewModel.sourceName,
-                                      coverURL: viewModel.videoCoverURL,
-                                      subtitle: nil,
-                                      episodeCount: viewModel.offlineEpisodes.count)
+                EpisodeListHeaderView(
+                    title: viewModel.videoTitle,
+                    sourceName: viewModel.sourceName,
+                    coverURL: viewModel.videoCoverURL,
+                    subtitle: nil,
+                    episodeCount: viewModel.offlineEpisodes.count
+                )
 
                 if let continueEpisode = viewModel.getContinueWatchingEpisode(from: viewModel.offlineEpisodes) {
                     ContinueWatchingButtonView(episode: continueEpisode) {
@@ -349,10 +359,12 @@ struct EpisodeListView: View {
     private var offlineFlatEpisodesListView: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(viewModel.offlineEpisodes) { episode in
-                EpisodeRowView(episode: episode,
-                               progress: viewModel.watchProgressMap[episode.id],
-                               onTap: { playEpisode(episode) },
-                               onDelete: { viewModel.deleteDownload(episodeId: episode.id) })
+                EpisodeRowView(
+                    episode: episode,
+                    progress: viewModel.watchProgressMap[episode.id],
+                    onTap: { playEpisode(episode) },
+                    onDelete: { viewModel.deleteDownload(episodeId: episode.id) }
+                )
 
                 if episode.id != viewModel.offlineEpisodes.last?.id {
                     Divider()

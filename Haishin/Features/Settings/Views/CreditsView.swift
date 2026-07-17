@@ -28,9 +28,11 @@ struct CreditsView: View {
 
     private var librariesSection: some View {
         Section {
-            CreditRow(name: "Kingfisher",
-                      description: "Image downloading and caching library",
-                      url: URL(string: "https://github.com/onevcat/Kingfisher"))
+            CreditRow(
+                name: "Kingfisher",
+                description: "Image downloading and caching library",
+                url: URL(string: "https://github.com/onevcat/Kingfisher")
+            )
         } header: {
             Text("Open Source Libraries")
         } footer: {

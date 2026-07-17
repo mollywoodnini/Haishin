@@ -121,16 +121,18 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
                 .map { downloadedEpisode in
-                    Episode(id: downloadedEpisode.episodeId,
-                            number: downloadedEpisode.episodeNumber,
-                            title: downloadedEpisode.episodeTitle,
-                            thumbnailURL: nil,
-                            url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
-                            duration: nil)
+                    Episode(
+                        id: downloadedEpisode.episodeId,
+                        number: downloadedEpisode.episodeNumber,
+                        title: downloadedEpisode.episodeTitle,
+                        thumbnailURL: nil,
+                        url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
+                        duration: nil
+                    )
                 }
         }
     }
-
+    
 
     //#################################################################################
     // MARK: - Public Computed Properties
@@ -248,11 +250,13 @@ final class EpisodeListViewModel: Identifiable, Hashable {
         if isSubscribed {
             subscriptionService.unsubscribe(id: videoId)
         } else {
-            subscriptionService.subscribe(id: videoId,
-                                          title: videoTitle,
-                                          coverURL: videoCoverURL,
-                                          sourceId: sourceId,
-                                          detailsURL: detailsURL)
+            subscriptionService.subscribe(
+                id: videoId,
+                title: videoTitle,
+                coverURL: videoCoverURL,
+                sourceId: sourceId,
+                detailsURL: detailsURL
+            )
         }
         
         isSubscribed.toggle()
@@ -312,16 +316,18 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             return
         }
 
-        downloadService.startDownload(videoId: videoId,
-                                       videoTitle: videoTitle,
-                                       videoCoverURL: videoCoverURL,
-                                       videoDetailsURL: detailsURL,
-                                       episodeId: episode.id,
-                                       episodeNumber: episode.number,
-                                       episodeTitle: episode.title,
-                                       sourceId: sourceId,
-                                       sourceName: sourceName,
-                                       sourceURL: episode.url)
+        downloadService.startDownload(
+            videoId: videoId,
+            videoTitle: videoTitle,
+            videoCoverURL: videoCoverURL,
+            videoDetailsURL: detailsURL,
+            episodeId: episode.id,
+            episodeNumber: episode.number,
+            episodeTitle: episode.title,
+            sourceId: sourceId,
+            sourceName: sourceName,
+            sourceURL: episode.url
+        )
     }
 
     /// Cancels a download in progress.
@@ -354,15 +360,17 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// - Parameter episode: The episode to play.
     /// - Returns: A new `VideoPlayerViewModel` for the episode.
     func makeVideoPlayerViewModel(episode: Episode) -> VideoPlayerViewModel {
-        VideoPlayerViewModel(episode: episode,
-                             videoId: videoId,
-                             videoTitle: videoTitle,
-                             videoCoverURL: videoCoverURL,
-                             detailsURL: detailsURL,
-                             sourceId: sourceId,
-                             sourceManager: sourceManager,
-                             watchProgressService: watchProgressService,
-                             isOfflineMode: mode.isOffline)
+        VideoPlayerViewModel(
+            episode: episode,
+            videoId: videoId,
+            videoTitle: videoTitle,
+            videoCoverURL: videoCoverURL,
+            detailsURL: detailsURL,
+            sourceId: sourceId,
+            sourceManager: sourceManager,
+            watchProgressService: watchProgressService,
+            isOfflineMode: mode.isOffline
+        )
     }
 
     /// Returns the next episode after the given episode, if available.
@@ -420,9 +428,11 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 var bestQuery = ""
 
                 for query in searchQueries {
-                    let results = try await sourceManager.search(sourceId: sourceId,
-                                                                 query: query,
-                                                                 page: 1)
+                    let results = try await sourceManager.search(
+                        sourceId: sourceId,
+                        query: query,
+                        page: 1
+                    )
 
                     if !results.isEmpty {
                         searchResults = results
@@ -443,8 +453,10 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             }
 
             // Fetch full video details with episodes
-            let loadedVideo = try await sourceManager.getVideoDetails(sourceId: sourceId,
-                                                                      url: detailsURL)
+            let loadedVideo = try await sourceManager.getVideoDetails(
+                sourceId: sourceId,
+                url: detailsURL
+            )
             sourceVideo = loadedVideo
             loadWatchProgress()
             isLoading = false
@@ -461,12 +473,14 @@ final class EpisodeListViewModel: Identifiable, Hashable {
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
                 .map { downloadedEpisode in
-                    Episode(id: downloadedEpisode.episodeId,
-                            number: downloadedEpisode.episodeNumber,
-                            title: downloadedEpisode.episodeTitle,
-                            thumbnailURL: nil,
-                            url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
-                            duration: nil)
+                    Episode(
+                        id: downloadedEpisode.episodeId,
+                        number: downloadedEpisode.episodeNumber,
+                        title: downloadedEpisode.episodeTitle,
+                        thumbnailURL: nil,
+                        url: downloadedEpisode.localFilePath ?? downloadedEpisode.sourceURL,
+                        duration: nil
+                    )
                 }
         }
         loadWatchProgress()
@@ -497,32 +511,40 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// Removes "Season X" and replaces with just "X".
     private func removeSeasonKeyword(from title: String) -> String {
         let pattern = #"\s+Season\s+(\d+)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern,
-                                                   options: .caseInsensitive) else {
+        guard let regex = try? NSRegularExpression(
+            pattern: pattern,
+            options: .caseInsensitive
+        ) else {
             return title
         }
 
         let range = NSRange(title.startIndex..<title.endIndex, in: title)
-        let modifiedTitle = regex.stringByReplacingMatches(in: title,
-                                                           options: [],
-                                                           range: range,
-                                                           withTemplate: " $1")
+        let modifiedTitle = regex.stringByReplacingMatches(
+            in: title,
+            options: [],
+            range: range,
+            withTemplate: " $1"
+        )
         return modifiedTitle
     }
 
     /// Removes "Part X" and replaces with just "X".
     private func removePartKeyword(from title: String) -> String {
         let pattern = #"\s+Part\s+(\d+)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern,
-                                                   options: .caseInsensitive) else {
+        guard let regex = try? NSRegularExpression(
+            pattern: pattern,
+            options: .caseInsensitive
+        ) else {
             return title
         }
 
         let range = NSRange(title.startIndex..<title.endIndex, in: title)
-        let modifiedTitle = regex.stringByReplacingMatches(in: title,
-                                                           options: [],
-                                                           range: range,
-                                                           withTemplate: " $1")
+        let modifiedTitle = regex.stringByReplacingMatches(
+            in: title,
+            options: [],
+            range: range,
+            withTemplate: " $1"
+        )
         return modifiedTitle
     }
 

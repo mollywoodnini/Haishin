@@ -44,16 +44,22 @@ struct SourceDetailView: View {
     ///   - watchProgressService: The service for accessing watch progress.
     ///   - subscriptionService: The service for managing subscriptions.
     ///   - downloadService: The service for managing downloads.
-    init(source: InstalledSource,
-         sourceManager: SourceManaging,
-         watchProgressService: WatchProgressServiceProtocol,
-         subscriptionService: SubscriptionServiceProtocol,
-         downloadService: DownloadServiceProtocol) {
-        self._viewModel = State(initialValue: SourceDetailViewModel(source: source,
-                                                                    sourceManager: sourceManager,
-                                                                    watchProgressService: watchProgressService,
-                                                                    subscriptionService: subscriptionService,
-                                                                    downloadService: downloadService))
+    init(
+        source: InstalledSource,
+        sourceManager: SourceManaging,
+        watchProgressService: WatchProgressServiceProtocol,
+        subscriptionService: SubscriptionServiceProtocol,
+        downloadService: DownloadServiceProtocol
+    ) {
+        self._viewModel = State(
+            initialValue: SourceDetailViewModel(
+                source: source,
+                sourceManager: sourceManager,
+                watchProgressService: watchProgressService,
+                subscriptionService: subscriptionService,
+                downloadService: downloadService
+            )
+        )
     }
 
 
@@ -92,8 +98,10 @@ struct SourceDetailView: View {
     //#################################################################################
 
     private var videoGrid: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: .spacingS),
-                            count: Constants.columnCount)
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: .spacingS),
+            count: Constants.columnCount
+        )
 
         return LazyVGrid(columns: columns, spacing: .spacingS) {
             ForEach(viewModel.videos) { video in
