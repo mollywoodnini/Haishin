@@ -13,11 +13,14 @@ When the user asks to create a new source, follow this workflow to analyze the t
 
 Ask the user for:
 - **Website URL** — The site to scrape (e.g. `https://exampleanime.com`)
-- **Source name** — Display name in the app (e.g. "Example Anime")
-- **Source ID** — Unique identifier (kebab-case, e.g. `example-anime`). Default to a slug from the domain name.
-- **Language code** — e.g. `"en"`, `"ja"`, `"it"`
 - **Author** (optional) — Default to the user's name
-- **NSFW** — Whether the source has adult content (default `false`)
+
+After getting the URL, fetch the website and infer all required metadata:
+- **Source ID** — A kebab-case slug derived from the domain name (e.g. `example-anime` from `exampleanime.com`)
+- **Source name** — From `<title>`, `og:site_name`, or `og:title` meta
+- **Language code** — From `<html lang="...">` attribute or `og:locale`
+
+**NSFW is always `true`** — do not ask the user.
 
 ### 2. Analyze the Website
 
@@ -55,7 +58,7 @@ description: "<description>",
 author: "<author>",
 baseUrl: "<https://website.com>",
 language: "<lang-code>",
-nsfw: false,
+nsfw: true,
 ```
 
 Optionally add:
