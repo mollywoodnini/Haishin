@@ -4,7 +4,8 @@ This file provides high-level project guidance. Detailed rules are delegated to 
 
 ## Skills
 
-- **swift-style** — All Swift code formatting, style, and documentation conventions.
+- **swift-style** — General Swift code formatting, style, and documentation conventions (MARK comments, wrapping, constants, logging, concurrency, etc.).
+- **swiftui-rules** — SwiftUI-specific rules: spacing constants, Observation framework, view splitting/invalidation boundaries, @MainActor ViewModel patterns.
 - **new-feature** — Scaffolds new MVVM features with Views/, ViewModel, and test files.
 - **add-source** — Creates a new Haishin JavaScript source by live-scraping a target website. Fetches the site, analyzes HTML structure, and generates a complete source.js following the JS source contract.
 
