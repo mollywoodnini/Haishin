@@ -49,6 +49,7 @@ This is the hardest part. Identify the player chain:
 | Direct download URL | archiveorg | Build from metadata identifier |
 | Iframe to external provider | Player embed with URL params | Follow iframe recursively |
 | Iframe on same domain (nested player) | Encrypted params pointing to self-hosted player | Generic iframe fallback |
+| **Iframe to megaplay.su** | JWPlayer on megaplay.su with direct `file:` URL | Follow iframe → `extractVideoFromHtml` (regex `file:` pattern works) |
 | Encrypted params in page HTML | Player with enc1/enc2/enc3 params | Base64 decode, XOR, or pass through to player page |
 | Base64-encoded URL in attribute | Common | `atob()` decode |
 | **XOR-encrypted `window.__P` blob** in player page | Third-party embed player | Extract `__P`, XOR-decode with known key, get `src` field (direct m3u8) |
@@ -181,7 +182,9 @@ _decodeEncryptedBlob(blob) {
 - **Stream Referer** — HLS streams often require a specific `Referer` header to avoid 403 errors. Set `Referer` to the embed / player page domain in stream headers.
 - **Console logging** — Use `console.log` extensively; prefix logs with the source name for clarity.
 - **No external dependencies** — All logic in a single `.js` file.
-- **Iframe traversal** — After checking known iframe patterns, add a generic fallback that follows any iframe on the same domain (common for nested player pages).
+- **Iframe traversal** — After checking known iframe patterns, add a generic fallback that follows any iframe on the same domain (common for nested player pages). Also add fallbacks for common external embed domains like `megaplay.su` — the player chain often goes: episode page → player.php → external embed (megaplay.su, embtaku.pro, etc.) → JWPlayer with direct `file:` URL.
+- **Generic iframe fallback for external domains** — When the player page contains an iframe to an unknown external domain, follow it and try `extractVideoFromHtml`. Many external embed pages (like megaplay.su) serve a simple JWPlayer setup with a direct `file:` URL that the standard regex patterns can extract.
+- **`embed` parameter type** — Player URLs may use `embed=` as the parameter name (not just `double_player`, `Blogger`, `hianime`). The generic parameter check loop (checking all keys except `ref`, `url2`, `url3`) handles this, but be aware that `embed` is a common parameter type for encrypted player data.
 - **Quality extraction** — When extracting player data from `<li>` elements, use `(group5 + group6).trim()` for text content to handle regex group greediness.
 - **fetch** — Use the standard `fetch(url, { headers: { ... } })` pattern.
 
