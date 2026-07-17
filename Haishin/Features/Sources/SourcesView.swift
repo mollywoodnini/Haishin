@@ -16,11 +16,6 @@ struct SourcesView: View {
     //#################################################################################
 
     @State private var viewModel: SourcesViewModel
-    @State private var showingAddRepository = false
-    @State private var showingInstallFromURL = false
-    @State private var showingFilePicker = false
-    @State private var repositoryURL = ""
-    @State private var sourceURL = ""
 
 
     //#################################################################################
@@ -64,105 +59,10 @@ struct SourcesView: View {
             .refreshable {
                 await viewModel.refreshRepositories()
             }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button {
-                            showingAddRepository = true
-                        } label: {
-                            Label("Add Repository", systemImage: "plus.rectangle.on.folder")
-                        }
-                        
-                        Button {
-                            showingInstallFromURL = true
-                        } label: {
-                            Label("Install from URL", systemImage: "link.badge.plus")
-                        }
-                        
-                        Button {
-                            showingFilePicker = true
-                        } label: {
-                            Label("Install from Files", systemImage: "doc.badge.plus")
-                        }
-
-                        if viewModel.hasUpdates {
-                            Divider()
-
-                            Button {
-                                Task {
-                                    await viewModel.updateAllSources()
-                                }
-                            } label: {
-                                Label("Update All (\(viewModel.updateCount))", systemImage: "arrow.down.circle.fill")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
             .task {
                 await viewModel.loadRepositories()
             }
-            .alert("Add Repository", isPresented: $showingAddRepository) {
-                TextField("Repository URL", text: $repositoryURL)
-                    .textContentType(.URL)
-                    .autocorrectionDisabled()
-
-                Button("Cancel", role: .cancel) {
-                    repositoryURL = ""
-                }
-
-                Button("Add") {
-                    Task {
-                        await viewModel.addRepository(urlString: repositoryURL)
-                        repositoryURL = ""
-                    }
-                }
-            } message: {
-                Text("Enter the URL of a source repository.")
-            }
-            .alert("Install from URL", isPresented: $showingInstallFromURL) {
-                TextField("Source URL", text: $sourceURL)
-                    .textContentType(.URL)
-                    .autocorrectionDisabled()
-
-                Button("Cancel", role: .cancel) {
-                    sourceURL = ""
-                }
-
-                Button("Install") {
-                    Task {
-                        await viewModel.installSourceFromURL(urlString: sourceURL)
-                        sourceURL = ""
-                    }
-                }
-            } message: {
-                Text("Enter the URL to a source JavaScript file.")
-            }
-            .fileImporter(
-                isPresented: $showingFilePicker,
-                allowedContentTypes: [.javaScript],
-                allowsMultipleSelection: false
-            ) { result in
-                Log.debug(.sources, "File picker result received")
-                switch result {
-                case .success(let urls):
-                    Log.debug(.sources, "Success with \(urls.count) URLs")
-                    guard let url = urls.first else {
-                        Log.warning(.sources, "No URL in array")
-                        return
-                    }
-                    
-                    Log.debug(.sources, "Selected file: \(url)")
-                    
-                    Task {
-                        await viewModel.installSourceFromFile(fileURL: url)
-                    }
-                case .failure(let error):
-                    Log.error(.sources, "File picker failed: \(error)")
-                }
-            }
+            .modifier(SourceAddFlowModifier(viewModel: viewModel))
         }
     }
 
@@ -300,6 +200,140 @@ private struct UpdateAvailableRow: View {
 //#################################################################################
 // MARK: - Preview
 //#################################################################################
+
+
+
+//#################################################################################
+// MARK: - SourceAddFlowModifier
+//#################################################################################
+
+private struct SourceAddFlowModifier: ViewModifier {
+
+    @State private var showingAddRepository = false
+    @State private var showingInstallFromURL = false
+    @State private var showingFilePicker = false
+    @State private var repositoryURL = ""
+    @State private var sourceURL = ""
+
+    private let viewModel: SourcesViewModel
+
+    init(viewModel: SourcesViewModel) {
+        self.viewModel = viewModel
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button {
+                            showingAddRepository = true
+                        } label: {
+                            Label("Add Repository", systemImage: "plus.rectangle.on.folder")
+                        }
+
+                        Button {
+                            showingInstallFromURL = true
+                        } label: {
+                            Label("Install from URL", systemImage: "link.badge.plus")
+                        }
+
+                        Button {
+                            showingFilePicker = true
+                        } label: {
+                            Label("Install from Files", systemImage: "doc.badge.plus")
+                        }
+
+                        #if DEBUG
+                        Divider()
+
+                        Button {
+                            Task {
+                                await viewModel.installGoGoAnimeSource()
+                            }
+                        } label: {
+                            Label("Add GoGoAnime (Debug)", systemImage: "ladybug")
+                        }
+                        #endif
+
+                        if viewModel.hasUpdates {
+                            Divider()
+
+                            Button {
+                                Task {
+                                    await viewModel.updateAllSources()
+                                }
+                            } label: {
+                                Label("Update All (\(viewModel.updateCount))", systemImage: "arrow.down.circle.fill")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .alert("Add Repository", isPresented: $showingAddRepository) {
+                TextField("Repository URL", text: $repositoryURL)
+                    .textContentType(.URL)
+                    .autocorrectionDisabled()
+
+                Button("Cancel", role: .cancel) {
+                    repositoryURL = ""
+                }
+
+                Button("Add") {
+                    Task {
+                        await viewModel.addRepository(urlString: repositoryURL)
+                        repositoryURL = ""
+                    }
+                }
+            } message: {
+                Text("Enter the URL of a source repository.")
+            }
+            .alert("Install from URL", isPresented: $showingInstallFromURL) {
+                TextField("Source URL", text: $sourceURL)
+                    .textContentType(.URL)
+                    .autocorrectionDisabled()
+
+                Button("Cancel", role: .cancel) {
+                    sourceURL = ""
+                }
+
+                Button("Install") {
+                    Task {
+                        await viewModel.installSourceFromURL(urlString: sourceURL)
+                        sourceURL = ""
+                    }
+                }
+            } message: {
+                Text("Enter the URL to a source JavaScript file.")
+            }
+            .fileImporter(
+                isPresented: $showingFilePicker,
+                allowedContentTypes: [.javaScript],
+                allowsMultipleSelection: false
+            ) { result in
+                Log.debug(.sources, "File picker result received")
+                switch result {
+                case .success(let urls):
+                    Log.debug(.sources, "Success with \(urls.count) URLs")
+                    guard let url = urls.first else {
+                        Log.warning(.sources, "No URL in array")
+                        return
+                    }
+
+                    Log.debug(.sources, "Selected file: \(url)")
+
+                    Task {
+                        await viewModel.installSourceFromFile(fileURL: url)
+                    }
+                case .failure(let error):
+                    Log.error(.sources, "File picker failed: \(error)")
+                }
+            }
+    }
+}
+
 
 #Preview {
     SourcesView(sourceManager: SourceManager())

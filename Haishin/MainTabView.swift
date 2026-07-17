@@ -15,7 +15,7 @@ struct MainTabView: View {
     //#################################################################################
 
     @State private var selectedTab: Tab = .browse
-    @State private var sourceManager = SourceManager.shared
+    private let sourceManager = SourceManager.shared
 
 
     //#################################################################################

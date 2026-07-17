@@ -25,7 +25,7 @@ struct EpisodeListView: View {
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
     @State private var showingVideoError = false
-    @State private var jsRuntimeLog = JSRuntimeLogCollector.shared
+    private let jsRuntimeLog = JSRuntimeLogCollector.shared
 
 
     //#################################################################################
@@ -71,7 +71,10 @@ struct EpisodeListView: View {
         }
         .overlay {
             if isLoadingVideo {
-                videoLoadingOverlay
+                VideoLoadingOverlayView(
+                    messages: jsRuntimeLog.messages,
+                    onCancel: cancelVideoLoading
+                )
             }
         }
         .alert("Failed to Load Video", isPresented: $showingVideoError) {
@@ -167,63 +170,6 @@ struct EpisodeListView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var videoLoadingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-
-            VStack(spacing: .spacingS) {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(.white)
-                    .padding(.top, .spacingS)
-
-                Text("Loading video...")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-
-                if !jsRuntimeLog.messages.isEmpty {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 2) {
-                                ForEach(Array(jsRuntimeLog.messages.enumerated()), id: \.offset) { index, message in
-                                    Text(message)
-                                        .font(.caption2)
-                                        .foregroundStyle(.white.opacity(0.8))
-                                        .fontDesign(.monospaced)
-                                        .id(index)
-                                }
-                            }
-                        }
-                        .frame(maxHeight: 180)
-                        .padding(.horizontal, .spacingS)
-                        .onChange(of: jsRuntimeLog.messages.count) { _, _ in
-                            withAnimation {
-                                proxy.scrollTo(jsRuntimeLog.messages.count - 1, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-
-                Button {
-                    cancelVideoLoading()
-                } label: {
-                    Text("Cancel")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, .spacingL)
-                        .padding(.vertical, .spacingS)
-                        .background(Color.white.opacity(0.2))
-                        .clipShape(Capsule())
-                }
-                .padding(.top, .spacingS)
-            }
-            .padding(.spacingS)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
-        }
     }
 
     private func errorView(error: Error) -> some View {
@@ -399,5 +345,78 @@ struct EpisodeListView: View {
         }
         .background(Color(.tertiarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusS))
+    }
+}
+
+
+//#################################################################################
+// MARK: - VideoLoadingOverlayView
+//#################################################################################
+
+private struct VideoLoadingOverlayView: View {
+
+    private let messages: [String]
+    private let onCancel: () -> Void
+
+    init(messages: [String], onCancel: @escaping () -> Void) {
+        self.messages = messages
+        self.onCancel = onCancel
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+
+            VStack(spacing: .spacingS) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+                    .padding(.top, .spacingS)
+
+                Text("Loading video...")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                if !messages.isEmpty {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 2) {
+                                ForEach(Array(messages.enumerated()), id: \.offset) { index, message in
+                                    Text(message)
+                                        .font(.caption2)
+                                        .foregroundStyle(.white.opacity(0.8))
+                                        .fontDesign(.monospaced)
+                                        .id(index)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 180)
+                        .padding(.horizontal, .spacingS)
+                        .onChange(of: messages.count) { _, _ in
+                            withAnimation {
+                                proxy.scrollTo(messages.count - 1, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    onCancel()
+                } label: {
+                    Text("Cancel")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, .spacingL)
+                        .padding(.vertical, .spacingS)
+                        .background(Color.white.opacity(0.2))
+                        .clipShape(Capsule())
+                }
+                .padding(.top, .spacingS)
+            }
+            .padding(.spacingS)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
+        }
     }
 }
