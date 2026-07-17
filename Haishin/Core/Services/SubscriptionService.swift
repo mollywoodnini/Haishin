@@ -77,7 +77,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let storageKey = "subscribedVideo"
     }
 

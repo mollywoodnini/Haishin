@@ -93,7 +93,7 @@ struct VideoRow: View {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let imageWidth: CGFloat = 85
         static let rowHeight: CGFloat = 120
         static let stateViewHeight: CGFloat = 60

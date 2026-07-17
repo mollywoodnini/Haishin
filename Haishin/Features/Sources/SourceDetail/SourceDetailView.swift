@@ -19,7 +19,7 @@ struct SourceDetailView: View {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let columnCount = 2
         static let imageAspectRatio: CGFloat = 2 / 3
         static let titleLineLimit = 2

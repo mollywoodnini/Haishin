@@ -236,7 +236,7 @@ final class DownloadService: DownloadServiceProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let episodesStorageKey = "downloadedEpisodes"
         static let videoStorageKey = "downloadedVideoMetadata"
         static let downloadsDirectory = "Downloads"

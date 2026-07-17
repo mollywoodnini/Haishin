@@ -14,7 +14,7 @@ struct SearchView: View {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let cardWidth: CGFloat = 140
         static let loadingPlaceholderCount: Int = 3
         static let loadingPlaceholderHeight: CGFloat = 200

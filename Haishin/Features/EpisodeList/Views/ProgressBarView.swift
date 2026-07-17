@@ -19,7 +19,7 @@ struct ProgressBarView: View {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let barHeight: CGFloat = 4
     }
 

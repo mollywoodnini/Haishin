@@ -33,7 +33,7 @@ struct VideoCard: View {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let imageAspectRatio: CGFloat = 2 / 3
         static let fixedWidth: CGFloat = 140
         static let fixedImageHeight: CGFloat = 210

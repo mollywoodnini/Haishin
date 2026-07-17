@@ -15,7 +15,7 @@ final class SourceManager: SourceManaging {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let defaultRepositoryAddedKey = "defaultRepositoryAdded"
         static let repositoryURLsKey = "repositoryURLs"
         static let defaultRepositoryURL = "https://raw.githubusercontent.com/mollywoodnini/Haishin-example-sources/main/manifest.json"

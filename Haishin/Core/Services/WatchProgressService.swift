@@ -138,7 +138,7 @@ final class WatchProgressService: WatchProgressServiceProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let storageKey = "watchProgress"
         static let recentVideoKey = "recentVideo"
     }

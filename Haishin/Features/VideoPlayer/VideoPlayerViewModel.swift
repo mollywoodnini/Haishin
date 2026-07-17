@@ -20,7 +20,7 @@ final class VideoPlayerViewModel {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let progressSaveInterval: TimeInterval = 5.0
         /// Minimum progress (0.0-1.0) required to consider playback as legitimately finished.
         /// If playback ends before this threshold, it's likely a stream error.

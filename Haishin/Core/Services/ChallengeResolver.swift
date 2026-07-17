@@ -28,7 +28,7 @@ final class ChallengeResolver: NSObject {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let challengeCheckInterval: TimeInterval = 0.5
         static let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         /// Default timeout for challenge resolution (nonisolated for use as default parameter).

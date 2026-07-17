@@ -41,7 +41,7 @@ final class CloudSyncService: CloudSyncServiceProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let syncEnabledKey = "iCloudSyncEnabled"
 
         // iCloud keys (prefixed to avoid conflicts)

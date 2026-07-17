@@ -96,7 +96,7 @@ final class SearchViewModel {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let maxRecentSearches = 10
         static let recentSearchesKey = "recentSearches"
     }

@@ -59,7 +59,7 @@ actor NetworkClient: NetworkClientProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Constants {
+    private enum Constants {
         static let defaultTimeout: TimeInterval = 30
     }
 
