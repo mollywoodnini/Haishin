@@ -211,6 +211,7 @@ Study these files for real-world patterns:
 | `examples/nasa-plus.js` | REST API-based source (WordPress JSON API) |
 | `examples/archiveorg-cartoons.js` | API-based with pagination and grouping |
 | `examples/test-script.mjs` | How sources are validated at runtime |
+| `examples/player-extraction-patterns.js` | Iframe traversal, external embed (megaplay.su), encrypted player params, JWPlayer extraction |
 | `examples/test-script.mjs` | How sources are validated at runtime |
 
 ### 7. Output
