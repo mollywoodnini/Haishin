@@ -35,3 +35,6 @@ vendor/bundle
 *.key
 .env
 .env.*
+
+# Private Sources
+examples/private/*
