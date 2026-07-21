@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 
 //#################################################################################
@@ -25,6 +26,11 @@ struct EpisodeListView: View {
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
     @State private var showingVideoError = false
+    @State private var showShareSheet = false
+
+    private var logText: String {
+        JSRuntimeLogCollector.shared.messages.joined(separator: "\n")
+    }
 
 
     //#################################################################################
@@ -80,8 +86,14 @@ struct EpisodeListView: View {
             Button("OK", role: .cancel) {
                 videoLoadError = nil
             }
+            Button("Share Logs") {
+                showShareSheet = true
+            }
         } message: {
             Text(videoLoadError?.localizedDescription ?? "An unknown error occurred while loading the video.")
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(text: logText)
         }
     }
 
@@ -418,4 +430,21 @@ private struct VideoLoadingOverlayView: View {
             .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusM))
         }
     }
+}
+
+
+//#################################################################################
+// MARK: - ShareSheet
+//#################################################################################
+
+/// A UIViewControllerRepresentable for presenting UIActivityViewController.
+private struct ShareSheet: UIViewControllerRepresentable {
+
+    let text: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
