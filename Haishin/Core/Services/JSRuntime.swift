@@ -322,13 +322,24 @@ actor JSRuntime {
                 return
             }
 
+            var method = "GET"
+            var body: Data?
             var headers: [String: String]?
 
             if let optionsData = optionsJson.data(using: .utf8),
-               let options = try? JSONSerialization.jsonObject(with: optionsData) as? [String: Any],
-               let headerDict = options["headers"] as? [String: String] {
-                headers = headerDict
-                Log.debug(.sources, "Parsed headers: \(headerDict)")
+               let options = try? JSONSerialization.jsonObject(with: optionsData) as? [String: Any] {
+                if let methodStr = options["method"] as? String {
+                    method = methodStr
+                    Log.debug(.sources, "Method: \(method)")
+                }
+                if let bodyStr = options["body"] as? String {
+                    body = bodyStr.data(using: .utf8)
+                    Log.debug(.sources, "Body: \(bodyStr)")
+                }
+                if let headerDict = options["headers"] as? [String: String] {
+                    headers = headerDict
+                    Log.debug(.sources, "Parsed headers: \(headerDict)")
+                }
             }
             
             // Log cookies currently in storage for this host
@@ -347,7 +358,7 @@ actor JSRuntime {
                 Log.debug(.sources, "Host '\(host)' not yet resolved, making initial request...")
                 
                 // Try the request first - use fetchWithStatus to get body even on 403
-                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, method: method, body: body, headers: headers)
                 let text = String(data: data, encoding: .utf8) ?? ""
                 
                 Log.debug(.sources, "Response status: \(statusCode)")
@@ -379,7 +390,7 @@ actor JSRuntime {
 
                     // Retry the original request with the new cookies
                     Log.debug(.sources, "Retrying original request...")
-                    let (retryData, retryStatus) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                    let (retryData, retryStatus) = try await networkClient.fetchWithStatus(url: url, method: method, body: body, headers: headers)
                     let retryText = String(data: retryData, encoding: .utf8) ?? ""
                     Log.debug(.sources, "Retry response status: \(retryStatus)")
                     Log.debug(.sources, "Retry response length: \(retryText.count) chars")
@@ -405,7 +416,7 @@ actor JSRuntime {
                 // Host already resolved or no host, just fetch
                 Log.debug(.sources, "Host already resolved or no host, fetching directly...")
                 await JSRuntimeLogCollector.shared.append(category: "handleFetch", message: "Host already resolved, fetching directly")
-                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, headers: headers)
+                let (data, statusCode) = try await networkClient.fetchWithStatus(url: url, method: method, body: body, headers: headers)
                 let text = String(data: data, encoding: .utf8) ?? ""
                 Log.debug(.sources, "Response status: \(statusCode)")
                 Log.debug(.sources, "Response length: \(text.count) chars")

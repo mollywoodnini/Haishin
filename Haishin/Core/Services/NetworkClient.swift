@@ -131,9 +131,15 @@ actor NetworkClient: NetworkClientProtocol {
     ///   - url: The URL to fetch.
     ///   - headers: Optional HTTP headers.
     /// - Returns: A tuple containing the raw data and HTTP status code.
-    func fetchWithStatus(url: URL, headers: [String: String]? = nil) async throws -> (data: Data, statusCode: Int) {
+    func fetchWithStatus(
+        url: URL,
+        method: String = "GET",
+        body: Data? = nil,
+        headers: [String: String]? = nil
+    ) async throws -> (data: Data, statusCode: Int) {
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = method
+        request.httpBody = body
 
         headers?.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
