@@ -92,13 +92,12 @@ Optional: `icon`, `apiUrl`, `collection` (for site-specific config).
 
 #### Required Methods
 
-All four methods are `async` and take specific parameters:
+All three methods are `async` and take specific parameters:
 
 ```
 search(query, page)
 getVideoDetails(videoId, videoUrl)
 getEpisodeStreams(episodeId, episodeUrl, server)
-getEntryVideos()
 ```
 
 #### Common Implementation Patterns (from 5 existing sources)
@@ -190,15 +189,6 @@ _decodeEncryptedBlob(blob) {
 }
 
 
-**`getEntryVideos()`**
-- **Server-rendered**: Fetch homepage or browse page; parse video cards from HTML
-- **API-based**: Fetch `` `${apiBase}/home` `` — iterate known sections (`featured`, `trending`, `popular`, `latestAnime`)
-- Use `Array.isArray()` to guard against mixed-type responses (some sections may be objects, not arrays)
-- Handle nested wrappers: item may be `{anime: {title, slug, image}}` or a flat object
-- Return `[{ id, title, coverUrl, url }]` — up to 20 items
-- Wrap in try/catch, return `[]` on error
-- **flw-item card parsing**: Some sites (e.g., an-example-site) use a card class like `flw-item`. Parse minified HTML by splitting on `'<div class="flw-item'` and extracting `alt` (title), `href` (url), and `data-src` (cover) from each fragment. Deduplicate by ID with a `Set`.
-
 ### 4. Coding Guidelines
 
 - **No DOM API** — JavaScriptCore has no `document`, `DOMParser`, or `URL`. Use regex for all HTML parsing.
@@ -227,7 +217,7 @@ Before finishing, run the test script against the new source:
 node examples/test-script.mjs examples/new-source.js
 ```
 
-The test chains: `getEntryVideos` → first result → `getVideoDetails` → first episode → `getEpisodeStreams`. All steps must return valid data. If `getEpisodeStreams` returns 0 streams, the test exits non-zero.
+The test calls `getVideoDetails` on a known entry, then `getEpisodeStreams` on the first episode. All steps must return valid data. If `getEpisodeStreams` returns 0 streams, the test exits non-zero.
 
 **Anti-scraping note**: Some sites heavily obfuscate their video delivery pipeline. `getEpisodeStreams` may legitimately return 0 streams because the stream API requires client-side session context that simple HTTP requests can't replicate. This is a known limitation — the source can still be useful for browsing and episode discovery even without stream extraction.
 

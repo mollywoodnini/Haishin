@@ -26,9 +26,6 @@ final class MockSourceManager: SourceManaging {
     // MARK: - Stub Configuration
     //#################################################################################
 
-    /// Stub for getEntryVideos responses.
-    var getEntryVideosResult: Result<[VideoPreview], Error> = .success([])
-
     /// Stub for search responses.
     var searchResult: Result<[VideoPreview], Error> = .success([])
 
@@ -63,9 +60,6 @@ final class MockSourceManager: SourceManaging {
 
     /// Source IDs passed to uninstallSource.
     var uninstalledSourceIds: [String] = []
-
-    /// Number of times getEntryVideos was called.
-    var getEntryVideosCallCount = 0
 
     /// Number of times search was called.
     var searchCallCount = 0
@@ -146,11 +140,6 @@ final class MockSourceManager: SourceManaging {
 
     func updateAllSources() async {
         updateAllSourcesCallCount += 1
-    }
-
-    func getEntryVideos(sourceId: String, page: Int) async throws -> [VideoPreview] {
-        getEntryVideosCallCount += 1
-        return try getEntryVideosResult.get()
     }
 
     func search(sourceId: String, query: String, page: Int) async throws -> [VideoPreview] {

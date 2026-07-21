@@ -179,25 +179,4 @@ var source = {
         };
     },
 
-    /**
-     * Get entry videos (first glance of available content).
-     * 
-     * @returns {Promise<Array>} Array of video objects: [{ id, title, coverUrl, url }]
-     */
-    getEntryVideos() {
-        return [
-            {
-                id: "popular-1",
-                title: "Popular Video 1",
-                coverUrl: "https://via.placeholder.com/300x400",
-                url: "https://example.com/video/popular-1"
-            },
-            {
-                id: "latest-1",
-                title: "Latest Video 1",
-                coverUrl: "https://via.placeholder.com/300x400",
-                url: "https://example.com/video/latest-1"
-            }
-        ];
-    }
 };

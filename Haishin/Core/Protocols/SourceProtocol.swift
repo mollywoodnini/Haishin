@@ -23,11 +23,6 @@ protocol SourceProtocol {
     // MARK: - Discovery Methods
     //#################################################################################
 
-    /// Fetches the entry video list.
-    /// - Parameter page: Page number for pagination (1-indexed).
-    /// - Returns: A list of video previews.
-    func getEntryVideos(page: Int) async throws -> [VideoPreview]
-
     /// Fetches the latest updated videos.
     /// - Parameter page: Page number for pagination (1-indexed).
     /// - Returns: A list of video previews.

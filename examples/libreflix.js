@@ -336,34 +336,6 @@ var source = {
             console.error('[Libreflix getEpisodeStreams] Error:', error.message || error);
             return { streams: [], subtitles: [] };
         }
-    },
-
-    async getEntryVideos() {
-        try {
-            const url = this.baseUrl + '/';
-            console.log('[Libreflix getEntryVideos] Fetching:', url);
-
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                }
-            });
-
-            if (!response.ok) {
-                console.log('[Libreflix getEntryVideos] HTTP error:', response.status);
-                return [];
-            }
-
-            const html = await response.text();
-            const results = this.parseCardsFromHtml(html);
-
-            console.log('[Libreflix getEntryVideos] Found', results.length, 'entry videos');
-            return results.slice(0, 30);
-        } catch (error) {
-            console.error('[Libreflix getEntryVideos] Error:', error.message || error);
-            return [];
-        }
     }
 };
 

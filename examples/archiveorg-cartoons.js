@@ -429,57 +429,6 @@ var source = {
         if (format.includes('ogv')) return 'SD';
         
         return 'SD';
-    },
-    
-    /**
-     * Get featured/popular cartoons
-     */
-    async getEntryVideos() {
-        try {
-            console.log('Fetching featured cartoons');
-            
-            // Get popular items from the collection
-            const searchUrl = `${this.apiUrl}?q=collection:${this.collection}&output=json&rows=20&fl[]=identifier,title,creator,date&sort[]=downloads+desc`;
-            
-            const response = await fetch(searchUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            const docs = data.response?.docs || [];
-            
-            // Group by series (same as search)
-            const seriesMap = new Map();
-            
-            for (const doc of docs) {
-                const seriesName = this.extractSeriesName(doc.title);
-                
-                if (!seriesMap.has(seriesName)) {
-                    seriesMap.set(seriesName, {
-                        id: seriesName.toLowerCase().replace(/\s+/g, '-'),
-                        title: seriesName,
-                        englishTitle: seriesName,
-                        coverUrl: this.getThumbnailUrl(doc.identifier),
-                        url: `series:${seriesName}`
-                    });
-                }
-            }
-            
-            const results = Array.from(seriesMap.values()).slice(0, 10);
-            
-            console.log(`Found ${results.length} featured series`);
-            return results;
-        } catch (error) {
-            console.error('Get featured error:', error);
-            return [];
-        }
     }
 };
 

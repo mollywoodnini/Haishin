@@ -258,65 +258,6 @@ var source = {
         return result;
     },
 
-    /**
-     * Get entry videos (first glance of available content).
-     * Uses the main video endpoint sorted by date.
-     */
-    async getEntryVideos() {
-        const limit = 20;
-        const page = 1;
-        console.log(`[NASA+ getEntryVideos] Starting`);
-        
-        try {
-            // Add _embed to get featured media in response
-            const url = `${this.apiUrl}/video?per_page=${limit}&page=${page}&_embed`;
-            console.log(`[NASA+ getEntryVideos] Fetching URL: ${url}`);
-            
-            const response = await fetch(url);
-            console.log(`[NASA+ getEntryVideos] Response status: ${response.status}, ok: ${response.ok}`);
-            
-            if (!response.ok) {
-                throw new Error(`Get entry videos failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log(`[NASA+ getEntryVideos] Received ${Array.isArray(data) ? data.length : 'non-array'} items`);
-
-            const results = [];
-            for (let i = 0; i < data.length; i++) {
-                const item = data[i];
-                try {
-                    // Try to find the best cover image
-                    let coverUrl = item.featured_image_url || null;
-                    
-                    if (!coverUrl && item._embedded && item._embedded['wp:featuredmedia']) {
-                        const media = item._embedded['wp:featuredmedia'][0];
-                        coverUrl = media ? media.source_url : null;
-                    }
-                    
-                    const result = {
-                        id: item.id.toString(),
-                        title: this._decodeHtml(item.title.rendered),
-                        coverUrl: coverUrl,
-                        url: item.link
-                    };
-                    console.log(`[NASA+ getEntryVideos] Item ${i}: id=${result.id}, title="${result.title}", coverUrl=${coverUrl}`);
-                    results.push(result);
-                } catch (itemError) {
-                    console.error(`[NASA+ getEntryVideos] Error processing item ${i}:`, itemError.message || itemError);
-                }
-            }
-
-            console.log(`[NASA+ getEntryVideos] Returning ${results.length} results`);
-            return results;
-
-        } catch (error) {
-            console.error(`[NASA+ getEntryVideos] Error: ${error.message || error}`);
-            console.error(`[NASA+ getEntryVideos] Error stack: ${error.stack || 'no stack'}`);
-            return [];
-        }
-    },
-
     // ============================================
     // HELPER METHODS
     // ============================================

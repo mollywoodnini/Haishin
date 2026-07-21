@@ -78,13 +78,6 @@ protocol SourceManaging: AnyObject {
     /// Updates all sources that have updates available.
     func updateAllSources() async
 
-    /// Gets the entry videos from a source.
-    /// - Parameters:
-    ///   - sourceId: The source to query.
-    ///   - page: Page number.
-    /// - Returns: List of video previews.
-    func getEntryVideos(sourceId: String, page: Int) async throws -> [VideoPreview]
-
     /// Searches for videos in a source.
     /// - Parameters:
     ///   - sourceId: The source to search.

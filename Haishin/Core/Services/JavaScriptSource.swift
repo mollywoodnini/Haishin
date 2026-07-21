@@ -113,22 +113,6 @@ final actor JavaScriptSource {
         return try JSONDecoder().decode(JSEpisodeStream.self, from: jsonData)
     }
     
-    /// Gets entry videos from the source (first glance of available content).
-    /// - Returns: Array of video previews.
-    func getEntryVideos() async throws -> [JSVideoPreview] {
-        let jsonString = try await runtime.callAsyncFunction(
-            sourceId: sourceId,
-            functionName: "source.getEntryVideos",
-            arguments: []
-        )
-        
-        guard let jsonData = jsonString.data(using: .utf8) else {
-            throw JSRuntime.JSError.invalidResult("Invalid UTF-8 in entry videos result")
-        }
-        
-        return try JSONDecoder().decode([JSVideoPreview].self, from: jsonData)
-    }
-    
     /// Unloads this source from the runtime.
     func unload() async {
         await runtime.unloadSource(sourceId: sourceId)

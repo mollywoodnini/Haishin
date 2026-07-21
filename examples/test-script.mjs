@@ -38,11 +38,11 @@ async function test(name, fn) {
             console.log(`  PASS  ${name}`);
             passed++;
         } else {
-            console.log(`  FAIL  ${name} — ${result}`);
+            console.log(`  FAIL  ${name} - ${result}`);
             failed++;
         }
     } catch (e) {
-        console.log(`  FAIL  ${name} — ${e.message}`);
+        console.log(`  FAIL  ${name} - ${e.message}`);
         failed++;
     }
 }
@@ -86,7 +86,7 @@ async function main() {
     });
 
     console.log('\n== Method signatures ==');
-    const required = ['search', 'getVideoDetails', 'getEpisodeStreams', 'getEntryVideos'];
+    const required = ['search', 'getVideoDetails', 'getEpisodeStreams'];
     for (const name of required) {
         await test(`${name} exists and is async`, () => {
             assert(typeof src[name] === 'function');
@@ -96,18 +96,19 @@ async function main() {
 
     console.log('\n== Live HTTP tests ==');
 
-    // -- getEntryVideos → first item → getVideoDetails → first episode → getEpisodeStreams
+    // -- search -> first result -> getVideoDetails -> first episode -> getEpisodeStreams
 
     let entry;
-    await test('getEntryVideos() returns items', async () => {
-        const r = await src.getEntryVideos();
-        assert(isArray(r), 'not an array');
-        assert(r.length > 0, 'no entries returned');
-        const item = r[0];
+    await test('search() returns results', async () => {
+        const r = await src.search('a', 1);
+        assert(isObject(r), 'not an object');
+        assert(isArray(r.results), 'results not array');
+        assert(r.results.length > 0, 'no results');
+        const item = r.results[0];
         assert(typeof item.id === 'string' && item.id.length > 0, 'item.id invalid');
         assert(typeof item.title === 'string' && item.title.length > 0, 'item.title invalid');
         assert(typeof item.url === 'string' && item.url.length > 0, 'item.url invalid');
-        console.log(`       ${r.length} entries, first: "${item.title}"`);
+        console.log(`       ${r.results.length} results, first: "${item.title}"`);
         entry = item;
     });
 
@@ -127,7 +128,7 @@ async function main() {
             assert(typeof eps[0].id === 'string' && eps[0].id.length > 0, 'ep.id invalid');
             assert(typeof eps[0].number === 'number', 'ep.number not number');
             assert(typeof eps[0].url === 'string' && eps[0].url.length > 0, 'ep.url invalid');
-            console.log(`       "${r.title}" — ${eps.length} episodes, ${serverKeys.length} server(s)`);
+            console.log(`       "${r.title}" - ${eps.length} episodes, ${serverKeys.length} server(s)`);
             entry.video = r;
         });
     }
@@ -141,7 +142,7 @@ async function main() {
                 const r = await src.getEpisodeStreams(episode.id, episode.url, serverKey);
                 assert(isObject(r), 'not an object');
                 assert(isArray(r.streams), 'streams not array');
-                assert(r.streams.length > 0, '0 streams — source could not extract a playable video URL');
+                assert(r.streams.length > 0, '0 streams - source could not extract a playable video URL');
                 const s = r.streams[0];
                 assert(typeof s.url === 'string' && s.url.length > 0, 'stream.url empty');
                 assert(typeof s.quality === 'string' && s.quality.length > 0, 'stream.quality empty');
@@ -149,10 +150,10 @@ async function main() {
                 console.log(`       ${r.streams.length} stream(s): ${s.url.substring(0, 80)}...`);
             });
         } else {
-            console.log('  SKIP  getEpisodeStreams — video has no episodes');
+            console.log('  SKIP  getEpisodeStreams - video has no episodes');
         }
     } else {
-        console.log('  SKIP  getVideoDetails/getEpisodeStreams — getEntryVideos returned nothing usable');
+        console.log('  SKIP  getVideoDetails/getEpisodeStreams - search returned nothing usable');
     }
 
     // -----------------------------------------------------------------------
