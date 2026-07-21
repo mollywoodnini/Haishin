@@ -7,6 +7,7 @@ import Observation
 //#################################################################################
 
 /// Collects JSRuntime log messages for in-app display (e.g., video loading overlay).
+@MainActor
 @Observable
 final class JSRuntimeLogCollector {
 
@@ -34,12 +35,10 @@ final class JSRuntimeLogCollector {
     //#################################################################################
 
     func append(_ message: String) {
-        Task { @MainActor in
-            if messages.count >= Constants.maxMessages {
-                messages.removeFirst(messages.count - Constants.maxMessages + 1)
-            }
-            messages.append(message)
+        if messages.count >= Constants.maxMessages {
+            messages.removeFirst(messages.count - Constants.maxMessages + 1)
         }
+        messages.append(message)
     }
 
     /// Appends a message with a bracketed category prefix, e.g. `[handleFetch] message`.
@@ -48,8 +47,6 @@ final class JSRuntimeLogCollector {
     }
 
     func clear() {
-        Task { @MainActor in
-            messages.removeAll()
-        }
+        messages.removeAll()
     }
 }

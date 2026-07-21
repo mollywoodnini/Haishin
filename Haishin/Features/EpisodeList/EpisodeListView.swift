@@ -25,7 +25,6 @@ struct EpisodeListView: View {
     @State private var isLoadingVideo = false
     @State private var videoLoadError: Error?
     @State private var showingVideoError = false
-    private let jsRuntimeLog = JSRuntimeLogCollector.shared
 
 
     //#################################################################################
@@ -72,7 +71,7 @@ struct EpisodeListView: View {
         .overlay {
             if isLoadingVideo {
                 VideoLoadingOverlayView(
-                    messages: jsRuntimeLog.messages,
+                    messages: JSRuntimeLogCollector.shared.messages,
                     onCancel: cancelVideoLoading
                 )
             }
