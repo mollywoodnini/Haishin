@@ -31,4 +31,11 @@ protocol VideoProtocol: Identifiable, Hashable {
 
     /// The direct URL to the video details page (for direct navigation without search).
     var detailsURL: String? { get }
+
+    /// Alternative titles for improved search matching (e.g., romaji, english, native).
+    var alternativeTitles: [String] { get }
+}
+
+extension VideoProtocol {
+    var alternativeTitles: [String] { [] }
 }

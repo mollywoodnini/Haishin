@@ -48,6 +48,12 @@ protocol UserPreferencesProtocol: AnyObject {
     /// The app appearance mode (system, light, dark).
     var appearance: AppearanceMode { get set }
 
+    /// Whether to show NSFW (adult) content.
+    var showNSFW: Bool { get set }
+
+    /// The currently selected source ID.
+    var selectedSourceId: String? { get set }
+
     /// Clears all user preferences to their defaults.
     func clearAll()
 }
@@ -66,8 +72,10 @@ final class UserPreferences: UserPreferencesProtocol {
     // MARK: - Constants
     //#################################################################################
 
-    private struct Keys {
+        private struct Keys {
         static let appearance = "appearance"
+        static let showNSFW = "showNSFW"
+        static let selectedSourceId = "selectedSourceId"
     }
 
 
@@ -82,6 +90,20 @@ final class UserPreferences: UserPreferencesProtocol {
     var appearance: AppearanceMode {
         didSet {
             userDefaults.set(appearance.rawValue, forKey: Keys.appearance)
+        }
+    }
+
+    /// Whether to show NSFW (adult) content.
+    var showNSFW: Bool {
+        didSet {
+            userDefaults.set(showNSFW, forKey: Keys.showNSFW)
+        }
+    }
+
+    /// The currently selected source ID.
+    var selectedSourceId: String? {
+        didSet {
+            userDefaults.set(selectedSourceId, forKey: Keys.selectedSourceId)
         }
     }
 
@@ -104,6 +126,9 @@ final class UserPreferences: UserPreferencesProtocol {
         } else {
             self.appearance = .system
         }
+
+        showNSFW = userDefaults.bool(forKey: Keys.showNSFW)
+        selectedSourceId = userDefaults.string(forKey: Keys.selectedSourceId)
     }
 
 
@@ -113,5 +138,7 @@ final class UserPreferences: UserPreferencesProtocol {
 
     func clearAll() {
         appearance = .system
+        showNSFW = false
+        selectedSourceId = nil
     }
 }

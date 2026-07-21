@@ -1,0 +1,222 @@
+//
+//  AnimeDetailView.swift
+//  Haishin
+//
+//  Created by Haishin on 24.01.26.
+//
+
+import SwiftUI
+
+
+//#################################################################################
+// MARK: - AnimeDetailView
+//#################################################################################
+
+/// A detailed view for anime fetched from AniList.
+struct AnimeDetailView: View {
+
+    //#################################################################################
+    // MARK: - Properties
+    //#################################################################################
+
+    @State private var viewModel: AnimeDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @State private var navigateToEpisodes = false
+
+
+    //#################################################################################
+    // MARK: - Initialization
+    //#################################################################################
+
+    /// Creates a new detail view with an existing view model.
+    /// - Parameter viewModel: The view model to use.
+    init(viewModel: AnimeDetailViewModel) {
+        self._viewModel = State(initialValue: viewModel)
+    }
+
+    /// Creates a new detail view.
+    /// - Parameters:
+    ///   - mode: The display mode containing anime preview data.
+    ///   - aniListService: The service to fetch anime details.
+    ///   - subscriptionService: The subscription service for managing subscriptions.
+    ///   - watchProgressService: The watch progress service.
+    ///   - sourceManager: The source manager for fetching episodes.
+    ///   - userPreferences: The user preferences.
+    init(mode: AnimeDetailViewModel.Mode,
+         aniListService: AniListServicing,
+         subscriptionService: SubscriptionServiceProtocol,
+         watchProgressService: WatchProgressServiceProtocol,
+         sourceManager: SourceManaging,
+         userPreferences: UserPreferencesProtocol) {
+        self._viewModel = State(initialValue: AnimeDetailViewModel(mode: mode,
+                                                                   aniListService: aniListService,
+                                                                   subscriptionService: subscriptionService,
+                                                                   watchProgressService: watchProgressService,
+                                                                   sourceManager: sourceManager,
+                                                                   userPreferences: userPreferences))
+    }
+
+
+    //#################################################################################
+    // MARK: - Body
+    //#################################################################################
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                AnimeDetailHeaderView(displayTitle: viewModel.displayTitle,
+                                      alternativeTitles: viewModel.alternativeTitles,
+                                      bannerURL: viewModel.anime?.bannerURL,
+                                      coverURL: viewModel.displayCoverURL,
+                                      viewEpisodesButton: AnyView(viewEpisodesButton))
+
+                if viewModel.isLoading && viewModel.anime == nil {
+                    AnimeDetailLoadingView()
+                } else if let error = viewModel.error, viewModel.anime == nil {
+                    AnimeDetailErrorView(error: error) {
+                        await viewModel.retry()
+                    }
+                } else {
+                    contentSections
+                }
+            }
+        }
+        .ignoresSafeArea(edges: .top)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        viewModel.toggleSubscription()
+                    } label: {
+                        Label(viewModel.isSubscribed ? "Unsubscribe" : "Subscribe",
+                              systemImage: viewModel.isSubscribed ? "bell.slash" : "bell")
+                    }
+
+                    if let siteUrl = viewModel.anime?.siteUrl {
+                        Button {
+                            openURL(siteUrl)
+                        } label: {
+                            Label("View on AniList", systemImage: "safari")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .navigationDestination(isPresented: $navigateToEpisodes) {
+            if let episodeListViewModel = viewModel.makeEpisodeListViewModel() {
+                EpisodeListView(viewModel: episodeListViewModel)
+            } else {
+                Text("Error: Missing required data for episodes view")
+            }
+        }
+        .task {
+            await viewModel.loadDetails()
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Content Sections
+    //#################################################################################
+
+    @ViewBuilder
+    private var contentSections: some View {
+        if let synopsis = viewModel.anime?.synopsis, !synopsis.isEmpty {
+            SynopsisSectionView(synopsis: synopsis,
+                                isExpanded: $viewModel.isSynopsisExpanded)
+        }
+
+        if let genres = viewModel.anime?.genres, !genres.isEmpty {
+            GenresSectionView(genres: genres)
+        }
+
+        if viewModel.formattedScore != nil {
+            RatingsStatisticsSectionView(formattedScore: viewModel.formattedScore,
+                                         popularityString: viewModel.popularityString,
+                                         favoritesString: viewModel.favoritesString)
+        }
+
+        if !viewModel.informationItems.isEmpty {
+            InformationSectionView(items: viewModel.informationItems.map {
+                InformationSectionView.Item(key: $0.key, value: $0.value)
+            })
+        }
+
+        if let nextEpisode = viewModel.anime?.nextAiringEpisode {
+            UpcomingSectionView(episode: nextEpisode)
+        }
+
+        if !viewModel.mainCharacters.isEmpty || !viewModel.supportingCharacters.isEmpty {
+            CharactersSectionView(characters: viewModel.mainCharacters + viewModel.supportingCharacters)
+        }
+
+        if let relations = viewModel.anime?.relations, !relations.isEmpty {
+            RelationsSectionView(relations: relations) { relation in
+                AnimeDetailView(viewModel: viewModel.makeRelatedAnimeDetailViewModel(relation: relation))
+            }
+        }
+
+        if let recommendations = viewModel.anime?.recommendations, !recommendations.isEmpty {
+            RecommendationsSectionView(recommendations: recommendations) { rec in
+                AnimeDetailView(viewModel: viewModel.makeRecommendationDetailViewModel(recommendation: rec))
+            }
+        }
+
+        if !viewModel.streamingLinks.isEmpty {
+            StreamingLinksSectionView(links: viewModel.streamingLinks.map {
+                StreamingLinksSectionView.LinkItem(site: $0.site, url: $0.url, icon: $0.icon)
+            })
+        }
+
+        if !viewModel.displayTags.isEmpty {
+            TagsSectionView(tags: viewModel.displayTags.map {
+                TagsSectionView.TagItem(name: $0.name)
+            })
+        }
+
+        Spacer()
+            .frame(height: .spacingL)
+    }
+
+
+    //#################################################################################
+    // MARK: - View Episodes Button
+    //#################################################################################
+
+    private var viewEpisodesButton: some View {
+        ViewEpisodesButton(animeTitle: viewModel.displayTitle,
+                           selectedSourceId: Binding(
+                               get: { viewModel.selectedSourceId },
+                               set: { viewModel.selectedSourceId = $0 }
+                           ),
+                           installedSources: viewModel.installedSources,
+                           validateSourceSelection: viewModel.validateSourceSelection) {
+            navigateToEpisodes = true
+        }
+    }
+}
+
+
+//#################################################################################
+// MARK: - Preview
+//#################################################################################
+
+#Preview {
+    NavigationStack {
+        AnimeDetailView(mode: .item(RecommendingItem(id: "1",
+                                                     title: "Attack on Titan",
+                                                     subtitle: "MAPPA",
+                                                     coverURL: URL(string: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg"),
+                                                     anilistId: 16498)),
+                        aniListService: AniListService(),
+                        subscriptionService: SubscriptionService.shared,
+                        watchProgressService: WatchProgressService.shared,
+                        sourceManager: SourceManager(),
+                        userPreferences: UserPreferences.shared)
+    }
+}

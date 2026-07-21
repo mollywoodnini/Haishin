@@ -195,6 +195,8 @@ final class MockUserPreferences: UserPreferencesProtocol {
     //#################################################################################
 
     var appearance: AppearanceMode = .system
+    var showNSFW: Bool = false
+    var selectedSourceId: String?
 
 
     //#################################################################################

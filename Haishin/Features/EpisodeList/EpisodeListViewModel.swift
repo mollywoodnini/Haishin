@@ -490,22 +490,65 @@ final class EpisodeListViewModel: Identifiable, Hashable {
     /// - Returns: Array of search query strings ordered by priority.
     private func generateSearchQueries() -> [String] {
         var queries: [String] = []
-        
-        // Use the stored videoTitle
-        queries.append(videoTitle)
 
-        // Try season and part variations on the title
-        let seasonVariation = removeSeasonKeyword(from: videoTitle)
-        if seasonVariation != videoTitle {
-            queries.append(seasonVariation)
+        // Collect all candidate titles (primary + alternatives)
+        var candidates: [String] = [videoTitle]
+        switch mode {
+        case .online(let video):
+            candidates.append(contentsOf: video.alternativeTitles)
+        case .offline:
+            break
         }
 
-        let partVariation = removePartKeyword(from: videoTitle)
-        if partVariation != videoTitle && !queries.contains(partVariation) {
-            queries.append(partVariation)
+        for candidate in candidates {
+            let normalized = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty else { continue }
+
+            // Add the full title
+            addUnique(normalized, to: &queries)
+
+            // Add season/part variations
+            applyVariations(normalized, to: &queries)
+
+            // Add base title (text before first separator)
+            let base = extractBaseTitle(from: normalized)
+            if base != normalized {
+                addUnique(base, to: &queries)
+                applyVariations(base, to: &queries)
+            }
         }
 
         return queries
+    }
+
+    /// Adds a query to the list if not already present.
+    private func addUnique(_ query: String, to queries: inout [String]) {
+        guard !query.isEmpty, !queries.contains(query) else { return }
+        queries.append(query)
+    }
+
+    /// Applies all title variations (season/part/roman numeral removal) to a title.
+    private func applyVariations(_ title: String, to queries: inout [String]) {
+        let strippedSeason = removeSeasonKeyword(from: title)
+        if strippedSeason != title { addUnique(strippedSeason, to: &queries) }
+
+        let strippedPart = removePartKeyword(from: title)
+        if strippedPart != title { addUnique(strippedPart, to: &queries) }
+
+        let strippedRoman = removeRomanNumerals(from: title)
+        if strippedRoman != title { addUnique(strippedRoman, to: &queries) }
+    }
+
+    /// Extracts the base title (text before ":", " - ", or "～").
+    private func extractBaseTitle(from title: String) -> String {
+        let separators = [":", " - ", "～", "–", "—"]
+        for separator in separators {
+            if let range = title.range(of: separator) {
+                let base = title[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !base.isEmpty { return base }
+            }
+        }
+        return title
     }
 
     /// Removes "Season X" and replaces with just "X".
@@ -546,6 +589,26 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             withTemplate: " $1"
         )
         return modifiedTitle
+    }
+
+    /// Removes standalone Roman numerals (I, II, III, IV, V, VI, etc.) from the title.
+    private func removeRomanNumerals(from title: String) -> String {
+        let pattern = #"(?:^|\s+)(?:IV|VI{0,3}|IX|X[ILVX]?)(?:$|\s+)"#
+        guard let regex = try? NSRegularExpression(
+            pattern: pattern,
+            options: .caseInsensitive
+        ) else {
+            return title
+        }
+
+        let range = NSRange(title.startIndex..<title.endIndex, in: title)
+        let modifiedTitle = regex.stringByReplacingMatches(
+            in: title,
+            options: [],
+            range: range,
+            withTemplate: " "
+        )
+        return modifiedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Finds the best matching video from search results using title similarity.
