@@ -99,7 +99,7 @@ final class AnimeDetailViewModel {
         self.watchProgressService = watchProgressService
         self.sourceManager = sourceManager
         self.userPreferences = userPreferences
-        self.isSubscribed = subscriptionService.isSubscribed(id: String(animeId))
+        self.isSubscribed = subscriptionService.isAnimeSubscribed(id: animeId)
     }
 
 
@@ -133,15 +133,9 @@ final class AnimeDetailViewModel {
     /// Toggles the subscription status for this anime.
     func toggleSubscription() {
         if isSubscribed {
-            subscriptionService.unsubscribe(id: String(animeId))
+            subscriptionService.unsubscribeAnime(id: animeId)
         } else {
-            subscriptionService.subscribe(
-                id: String(animeId),
-                title: displayTitle,
-                coverURL: displayCoverURL,
-                sourceId: "anilist",
-                detailsURL: nil
-            )
+            subscriptionService.subscribeAnime(id: animeId, title: displayTitle, coverURL: displayCoverURL)
         }
         isSubscribed.toggle()
     }

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The search view for finding videos across sources.
+/// The search view for finding anime via AniList.
 struct SearchView: View {
 
     //#################################################################################
@@ -15,10 +15,7 @@ struct SearchView: View {
     //#################################################################################
 
     private enum Constants {
-        static let cardWidth: CGFloat = 140
-        static let loadingPlaceholderCount: Int = 3
-        static let loadingPlaceholderHeight: CGFloat = 200
-        static let stateViewHeight: CGFloat = 60
+        static let columns = [GridItem(.adaptive(minimum: 140), spacing: .spacingS)]
     }
 
 
@@ -36,25 +33,9 @@ struct SearchView: View {
     //#################################################################################
 
     /// Creates a new search view.
-    /// - Parameters:
-    ///   - sourceManager: The source manager to use.
-    ///   - watchProgressService: The service for accessing watch progress.
-    ///   - subscriptionService: The service for managing subscriptions.
-    ///   - downloadService: The service for managing downloads.
-    init(
-        sourceManager: SourceManaging,
-        watchProgressService: WatchProgressServiceProtocol,
-        subscriptionService: SubscriptionServiceProtocol,
-        downloadService: DownloadServiceProtocol
-    ) {
-        self._viewModel = State(
-            initialValue: SearchViewModel(
-                sourceManager: sourceManager,
-                watchProgressService: watchProgressService,
-                subscriptionService: subscriptionService,
-                downloadService: downloadService
-            )
-        )
+    /// - Parameter aniListService: The AniList service to use.
+    init(aniListService: AniListServicing) {
+        self._viewModel = State(initialValue: SearchViewModel(aniListService: aniListService))
     }
 
 
@@ -67,14 +48,20 @@ struct SearchView: View {
             Group {
                 if searchText.isEmpty && !viewModel.recentSearches.isEmpty {
                     recentSearchesView
-                } else if viewModel.sourceStates.isEmpty {
-                    emptyStateView
-                } else {
+                } else if viewModel.isSearching {
+                    loadingView
+                } else if let error = viewModel.error {
+                    errorView(error)
+                } else if !viewModel.results.isEmpty {
                     resultsView
+                } else if !searchText.isEmpty {
+                    emptyResultsView
+                } else {
+                    emptyStateView
                 }
             }
             .navigationTitle("Search")
-            .searchable(text: $searchText, prompt: "Search videos...")
+            .searchable(text: $searchText, prompt: "Search anime...")
             .searchFocused($isSearchFocused)
             .onChange(of: searchText) { _, newValue in
                 viewModel.search(query: newValue)
@@ -89,6 +76,59 @@ struct SearchView: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView.search
+    }
+
+    private var emptyResultsView: some View {
+        ContentUnavailableView {
+            Label("No Results", systemImage: "magnifyingglass")
+        } description: {
+            Text("No anime found for \(searchText). Try a different search term.")
+        }
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: .spacingM) {
+            ProgressView()
+            Text("Searching...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ error: Error) -> some View {
+        ContentUnavailableView {
+            Label("Search Failed", systemImage: "exclamationmark.magnifyingglass")
+        } description: {
+            Text(error.localizedDescription)
+        } actions: {
+            Button("Try Again") {
+                viewModel.search(query: searchText)
+            }
+        }
+    }
+
+    private var resultsView: some View {
+        ScrollView {
+            LazyVGrid(columns: Constants.columns, spacing: .spacingM) {
+                ForEach(viewModel.results) { item in
+                    NavigationLink {
+                        AnimeDetailView(
+                            mode: .raw(animeId: item.anilistId, title: item.title, coverURL: item.coverURL),
+                            aniListService: AniListService(),
+                            subscriptionService: SubscriptionService.shared,
+                            watchProgressService: WatchProgressService.shared,
+                            sourceManager: SourceManager.shared,
+                            userPreferences: UserPreferences.shared
+                        )
+                    } label: {
+                        StandardAnimeCard(item: item, sizingMode: .flexible)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.spacingM)
+        }
     }
 
     private var recentSearchesView: some View {
@@ -128,92 +168,6 @@ struct SearchView: View {
         }
         .listStyle(.insetGrouped)
     }
-
-    private var resultsView: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: .spacingL) {
-                ForEach(viewModel.sourceStates) { state in
-                    sourceSectionView(state)
-                }
-            }
-            .padding(.vertical, .spacingS)
-        }
-        .navigationDestination(for: VideoPreview.self) { video in
-            EpisodeListView(viewModel: viewModel.makeEpisodeListViewModel(for: video))
-        }
-    }
-
-    private func sourceSectionView(_ state: SourceSearchState) -> some View {
-        VStack(alignment: .leading, spacing: .spacingS) {
-            Text(state.sourceName)
-                .font(.headline)
-                .padding(.horizontal, .spacingM)
-
-            if state.isLoading {
-                loadingCardsView
-            } else if state.error != nil {
-                errorView(for: state)
-            } else if state.results.isEmpty {
-                noResultsView
-            } else {
-                resultsCardsView(for: state)
-            }
-        }
-    }
-
-    private var loadingCardsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: .spacingS) {
-                ForEach(0..<Constants.loadingPlaceholderCount, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: .cornerRadiusS)
-                        .fill(Color(.tertiarySystemFill))
-                        .frame(width: Constants.cardWidth, height: Constants.loadingPlaceholderHeight)
-                        .overlay {
-                            ProgressView()
-                        }
-                }
-            }
-            .padding(.horizontal, .spacingM)
-        }
-    }
-
-    private func errorView(for state: SourceSearchState) -> some View {
-        HStack {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundStyle(.secondary)
-            Text("Failed to search")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, .spacingM)
-        .frame(height: Constants.stateViewHeight)
-    }
-
-    private var noResultsView: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            Text("No results")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, .spacingM)
-        .frame(height: Constants.stateViewHeight)
-    }
-
-    private func resultsCardsView(for state: SourceSearchState) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: .spacingS) {
-                ForEach(state.results) { video in
-                    NavigationLink(value: video) {
-                        VideoCard(videoPreview: video, sizingMode: .fixed)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, .spacingM)
-        }
-    }
 }
 
 
@@ -222,10 +176,5 @@ struct SearchView: View {
 //#################################################################################
 
 #Preview {
-    SearchView(
-        sourceManager: SourceManager(),
-        watchProgressService: WatchProgressService.shared,
-        subscriptionService: SubscriptionService.shared,
-        downloadService: DownloadService.shared
-    )
+    SearchView(aniListService: AniListService())
 }

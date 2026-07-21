@@ -43,10 +43,7 @@ struct MainTabView: View {
                 .tag(Tab.library)
 
             SearchView(
-                sourceManager: sourceManager,
-                watchProgressService: WatchProgressService.shared,
-                subscriptionService: SubscriptionService.shared,
-                downloadService: DownloadService.shared
+                aniListService: AniListService()
             )
                 .tabItem {
                     Label(Tab.search.title, systemImage: Tab.search.icon)

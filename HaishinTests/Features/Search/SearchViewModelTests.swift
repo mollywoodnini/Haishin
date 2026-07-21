@@ -5,8 +5,43 @@
 //  Created by Tan Nghia La on 24.01.26.
 //
 
+import Foundation
 import Testing
 @testable import Haishin
+
+
+//#################################################################################
+// MARK: - MockAniListService
+//#################################################################################
+
+/// Mock implementation of AniListServicing for testing.
+final class MockAniListService: AniListServicing {
+
+    var searchResult: Result<PaginatedResponse, Error> = .success(
+        PaginatedResponse(items: [], hasNextPage: false, currentPage: 1)
+    )
+    var searchCallCount = 0
+    var searchQueries: [String] = []
+    var searchPages: [Int] = []
+
+    func fetchThisWeek(showNSFW: Bool) async throws -> [RecommendingItem] { [] }
+    func fetchTrending(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
+        PaginatedResponse(items: [], hasNextPage: false, currentPage: page)
+    }
+    func fetchSeasonal(page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
+        PaginatedResponse(items: [], hasNextPage: false, currentPage: page)
+    }
+    func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail {
+        throw MockError.notConfigured
+    }
+
+    func search(query: String, page: Int, showNSFW: Bool) async throws -> PaginatedResponse {
+        searchCallCount += 1
+        searchQueries.append(query)
+        searchPages.append(page)
+        return try searchResult.get()
+    }
+}
 
 
 //#################################################################################
@@ -21,12 +56,11 @@ struct SearchViewModelTests {
     // MARK: - Helper
     //#################################################################################
 
-    private func makeSUT(sourceManager: MockSourceManager) -> SearchViewModel {
-        SearchViewModel(sourceManager: sourceManager,
-                        watchProgressService: WatchProgressService.shared,
-                        subscriptionService: SubscriptionService.shared,
-                        downloadService: MockDownloadService(),
-                        debounceMilliseconds: 0)
+    private func makeSUT(aniListService: MockAniListService? = nil) -> SearchViewModel {
+        SearchViewModel(
+            aniListService: aniListService ?? MockAniListService(),
+            debounceMilliseconds: 0
+        )
     }
 
 
@@ -34,26 +68,23 @@ struct SearchViewModelTests {
     // MARK: - Initialization Tests
     //#################################################################################
 
-    @Test("On initialization, sourceStates is empty")
-    func initialization_sourceStatesIsEmpty() {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("On initialization, results is empty")
+    func initialization_resultsIsEmpty() {
+        let sut = makeSUT()
 
-        #expect(sut.sourceStates.isEmpty == true)
+        #expect(sut.results.isEmpty == true)
     }
 
     @Test("On initialization, isSearching is false")
     func initialization_isSearchingIsFalse() {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+        let sut = makeSUT()
 
         #expect(sut.isSearching == false)
     }
 
     @Test("On initialization, error is nil")
     func initialization_errorIsNil() {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+        let sut = makeSUT()
 
         #expect(sut.error == nil)
     }
@@ -63,104 +94,108 @@ struct SearchViewModelTests {
     // MARK: - search Tests
     //#################################################################################
 
-    @Test("search with empty query clears sourceStates")
-    func search_withEmptyQuery_clearsSourceStates() {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("search with empty query clears results")
+    func search_withEmptyQuery_clearsResults() {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
 
-        // Given - Set some initial results
-        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
-
-        // When
         sut.search(query: "")
 
-        // Then
-        #expect(sut.sourceStates.isEmpty == true)
-        #expect(mockSourceManager.searchCallCount == 0)
+        #expect(sut.results.isEmpty == true)
+        #expect(mockAniList.searchCallCount == 0)
+        #expect(sut.error == nil)
     }
 
-    @Test("search with whitespace only query clears sourceStates")
-    func search_withWhitespaceOnlyQuery_clearsSourceStates() {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("search with whitespace only query clears results")
+    func search_withWhitespaceOnlyQuery_clearsResults() {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
 
-        // When
         sut.search(query: "   ")
 
-        // Then
-        #expect(sut.sourceStates.isEmpty == true)
-        #expect(mockSourceManager.searchCallCount == 0)
+        #expect(sut.results.isEmpty == true)
+        #expect(mockAniList.searchCallCount == 0)
     }
 
-    @Test("search with valid query creates source states for all sources")
-    func search_withValidQuery_createsSourceStates() async throws {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("search with valid query populates results")
+    func search_withValidQuery_populatesResults() async throws {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
 
-        // Given
-        let source = TestFixtures.makeInstalledSource()
-        mockSourceManager.installedSources = [source]
-        let expectedVideo = TestFixtures.makeVideoPreview(title: "Naruto")
-        mockSourceManager.searchResult = .success([expectedVideo])
+        let expectedItem = RecommendingItem(
+            id: "1",
+            title: "Naruto",
+            coverURL: URL(string: "https://example.com/cover.jpg"),
+            anilistId: 1
+        )
+        mockAniList.searchResult = .success(
+            PaginatedResponse(items: [expectedItem], hasNextPage: false, currentPage: 1)
+        )
 
-        // When
         sut.search(query: "Naruto")
-
-        // Wait for search task to execute and complete
         try await Task.sleep(for: .milliseconds(50))
 
-        // Then - Source state should be created
-        #expect(sut.sourceStates.count == 1)
-        #expect(sut.sourceStates.first?.sourceId == source.id)
-
-        // Verify search was called
-        #expect(mockSourceManager.searchCallCount == 1)
-        #expect(mockSourceManager.searchQueries.first == "Naruto")
+        #expect(sut.results.count == 1)
+        #expect(sut.results.first?.title == "Naruto")
+        #expect(mockAniList.searchCallCount == 1)
+        #expect(mockAniList.searchQueries.first == "Naruto")
     }
 
-    @Test("search with multiple sources creates states for all and searches all")
-    func search_withMultipleSources_createsStatesForAllAndSearchesAll() async throws {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("search sets error when service fails")
+    func search_setsErrorWhenServiceFails() async throws {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
 
-        // Given
-        let source1 = TestFixtures.makeInstalledSource(id: "source1", name: "A Source")
-        let source2 = TestFixtures.makeInstalledSource(id: "source2", name: "B Source")
-        let source3 = TestFixtures.makeInstalledSource(id: "source3", name: "C Source")
-        mockSourceManager.installedSources = [source1, source2, source3]
-        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
+        mockAniList.searchResult = .failure(MockError.testError)
 
-        // When
-        sut.search(query: "Test")
+        sut.search(query: "Naruto")
+        try await Task.sleep(for: .milliseconds(50))
 
-        // Wait for all searches to complete
-        try await Task.sleep(for: .milliseconds(100))
-
-        // Then - Should create states for all 3 sources
-        #expect(sut.sourceStates.count == 3)
-
-        // Then - Should search in all 3 sources
-        #expect(mockSourceManager.searchCallCount == 3)
+        #expect(sut.results.isEmpty == true)
+        #expect(sut.error != nil)
+        #expect(mockAniList.searchCallCount == 1)
     }
 
-    @Test("search updates sourceStates when query changes")
-    func search_updatesSourceStatesWhenQueryChanges() async throws {
-        let mockSourceManager = MockSourceManager()
-        let sut = makeSUT(sourceManager: mockSourceManager)
+    @Test("search updates isSearching during and after search")
+    func search_updatesIsSearching() async throws {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
 
-        // Given
-        let source = TestFixtures.makeInstalledSource()
-        mockSourceManager.installedSources = [source]
-        mockSourceManager.searchResult = .success([TestFixtures.makeVideoPreview()])
+        #expect(sut.isSearching == false)
 
-        // When - Search with different queries
-        sut.search(query: "first")
+        sut.search(query: "Naruto")
+        #expect(sut.isSearching == true)
+
         try await Task.sleep(for: .milliseconds(50))
-        
-        sut.search(query: "second")
+        #expect(sut.isSearching == false)
+    }
+
+    @Test("search prevents duplicate searches for same query")
+    func search_preventsDuplicateSearches() async throws {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
+
+        sut.search(query: "Naruto")
         try await Task.sleep(for: .milliseconds(50))
 
-        // Then - Both searches should eventually complete
-        #expect(mockSourceManager.searchQueries.contains("second"))
+        sut.search(query: "Naruto")
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(mockAniList.searchCallCount == 1)
+    }
+
+    @Test("search with different queries updates results")
+    func search_withDifferentQueries_updatesResults() async throws {
+        let mockAniList = MockAniListService()
+        let sut = makeSUT(aniListService: mockAniList)
+
+        sut.search(query: "Naruto")
+        try await Task.sleep(for: .milliseconds(50))
+
+        sut.search(query: "One Piece")
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(mockAniList.searchQueries.contains("One Piece"))
+        #expect(mockAniList.searchCallCount == 2)
     }
 }

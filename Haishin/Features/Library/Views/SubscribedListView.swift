@@ -5,6 +5,7 @@
 //  Created by Tan Nghia La on 24.01.26.
 //
 
+import Kingfisher
 import SwiftUI
 
 
@@ -20,9 +21,6 @@ struct SubscribedListView: View {
     //#################################################################################
 
     @Bindable private var viewModel: LibraryViewModel
-    @State private var tappedVideo: SubscribedVideo?
-    @State private var selectedViewModel: EpisodeListViewModel?
-    @State private var showNoSourceAlert = false
 
 
     //#################################################################################
@@ -41,53 +39,106 @@ struct SubscribedListView: View {
     //#################################################################################
 
     var body: some View {
-        Group {
-            if viewModel.subscribedVideo.isEmpty {
-                ContentUnavailableView {
-                    Label("No Subscriptions", systemImage: "bell")
-                } description: {
-                    Text("Videos you subscribe to will appear here.")
-                }
-            } else {
-                List {
-                    ForEach(viewModel.subscribedVideo) { video in
-                        VideoRowButton(
-                            mode: .subscribed(video),
-                            sourceName: viewModel.sourceName(for: video.sourceId),
-                            item: video
-                        ) { tappedVideo = $0 }
+        if viewModel.subscribedVideo.isEmpty, viewModel.subscribedAnime.isEmpty {
+            ContentUnavailableView {
+                Label("No Subscriptions", systemImage: "bell")
+            } description: {
+                Text("Videos you subscribe to will appear here.")
+            }
+            .navigationTitle("Subscribed")
+            .navigationBarTitleDisplayMode(.inline)
+        } else {
+            subscribedList
+        }
+    }
+
+
+    //#################################################################################
+    // MARK: - Subviews
+    //#################################################################################
+
+    @ViewBuilder
+    private var subscribedList: some View {
+        List {
+            if !viewModel.subscribedAnime.isEmpty {
+                Section {
+                    ForEach(viewModel.subscribedAnime) { anime in
+                        NavigationLink {
+                            AnimeDetailView(
+                                mode: .raw(animeId: anime.id, title: anime.title, coverURL: anime.coverURL),
+                                aniListService: AniListService(),
+                                subscriptionService: SubscriptionService.shared,
+                                watchProgressService: WatchProgressService.shared,
+                                sourceManager: SourceManager.shared,
+                                userPreferences: UserPreferences.shared
+                            )
+                        } label: {
+                            AnimeSubscriptionRow(anime: anime)
+                        }
                     }
                     .onDelete { indexSet in
                         for index in indexSet {
-                            let video = viewModel.subscribedVideo[index]
-                            viewModel.unsubscribe(id: video.id)
+                            let anime = viewModel.subscribedAnime[index]
+                            viewModel.unsubscribeAnime(id: anime.id)
                         }
                     }
+                } header: {
+                    Text("Subscribed Anime")
                 }
-                .navigationDestination(item: $selectedViewModel) { episodeViewModel in
-                    EpisodeListView(viewModel: episodeViewModel)
-                }
-                .listStyle(.plain)
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Subscribed")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.refresh()
         }
-        .onChange(of: tappedVideo) { _, newValue in
-            guard let video = newValue else { return }
-            if let episodeViewModel = viewModel.makeEpisodeListViewModel(video: video) {
-                selectedViewModel = episodeViewModel
-            } else {
-                showNoSourceAlert = true
+    }
+}
+
+
+//#################################################################################
+// MARK: - AnimeSubscriptionRow
+//#################################################################################
+
+/// A row view for displaying an AniList anime subscription.
+private struct AnimeSubscriptionRow: View {
+
+    private let anime: SubscribedAnime
+
+    init(anime: SubscribedAnime) {
+        self.anime = anime
+    }
+
+    var body: some View {
+        HStack(spacing: .spacingS) {
+            KFImage(anime.coverURL)
+                .resizable()
+                .placeholder {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 60, height: 85)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: .cornerRadiusXS))
+
+            VStack(alignment: .leading, spacing: .spacingXXS) {
+                Text(anime.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+
+                Text("AniList")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            tappedVideo = nil
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .alert("Source Not Available", isPresented: $showNoSourceAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("The source used for this subscription is no longer installed. Please reinstall the source or subscribe again with a different source.")
-        }
+        .padding(.vertical, .spacingXXS)
     }
 }

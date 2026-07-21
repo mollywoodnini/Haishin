@@ -36,6 +36,27 @@ struct SubscribedVideo: VideoProtocol, Codable, Equatable {
 
 
 //#################################################################################
+// MARK: - SubscribedAnime
+//#################################################################################
+
+/// Represents an anime the user has subscribed to from AniList browsing.
+struct SubscribedAnime: Codable, Identifiable, Equatable, Hashable {
+
+    /// The AniList anime ID.
+    let id: Int
+
+    /// The anime title.
+    let title: String
+
+    /// URL to the cover image.
+    let coverURL: URL?
+
+    /// Date when the user subscribed.
+    var subscribedAt: Date
+}
+
+
+//#################################################################################
 // MARK: - SubscriptionServiceProtocol
 //#################################################################################
 
@@ -45,23 +66,29 @@ protocol SubscriptionServiceProtocol {
     /// Gets all subscribed videos sorted by subscription date.
     func getSubscribedVideo() -> [SubscribedVideo]
 
-    /// Subscribes to a video.
-    /// - Parameters:
-    ///   - id: The video ID.
-    ///   - title: The video title.
-    ///   - coverURL: The cover image URL.
-    ///   - sourceId: The source ID used to fetch episodes.
-    ///   - detailsURL: The direct URL to the video details page.
-    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?)
-
-    /// Unsubscribes from a video.
-    func unsubscribe(id: String)
-
-    /// Checks if a video is subscribed.
-    func isSubscribed(id: String) -> Bool
-
     /// Gets the count of subscribed videos.
     func getSubscribedCount() -> Int
+
+    /// Gets all subscribed anime sorted by subscription date.
+    func getSubscribedAnime() -> [SubscribedAnime]
+
+    /// Subscribes to an anime from AniList.
+    /// - Parameters:
+    ///   - id: The AniList anime ID.
+    ///   - title: The anime title.
+    ///   - coverURL: The anime cover image URL.
+    func subscribeAnime(id: Int, title: String, coverURL: URL?)
+
+    /// Unsubscribes from an AniList anime.
+    /// - Parameter id: The AniList anime ID.
+    func unsubscribeAnime(id: Int)
+
+    /// Checks if an AniList anime is subscribed.
+    /// - Parameter id: The AniList anime ID.
+    func isAnimeSubscribed(id: Int) -> Bool
+
+    /// Gets the count of subscribed anime.
+    func getSubscribedAnimeCount() -> Int
 }
 
 
@@ -79,6 +106,7 @@ final class SubscriptionService: SubscriptionServiceProtocol {
 
     private enum Constants {
         static let storageKey = "subscribedVideo"
+        static let animeStorageKey = "subscribedAnime"
     }
 
 
@@ -117,35 +145,36 @@ final class SubscriptionService: SubscriptionServiceProtocol {
         loadAllSubscribed().sorted { $0.subscribedAt > $1.subscribedAt }
     }
 
-    func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?) {
-        var allSubscribed = loadAllSubscribed()
-
-        guard !allSubscribed.contains(where: { $0.id == id }) else { return }
-
-        let newSubscription = SubscribedVideo(id: id,
-                                              title: title,
-                                              coverURL: coverURL,
-                                              sourceId: sourceId,
-                                              detailsURL: detailsURL,
-                                              subscribedAt: Date())
-        allSubscribed.append(newSubscription)
-        persistAllSubscribed(allSubscribed)
-        triggerCloudSync()
-    }
-
-    func unsubscribe(id: String) {
-        var allSubscribed = loadAllSubscribed()
-        allSubscribed.removeAll { $0.id == id }
-        persistAllSubscribed(allSubscribed)
-        triggerCloudSync()
-    }
-
-    func isSubscribed(id: String) -> Bool {
-        loadAllSubscribed().contains { $0.id == id }
-    }
-
     func getSubscribedCount() -> Int {
         loadAllSubscribed().count
+    }
+
+    func getSubscribedAnime() -> [SubscribedAnime] {
+        loadAllSubscribedAnime().sorted { $0.subscribedAt > $1.subscribedAt }
+    }
+
+    func subscribeAnime(id: Int, title: String, coverURL: URL?) {
+        var allSubscribed = loadAllSubscribedAnime()
+        guard !allSubscribed.contains(where: { $0.id == id }) else { return }
+        let newSubscription = SubscribedAnime(id: id, title: title, coverURL: coverURL, subscribedAt: Date())
+        allSubscribed.append(newSubscription)
+        persistAllSubscribedAnime(allSubscribed)
+        triggerCloudSync()
+    }
+
+    func unsubscribeAnime(id: Int) {
+        var allSubscribed = loadAllSubscribedAnime()
+        allSubscribed.removeAll { $0.id == id }
+        persistAllSubscribedAnime(allSubscribed)
+        triggerCloudSync()
+    }
+
+    func isAnimeSubscribed(id: Int) -> Bool {
+        loadAllSubscribedAnime().contains { $0.id == id }
+    }
+
+    func getSubscribedAnimeCount() -> Int {
+        loadAllSubscribedAnime().count
     }
 
 
@@ -164,6 +193,19 @@ final class SubscriptionService: SubscriptionServiceProtocol {
     private func persistAllSubscribed(_ subscribed: [SubscribedVideo]) {
         guard let encoded = try? JSONEncoder().encode(subscribed) else { return }
         userDefaults.set(encoded, forKey: Constants.storageKey)
+    }
+
+    private func loadAllSubscribedAnime() -> [SubscribedAnime] {
+        guard let data = userDefaults.data(forKey: Constants.animeStorageKey),
+              let decoded = try? JSONDecoder().decode([SubscribedAnime].self, from: data) else {
+            return []
+        }
+        return decoded
+    }
+
+    private func persistAllSubscribedAnime(_ subscribed: [SubscribedAnime]) {
+        guard let encoded = try? JSONEncoder().encode(subscribed) else { return }
+        userDefaults.set(encoded, forKey: Constants.animeStorageKey)
     }
 
     private func triggerCloudSync() {

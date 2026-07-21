@@ -38,6 +38,14 @@ protocol AniListServicing: Sendable {
     /// - Parameter id: The AniList ID of the anime.
     /// - Returns: Detailed anime information.
     func fetchAnimeDetails(id: Int) async throws -> AniListAnimeDetail
+
+    /// Searches for anime matching the query.
+    /// - Parameters:
+    ///   - query: The search query.
+    ///   - page: The page number (1-indexed).
+    ///   - showNSFW: Whether to include NSFW content.
+    /// - Returns: A paginated response containing matching anime.
+    func search(query: String, page: Int, showNSFW: Bool) async throws -> PaginatedResponse
 }
 
 

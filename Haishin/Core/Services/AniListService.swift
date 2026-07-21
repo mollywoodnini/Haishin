@@ -233,6 +233,71 @@ final class AniListService: AniListServicing {
                                  currentPage: response.data.page.pageInfo?.currentPage ?? page)
     }
 
+    /// Searches for anime matching a query.
+    /// - Parameters:
+    ///   - query: The search query.
+    ///   - page: The page number (1-indexed).
+    ///   - showNSFW: Whether to include NSFW (adult) content.
+    /// - Returns: A paginated response containing matching anime.
+    func search(query: String, page: Int = 1, showNSFW: Bool = false) async throws -> PaginatedResponse {
+        let searchQuery = """
+        query($page: Int, $perPage: Int, $search: String) {
+            Page(page: $page, perPage: $perPage) {
+                pageInfo {
+                    hasNextPage
+                    currentPage
+                }
+                media(type: ANIME, search: $search, sort: [SEARCH_MATCH, POPULARITY_DESC, TRENDING_DESC]) {
+                    id
+                    episodes
+                    description(asHtml: false)
+                    coverImage {
+                        large
+                    }
+                    title {
+                        romaji
+                        english
+                    }
+                    status
+                    studios(isMain: true) {
+                        nodes {
+                            name
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        let variables: [String: Any] = [
+            "page": page,
+            "perPage": Constants.pageSize,
+            "search": query
+        ]
+
+        let response: MediaPageResponse = try await executeQuery(searchQuery, variables: variables)
+
+        let items = response.data.page.media
+            
+            .map { media in
+                let title = media.title.english ?? media.title.romaji
+                let studio = media.studios?.nodes.first?.name
+                let coverURL = URL(string: media.coverImage.large)
+
+                return RecommendingItem(id: "\(media.id)",
+                                        title: title,
+                                        subtitle: studio,
+                                        synopsis: media.description?.strippingHTML(),
+                                        coverURL: coverURL,
+                                        anilistId: media.id,
+                                        totalEpisodes: media.episodes)
+            }
+
+        return PaginatedResponse(items: items,
+                                 hasNextPage: response.data.page.pageInfo?.hasNextPage ?? false,
+                                 currentPage: response.data.page.pageInfo?.currentPage ?? page)
+    }
+
     /// Fetches detailed information for a specific anime.
     /// - Parameter id: The AniList ID of the anime.
     /// - Returns: Detailed anime information.

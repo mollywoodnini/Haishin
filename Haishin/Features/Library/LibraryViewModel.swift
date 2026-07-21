@@ -27,6 +27,9 @@ final class LibraryViewModel {
     /// All subscribed videos.
     private(set) var subscribedVideo: [SubscribedVideo] = []
 
+    /// All subscribed anime from AniList.
+    private(set) var subscribedAnime: [SubscribedAnime] = []
+
     /// All downloaded videos.
     private(set) var downloadedVideo: [DownloadedVideo] = []
 
@@ -34,7 +37,7 @@ final class LibraryViewModel {
     var recentsCount: Int { recentVideo.count }
 
     /// Count of subscribed videos.
-    var subscribedCount: Int { subscribedVideo.count }
+    var subscribedCount: Int { subscribedVideo.count + subscribedAnime.count }
 
     /// Count of downloaded items.
     var downloadsCount: Int { downloadService.totalDownloadsCount }
@@ -80,6 +83,7 @@ final class LibraryViewModel {
     func refresh() {
         recentVideo = watchProgressService.getRecentVideo()
         subscribedVideo = subscriptionService.getSubscribedVideo()
+        subscribedAnime = subscriptionService.getSubscribedAnime()
         downloadedVideo = downloadService.downloadedVideo
     }
 
@@ -90,11 +94,21 @@ final class LibraryViewModel {
         recentVideo.removeAll { $0.id == id }
     }
 
-    /// Unsubscribes from a video.
-    /// - Parameter id: The video ID to unsubscribe from.
-    func unsubscribe(id: String) {
-        subscriptionService.unsubscribe(id: id)
-        subscribedVideo.removeAll { $0.id == id }
+    /// Unsubscribes from an AniList anime.
+    /// - Parameter id: The anime ID to unsubscribe from.
+    func unsubscribeAnime(id: Int) {
+        subscriptionService.unsubscribeAnime(id: id)
+        subscribedAnime.removeAll { $0.id == id }
+    }
+
+    /// Subscribes to an AniList anime.
+    /// - Parameters:
+    ///   - id: The anime ID.
+    ///   - title: The anime title.
+    ///   - coverURL: The cover image URL.
+    func subscribeAnime(id: Int, title: String, coverURL: URL?) {
+        subscriptionService.subscribeAnime(id: id, title: title, coverURL: coverURL)
+        refresh()
     }
 
     /// Removes all downloads for a video.

@@ -113,10 +113,10 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
         switch mode {
         case .online(let video):
-            self.isSubscribed = subscriptionService.isSubscribed(id: video.id)
+            self.isSubscribed = subscriptionService.isAnimeSubscribed(id: Int(video.id) ?? 0)
 
         case .offline(let downloadedVideo):
-            self.isSubscribed = subscriptionService.isSubscribed(id: downloadedVideo.id)
+            self.isSubscribed = subscriptionService.isAnimeSubscribed(id: Int(downloadedVideo.id) ?? 0)
             self.offlineEpisodes = downloadedVideo.episodes
                 .filter { $0.state.isCompleted }
                 .sorted { $0.episodeNumber < $1.episodeNumber }
@@ -247,15 +247,14 @@ final class EpisodeListViewModel: Identifiable, Hashable {
 
     /// Toggles the subscription status for this video.
     func toggleSubscription() {
+        let animeId = Int(videoId) ?? 0
         if isSubscribed {
-            subscriptionService.unsubscribe(id: videoId)
+            subscriptionService.unsubscribeAnime(id: animeId)
         } else {
-            subscriptionService.subscribe(
-                id: videoId,
+            subscriptionService.subscribeAnime(
+                id: animeId,
                 title: videoTitle,
-                coverURL: videoCoverURL,
-                sourceId: sourceId,
-                detailsURL: detailsURL
+                coverURL: videoCoverURL
             )
         }
         

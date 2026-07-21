@@ -93,26 +93,31 @@ struct SourceDetailViewModelTests {
             subscribedVideo
         }
 
-        func subscribe(id: String, title: String, coverURL: URL?, sourceId: String, detailsURL: String?) {
-            guard !isSubscribed(id: id) else { return }
-            subscribedVideo.append(SubscribedVideo(id: id,
-                                                   title: title,
-                                                   coverURL: coverURL,
-                                                   sourceId: sourceId,
-                                                   detailsURL: detailsURL,
-                                                   subscribedAt: Date()))
-        }
-
-        func unsubscribe(id: String) {
-            subscribedVideo.removeAll { $0.id == id }
-        }
-
-        func isSubscribed(id: String) -> Bool {
-            subscribedVideo.contains { $0.id == id }
-        }
-
         func getSubscribedCount() -> Int {
             subscribedVideo.count
+        }
+
+        var subscribedAnimeList: [SubscribedAnime] = []
+
+        func getSubscribedAnime() -> [SubscribedAnime] {
+            subscribedAnimeList
+        }
+
+        func subscribeAnime(id: Int, title: String, coverURL: URL?) {
+            guard !isAnimeSubscribed(id: id) else { return }
+            subscribedAnimeList.append(SubscribedAnime(id: id, title: title, coverURL: coverURL, subscribedAt: Date()))
+        }
+
+        func unsubscribeAnime(id: Int) {
+            subscribedAnimeList.removeAll { $0.id == id }
+        }
+
+        func isAnimeSubscribed(id: Int) -> Bool {
+            subscribedAnimeList.contains { $0.id == id }
+        }
+
+        func getSubscribedAnimeCount() -> Int {
+            subscribedAnimeList.count
         }
     }
 
