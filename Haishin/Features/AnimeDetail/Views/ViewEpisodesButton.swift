@@ -17,7 +17,6 @@ struct ViewEpisodesButton: View {
     private let animeTitle: String
     private let selectedSourceId: Binding<String?>
     private let installedSources: [InstalledSource]
-    private let validateSourceSelection: () -> Bool
     private let onNavigateToEpisodes: () -> Void
 
     @State private var showingSourcePicker = false
@@ -31,17 +30,14 @@ struct ViewEpisodesButton: View {
     /// - Parameter animeTitle: The title of the anime to display in the source picker.
     /// - Parameter selectedSourceId: Binding to the currently selected source ID.
     /// - Parameter installedSources: The list of installed sources to choose from.
-    /// - Parameter validateSourceSelection: Closure that validates if a source is selected.
     /// - Parameter onNavigateToEpisodes: Closure called when navigation should occur.
     init(animeTitle: String,
          selectedSourceId: Binding<String?>,
          installedSources: [InstalledSource],
-         validateSourceSelection: @escaping () -> Bool,
          onNavigateToEpisodes: @escaping () -> Void) {
         self.animeTitle = animeTitle
         self.selectedSourceId = selectedSourceId
         self.installedSources = installedSources
-        self.validateSourceSelection = validateSourceSelection
         self.onNavigateToEpisodes = onNavigateToEpisodes
     }
 
@@ -52,11 +48,7 @@ struct ViewEpisodesButton: View {
 
     var body: some View {
         Button {
-            if validateSourceSelection() {
-                onNavigateToEpisodes()
-            } else {
-                showingSourcePicker = true
-            }
+            showingSourcePicker = true
         } label: {
             Text("VIEW EPISODES")
                 .font(.system(size: 15, weight: .bold))

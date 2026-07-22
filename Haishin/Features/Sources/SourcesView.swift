@@ -237,6 +237,16 @@ private struct SourceAddFlowModifier: ViewModifier {
                         } label: {
                             Label("Add GoGoAnime (Debug)", systemImage: "ladybug")
                         }
+
+                        Divider()
+
+                        Button {
+                            Task {
+                                await viewModel.installHiAnimeSource()
+                            }
+                        } label: {
+                            Label("Add HiAnime (Debug)", systemImage: "ladybug")
+                        }
                         #endif
 
                         if viewModel.hasUpdates {

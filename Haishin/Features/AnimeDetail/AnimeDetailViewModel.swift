@@ -140,21 +140,6 @@ final class AnimeDetailViewModel {
         isSubscribed.toggle()
     }
 
-    /// Validates the selected source and returns whether it's valid for navigation.
-    func validateSourceSelection() -> Bool {
-        guard let selectedId = selectedSourceId else {
-            return false
-        }
-
-        let sourceExists = sourceManager.installedSources.contains { $0.id == selectedId }
-
-        if !sourceExists {
-            selectedSourceId = nil
-        }
-
-        return sourceExists
-    }
-
     /// Clears the selected source.
     func clearSelectedSource() {
         selectedSourceId = nil

@@ -194,8 +194,7 @@ struct AnimeDetailView: View {
                                get: { viewModel.selectedSourceId },
                                set: { viewModel.selectedSourceId = $0 }
                            ),
-                           installedSources: viewModel.installedSources,
-                           validateSourceSelection: viewModel.validateSourceSelection) {
+                            installedSources: viewModel.installedSources) {
             navigateToEpisodes = true
         }
     }
