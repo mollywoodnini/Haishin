@@ -509,17 +509,20 @@ final class EpisodeListViewModel: Identifiable, Hashable {
             // Add season/part variations
             applyVariations(normalized, to: &queries)
 
-            // Add Roman numeral variant (e.g., "Title 2" → "Title II")
-            if let romanVariant = normalized.romanNumeralVariant {
-                addUnique(romanVariant, to: &queries)
-                applyVariations(romanVariant, to: &queries)
-            }
-
             // Add base title (text before first separator)
             let base = extractBaseTitle(from: normalized)
             if base != normalized {
                 addUnique(base, to: &queries)
                 applyVariations(base, to: &queries)
+            }
+        }
+
+        // Second pass: add Roman numeral variants for every generated query
+        // (also applied to variation results, e.g. "Season 2" → "2" → "II")
+        let existingQueries = queries
+        for query in existingQueries {
+            if let romanVariant = query.romanNumeralVariant {
+                addUnique(romanVariant, to: &queries)
             }
         }
 
