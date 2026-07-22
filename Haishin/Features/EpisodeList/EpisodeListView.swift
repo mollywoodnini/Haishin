@@ -66,6 +66,7 @@ struct EpisodeListView: View {
             }
         }
         .task {
+            JSRuntimeLogCollector.shared.clear()
             await viewModel.loadEpisodes()
         }
         .onChange(of: viewModel.hasDownloadedEpisodes) { _, hasEpisodes in
@@ -76,8 +77,9 @@ struct EpisodeListView: View {
         }
         .overlay {
             if isLoadingVideo {
-                VideoLoadingOverlayView(
+                LoadingOverlayView(
                     messages: JSRuntimeLogCollector.shared.messages,
+                    title: "Loading video...",
                     onCancel: cancelVideoLoading
                 )
             }
@@ -147,7 +149,10 @@ struct EpisodeListView: View {
     private var onlineModeContent: some View {
         ZStack {
             if viewModel.isLoading && viewModel.sourceVideo == nil {
-                loadingView
+                LoadingOverlayView(
+                    messages: JSRuntimeLogCollector.shared.messages,
+                    title: "Loading episodes..."
+                )
             } else if let error = viewModel.error {
                 errorView(error: error)
             } else if let video = viewModel.sourceVideo {
@@ -173,16 +178,6 @@ struct EpisodeListView: View {
         }
     }
 
-    private var loadingView: some View {
-        VStack(spacing: .spacingM) {
-            ProgressView()
-            Text("Loading episodes...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     private func errorView(error: Error) -> some View {
         let isSourceNotFound = (error as? EpisodesError) == .sourceNotFoundHint
 
@@ -206,12 +201,19 @@ struct EpisodeListView: View {
                 }
                 .buttonStyle(.borderedProminent)
             } else {
-                Button("Retry") {
-                    Task {
-                        await viewModel.retry()
+                HStack(spacing: .spacingM) {
+                    Button("Share Logs") {
+                        showShareSheet = true
                     }
+                    .buttonStyle(.bordered)
+
+                    Button("Retry") {
+                        Task {
+                            await viewModel.retry()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -361,16 +363,18 @@ struct EpisodeListView: View {
 
 
 //#################################################################################
-// MARK: - VideoLoadingOverlayView
+// MARK: - LoadingOverlayView
 //#################################################################################
 
-private struct VideoLoadingOverlayView: View {
+private struct LoadingOverlayView: View {
 
     private let messages: [String]
-    private let onCancel: () -> Void
+    private let title: String
+    private let onCancel: (() -> Void)?
 
-    init(messages: [String], onCancel: @escaping () -> Void) {
+    init(messages: [String], title: String, onCancel: (() -> Void)? = nil) {
         self.messages = messages
+        self.title = title
         self.onCancel = onCancel
     }
 
@@ -385,7 +389,7 @@ private struct VideoLoadingOverlayView: View {
                     .tint(.white)
                     .padding(.top, .spacingS)
 
-                Text("Loading video...")
+                Text(title)
                     .font(.headline)
                     .foregroundStyle(.white)
 
@@ -412,18 +416,20 @@ private struct VideoLoadingOverlayView: View {
                     }
                 }
 
-                Button {
-                    onCancel()
-                } label: {
-                    Text("Cancel")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, .spacingL)
-                        .padding(.vertical, .spacingS)
-                        .background(Color.white.opacity(0.2))
-                        .clipShape(Capsule())
+                if let onCancel {
+                    Button {
+                        onCancel()
+                    } label: {
+                        Text("Cancel")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, .spacingL)
+                            .padding(.vertical, .spacingS)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Capsule())
+                    }
+                    .padding(.top, .spacingS)
                 }
-                .padding(.top, .spacingS)
             }
             .padding(.spacingS)
             .background(.ultraThinMaterial)
