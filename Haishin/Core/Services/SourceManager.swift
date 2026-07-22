@@ -602,15 +602,24 @@ final class SourceManager: SourceManaging {
         let episodeRanges: [EpisodeRange]
         if let firstServerRanges = jsDetails.episodeRanges?.values.first, !firstServerRanges.isEmpty {
             episodeRanges = firstServerRanges.map { convertToEpisodeRange($0) }
-        } else {
-            // Fallback: create a single range containing all episodes
-            if !episodes.isEmpty {
+        } else if !episodes.isEmpty {
+            // Split into ranges of 100 when there are more than 100 episodes
+            if episodes.count > 100 {
+                episodeRanges = stride(from: 0, to: episodes.count, by: 100).map { start in
+                    let rangeEps = Array(episodes[start..<min(start + 100, episodes.count)])
+                    let firstNum = rangeEps.first?.number ?? ""
+                    let lastNum = rangeEps.last?.number ?? ""
+                    return EpisodeRange(id: "range_\(firstNum)_\(lastNum)",
+                                        title: firstNum == lastNum ? firstNum : "\(firstNum) - \(lastNum)",
+                                        episodes: rangeEps)
+                }
+            } else {
                 episodeRanges = [EpisodeRange(id: "0",
                                               title: "All Episodes",
                                               episodes: episodes)]
-            } else {
-                episodeRanges = []
             }
+        } else {
+            episodeRanges = []
         }
         
         // Convert status
