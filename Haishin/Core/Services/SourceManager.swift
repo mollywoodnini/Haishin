@@ -89,8 +89,7 @@ final class SourceManager: SourceManaging {
             // Add default repository on first launch
             await addDefaultRepositoryIfNeeded()
 
-            let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory,
-                                                                   includingPropertiesForKeys: nil)
+            let sourceFiles = try fileManager.contentsOfDirectory(at: sourcesDirectory, includingPropertiesForKeys: nil)
                 .filter { $0.pathExtension == "js" }
                 // Sort so that files with proper names (e.g., "archive.org") come before
                 // UUID-named files, ensuring we keep the correctly named one

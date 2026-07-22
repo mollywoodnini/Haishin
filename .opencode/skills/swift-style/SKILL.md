@@ -210,6 +210,54 @@ var fullName: String { return "\(givenName) \(familyName)" }
 func reversed() -> String { return String(name.reversed()) }
 ```
 
+### Computed Properties over Zero-Parameter Functions
+
+Prefer a computed property over a `func` with no parameters when the result is a derived/transformed value (as opposed to an action or lookup that performs side effects).
+
+```swift
+// CORRECT - computed property
+var romanNumeralVariant: String? { ... }
+
+// WRONG - zero-parameter function for a simple derivation
+func romanNumeralVariant() -> String? { ... }
+```
+
+**Exceptions:**
+- Throwing operations: `func loadConfig() throws -> Config` (communicates that work is done)
+- Expensive computations where the `O(1)`-ness of a property would be misleading
+- Async operations: `func fetchUser() async -> User`
+
+### Computed Properties over Zero-Parameter Functions
+
+Prefer a computed property over a `func` with no parameters when the result is a derived/transformed value (as opposed to an action or lookup that performs side effects).
+
+```swift
+// CORRECT - computed property
+var romanNumeralVariant: String? { ... }
+
+// WRONG - zero-parameter function for a simple derivation
+func romanNumeralVariant() -> String? { ... }
+```
+
+**Exceptions:**
+- Throwing operations: `func loadConfig() throws -> Config` (communicates that work is done)
+- Expensive computations where the `O(1)`-ness of a property would be misleading
+- Async operations: `func fetchUser() async -> User`
+
+### Descriptive Variable Names
+
+Always use descriptive variable names. Single-letter names (`t`, `s`, `x`, etc.) are only acceptable in closure shorthand (`$0`, `$1`) or trivial loop variables in ultra-short, single-line contexts (e.g., `for i in 0..<3`).
+
+```swift
+// CORRECT - descriptive name
+for title in titles { ... }
+for episode in episodes { ... }
+
+// WRONG - single-letter variable name
+for t in titles { ... }
+for e in episodes { ... }
+```
+
 ### Extract Complex Expressions
 
 When inline expressions become too long or reduce readability, extract them into computed properties or local variables.

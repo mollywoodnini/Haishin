@@ -117,9 +117,19 @@ struct AniListAnimeDetail: Identifiable, Sendable {
 
     /// Alternative titles for search matching (romaji, english, native, excluding the primary title).
     var alternativeSearchTitles: [String] {
-        [romajiTitle, englishTitle, nativeTitle]
+        var titles = [romajiTitle, englishTitle, nativeTitle]
             .compactMap { $0 }
             .filter { $0 != title && !$0.isEmpty }
+
+        for title in titles {
+            if let variant = title.romanNumeralVariant {
+                if !titles.contains(variant) {
+                    titles.append(variant)
+                }
+            }
+        }
+
+        return titles
     }
 }
 
